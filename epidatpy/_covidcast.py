@@ -30,6 +30,7 @@ from ._model import (
 
 GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
 TimeType = Literal["day", "week"]
+GeoParam = Union[str, Iterable[str]]
 
 
 @dataclass
@@ -81,6 +82,20 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
         EpidataFieldInfo("missing_stderr", EpidataFieldType.int),
         EpidataFieldInfo("missing_sample_size", EpidataFieldType.int),
     ]
+
+
+def parse_geo_param(geo: Union[str, Iterable[str], None]) -> Optional[str]:
+    if geo is None:
+        return None
+    if isinstance(geo, str):
+        for g in geo.split(";"):
+            assert ":" in g
+            geo_type, _ = g.split(":")
+            assert geo_type in get_args(GeoType)
+        return geo
+    if isinstance(geo, Iterable):
+        return parse_geo_param(";".join(geo))
+    raise TypeError("'geos' was not of the correct type.")
 
 
 @dataclass
@@ -155,18 +170,33 @@ class DataSignal(Generic[CALL_TYPE]):
 
     def call(
         self,
-        geo_type: GeoType,
-        geo_values: Union[int, str, Iterable[Union[int, str]]],
-        time_values: EpiRangeParam,
+        geo_type: Optional[GeoType] = None,
+        geo_values: Optional[Union[int, str, Iterable[Union[int, str]]]] = None,
+        time_values: Optional[EpiRangeParam] = None,
+        geo: Optional[GeoParam] = None,
         as_of: Union[None, str, int] = None,
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch Delphi's COVID-19 Surveillance Streams"""
-        if any((v is None for v in (geo_type, geo_values, time_values))):
-            raise InvalidArgumentException("`geo_type`, `time_values`, and `geo_values` are all required")
+        """Fetch Delphi's COVID-19 Surveillance Streams
+
+        Can either specify `geo_type` and `geo_value` or specify `geo` as a string of semicolon-separated
+        {geo_type}:{geo_values} strings, e.g. 'state:ak,ca;county:01205,95616'.
+        """
+        if time_values is None:
+            raise InvalidArgumentException("`time_values` is required.")
+        if not (geo_type is None and geo_values is None) ^ (geo is None):
+            raise InvalidArgumentException(
+                "Either (`geo_type` and `geo_values`) or `geo` must be specified, but not both."
+            )
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
+
+        if geo_type is not None and geo_values is not None:
+            if not isinstance(geo_values, str) and isinstance(geo_values, Iterable):
+                geo_values = ",".join(str(v) for v in geo_values)
+            geo = f"{geo_type}:{str(geo_values)}"
+        geo = parse_geo_param(geo)
 
         return self._create_call(
             dict(
@@ -174,8 +204,7 @@ class DataSignal(Generic[CALL_TYPE]):
                 signals=self.signal,
                 time_type=self.time_type,
                 time_values=time_values,
-                geo_type=geo_type,
-                geo_values=geo_values,
+                geo=geo,
                 as_of=as_of,
                 issues=issues,
                 lag=lag,
@@ -184,15 +213,24 @@ class DataSignal(Generic[CALL_TYPE]):
 
     def __call__(
         self,
-        geo_type: GeoType,
-        geo_values: Union[int, str, Iterable[Union[int, str]]],
-        time_values: EpiRangeParam,
+        geo_type: Optional[GeoType] = None,
+        geo_values: Optional[Union[int, str, Iterable[Union[int, str]]]] = None,
+        time_values: Optional[EpiRangeParam] = None,
+        geo: Optional[GeoParam] = None,
         as_of: Union[None, str, int] = None,
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
         """Fetch Delphi's COVID-19 Surveillance Streams"""
-        return self.call(geo_type, geo_values, time_values, as_of, issues, lag)
+        return self.call(
+            geo_type=geo_type,
+            geo_values=geo_values,
+            time_values=time_values,
+            geo=geo,
+            as_of=as_of,
+            issues=issues,
+            lag=lag,
+        )
 
 
 @dataclass
