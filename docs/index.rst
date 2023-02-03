@@ -1,4 +1,4 @@
-Delphi Epi Data
+Delphi Epidata
 ===============
 
 This package provides Python access to the `Delphi Epidata API
