@@ -169,17 +169,17 @@ class DataSignal(Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
         return self._create_call(
-            dict(
-                data_source=self.source,
-                signals=self.signal,
-                time_type=self.time_type,
-                time_values=time_values,
-                geo_type=geo_type,
-                geo_values=geo_values,
-                as_of=as_of,
-                issues=issues,
-                lag=lag,
-            )
+            {
+                "data_source": self.source,
+                "signals": self.signal,
+                "time_type": self.time_type,
+                "time_values": time_values,
+                "geo_type": geo_type,
+                "geo_values": geo_values,
+                "as_of": as_of,
+                "issues": issues,
+                "lag": lag,
+            }
         )
 
     def __call__(

@@ -70,7 +70,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "afhsb/",
-            dict(auth=auth, locations=locations, epiweeks=epiweeks, flu_types=flu_types),
+            {"auth": auth, "locations": locations, "epiweeks": epiweeks, "flu_types": flu_types},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("flu_type", EpidataFieldType.text),
@@ -87,7 +87,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "cdc/",
-            dict(auth=auth, epiweeks=epiweeks, locations=locations),
+            {"auth": auth, "epiweeks": epiweeks, "locations": locations},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -119,7 +119,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "covid_hosp_facility_lookup/",
-            dict(state=state, ccn=ccn, city=city, zip=zip, fips_code=fips_code),
+            {"state": state, "ccn": ccn, "city": city, "zip": zip, "fips_code": fips_code},
             [
                 EpidataFieldInfo("hospital_pk", EpidataFieldType.text),
                 EpidataFieldInfo("state", EpidataFieldType.text),
@@ -245,7 +245,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "covid_hosp_facility/",
-            dict(hospital_pks=hospital_pks, collection_weeks=collection_weeks, publication_dates=publication_dates),
+            {
+                "hospital_pks": hospital_pks,
+                "collection_weeks": collection_weeks,
+                "publication_dates": publication_dates,
+            },
             [
                 *[EpidataFieldInfo(k, EpidataFieldType.text) for k in fields_string],
                 EpidataFieldInfo("publication_date", EpidataFieldType.date),
@@ -327,7 +331,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "covid_hosp_state_timeseries/",
-            dict(states=states, dates=dates, issues=issues, as_of=as_of),
+            {"states": states, "dates": dates, "issues": issues, "as_of": as_of},
             [
                 EpidataFieldInfo("state", EpidataFieldType.text),
                 EpidataFieldInfo("issue", EpidataFieldType.date),
@@ -456,18 +460,18 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "covidcast_nowcast/",
-            dict(
-                data_source=data_source,
-                signals=signals,
-                sensor_names=sensor_names,
-                time_type=time_type,
-                geo_type=geo_type,
-                time_values=time_values,
-                as_of=as_of,
-                issues=issues,
-                lag=lag,
-                geo_values=geo_values,
-            ),
+            {
+                "data_source": data_source,
+                "signals": signals,
+                "sensor_names": sensor_names,
+                "time_type": time_type,
+                "geo_type": geo_type,
+                "time_values": time_values,
+                "as_of": as_of,
+                "issues": issues,
+                "lag": lag,
+                "geo_values": geo_values,
+            },
             [
                 EpidataFieldInfo("geo_value", EpidataFieldType.text),
                 EpidataFieldInfo("signal", EpidataFieldType.text),
@@ -500,17 +504,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "covidcast/",
-            dict(
-                data_source=data_source,
-                signals=signals,
-                time_type=time_type,
-                geo_type=geo_type,
-                time_values=time_values,
-                as_of=as_of,
-                issues=issues,
-                lag=lag,
-                geo_values=geo_values,
-            ),
+            {
+                "data_source": data_source,
+                "signals": signals,
+                "time_type": time_type,
+                "geo_type": geo_type,
+                "time_values": time_values,
+                "as_of": as_of,
+                "issues": issues,
+                "lag": lag,
+                "geo_values": geo_values,
+            },
             define_covidcast_fields(),
         )
 
@@ -521,7 +525,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`system` and `epiweek` are both required")
         return self._create_call(
             "delphi/",
-            dict(system=system, epiweek=epiweek),
+            {"system": system, "epiweek": epiweek},
             [
                 EpidataFieldInfo("system", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -537,7 +541,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`locations` and `epiweeks` are both required")
         return self._create_call(
             "dengue_nowcast/",
-            dict(locations=locations, epiweeks=epiweeks),
+            {"locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -556,7 +560,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "dengue_sensors/",
-            dict(auth=auth, names=names, locations=locations, epiweeks=epiweeks),
+            {"auth": auth, "names": names, "locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("name", EpidataFieldType.text),
                 EpidataFieldInfo("location", EpidataFieldType.text),
@@ -579,7 +583,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "ecdc_ili/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("region", EpidataFieldType.text),
                 EpidataFieldInfo("release_date", EpidataFieldType.date),
@@ -605,7 +609,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "flusurv/",
-            dict(locations=locations, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"locations": locations, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("location", EpidataFieldType.text),
@@ -636,7 +640,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "fluview_clinical/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("region", EpidataFieldType.text),
@@ -677,7 +681,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "fluview/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag, auth=auth),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag, "auth": auth},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("region", EpidataFieldType.text),
@@ -703,7 +707,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`locations` and `epiweeks` are both required")
         return self._create_call(
             "gft/",
-            dict(locations=locations, epiweeks=epiweeks),
+            {"locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -717,7 +721,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`auth`, `locations`, `epiweeks`, and `query` are all required")
         return self._create_call(
             "ght/",
-            dict(auth=auth, locations=locations, epiweeks=epiweeks, query=query),
+            {"auth": auth, "locations": locations, "epiweeks": epiweeks, "query": query},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -739,7 +743,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "kcdc_ili/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("region", EpidataFieldType.text),
@@ -758,7 +762,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "meta_afhsb/",
-            dict(auth=auth),
+            {"auth": auth},
             only_supports_classic=True,
         )
 
@@ -769,7 +773,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`auth` is required")
         return self._create_call(
             "meta_norostat/",
-            dict(auth=auth),
+            {"auth": auth},
             only_supports_classic=True,
         )
 
@@ -789,7 +793,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "nidss_dengue/",
-            dict(locations=locations, epiweeks=epiweeks),
+            {"locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -813,7 +817,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "nidss_flu/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("region", EpidataFieldType.text),
@@ -832,7 +836,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`auth`, `location`, and `epiweeks` are all required")
         return self._create_call(
             "norostat/",
-            dict(auth=auth, epiweeks=epiweeks, location=location),
+            {"auth": auth, "epiweeks": epiweeks, "location": location},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -848,7 +852,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "nowcast/",
-            dict(locations=locations, epiweeks=epiweeks),
+            {"locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -872,7 +876,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
         return self._create_call(
             "paho_dengue/",
-            dict(regions=regions, epiweeks=epiweeks, issues=issues, lag=lag),
+            {"regions": regions, "epiweeks": epiweeks, "issues": issues, "lag": lag},
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("region", EpidataFieldType.text),
@@ -896,7 +900,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         return self._create_call(
             "quidel/",
-            dict(auth=auth, epiweeks=epiweeks, locations=locations),
+            {"auth": auth, "epiweeks": epiweeks, "locations": locations},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
@@ -911,7 +915,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("`auth`, `names`, `locations`, and `epiweeks` are all required")
         return self._create_call(
             "sensors/",
-            dict(auth=auth, names=names, locations=locations, epiweeks=epiweeks),
+            {"auth": auth, "names": names, "locations": locations, "epiweeks": epiweeks},
             [
                 EpidataFieldInfo("name", EpidataFieldType.text),
                 EpidataFieldInfo("location", EpidataFieldType.text),
@@ -935,7 +939,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("exactly one of `dates` and `epiweeks` is required")
         return self._create_call(
             "twitter/",
-            dict(auth=auth, locations=locations, dates=dates, epiweeks=epiweeks),
+            {"auth": auth, "locations": locations, "epiweeks": epiweeks, "dates": dates},
             [
                 EpidataFieldInfo("location", EpidataFieldType.text),
                 EpidataFieldInfo("date", EpidataFieldType.date)
@@ -963,7 +967,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             raise InvalidArgumentException("exactly one of `dates` and `epiweeks` is required")
         return self._create_call(
             "wiki/",
-            dict(articles=articles, dates=dates, epiweeks=epiweeks, hours=hours, language=language),
+            {"articles": articles, "dates": dates, "epiweeks": epiweeks, "hours": hours, "language": language},
             [
                 EpidataFieldInfo("article", EpidataFieldType.text),
                 EpidataFieldInfo("date", EpidataFieldType.date)
