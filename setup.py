@@ -4,7 +4,7 @@ import pathlib
 
 setuptools.setup(
     name="epidatpy",
-    version="1.0.0",
+    version="0.5.0",
     author="Alex Reinhart",
     author_email="areinhar@stat.cmu.edu",
     description="A programmatic interface to Delphi's Epidata API.",
@@ -20,7 +20,7 @@ setuptools.setup(
         "Natural Language :: English",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     install_requires=[f.strip() for f in pathlib.Path("requirements.txt").read_text().split("\n") if f],
     # package_data={'epidatpy': []}
 )
