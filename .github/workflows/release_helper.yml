@@ -104,7 +104,7 @@ jobs:
           base: dev
           title: "chore: sync main->dev"
           labels: chore
-          reviewers: krivard
-          assignees: krivard
+          # reviewers: 
+          assignees: melange396
           body: |
             Syncing Main->Dev.
