@@ -28,7 +28,7 @@ for row in apicall.iter():
 
 StagingEpidata = Epidata.with_base_url("https://staging.delphi.cmu.edu/epidata/")
 
-df = StagingEpidata.covidcast(
+epicall = StagingEpidata.covidcast(
     "fb-survey", "smoothed_cli", "day", "nation", EpiRange(date(2021, 4, 5), date(2021, 4, 10)), "*"
-).df()
-print(df.shape)
+)
+print(epicall._base_url)
