@@ -22,5 +22,6 @@ from ._covidcast import (
     GeoType,
     TimeType,
 )
+from ._auth import get_api_key
 
 __author__ = "Delphi Group"

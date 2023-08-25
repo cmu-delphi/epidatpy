@@ -3,6 +3,7 @@ from typing import Final, Generator, Sequence, cast, Iterable, Mapping, Optional
 from json import loads
 
 from requests import Response, Session
+from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 from pandas import DataFrame
 
@@ -19,6 +20,7 @@ from ._model import (
 from ._endpoints import AEpiDataEndpoints
 from ._constants import HTTP_HEADERS, BASE_URL
 from ._covidcast import CovidcastDataSources, define_covidcast_fields
+from ._auth import get_api_key
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -26,11 +28,12 @@ def _request_with_retry(
     url: str, params: Mapping[str, str], session: Optional[Session] = None, stream: bool = False
 ) -> Response:
     """Make request with a retry if an exception is thrown."""
+    basic_auth = HTTPBasicAuth("epidata", get_api_key())
 
     def call_impl(s: Session) -> Response:
-        res = s.get(url, params=params, headers=HTTP_HEADERS, stream=stream)
+        res = s.get(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
         if res.status_code == 414:
-            return s.post(url, params=params, headers=HTTP_HEADERS, stream=stream)
+            return s.post(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
         return res
 
     if session:
