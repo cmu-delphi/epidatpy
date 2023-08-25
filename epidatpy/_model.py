@@ -274,7 +274,7 @@ class AEpiDataCall:
             elif info.type == EpidataFieldType.int:
                 data_types[info.name] = int
             elif info.type in (EpidataFieldType.date, EpidataFieldType.epiweek, EpidataFieldType.date_or_epiweek):
-                data_types[info.name] = int if disable_date_parsing else "datetime64"
+                data_types[info.name] = int if disable_date_parsing else "datetime64[ns]"
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = float
             else:
