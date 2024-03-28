@@ -429,6 +429,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("mean_value", EpidataFieldType.float),
                 EpidataFieldInfo("stdev_value", EpidataFieldType.float),
                 EpidataFieldInfo("last_update", EpidataFieldType.int),
+                EpidataFieldInfo("min_issue", EpidataFieldType.date),
                 EpidataFieldInfo("max_issue", EpidataFieldType.date),
                 EpidataFieldInfo("min_lag", EpidataFieldType.int),
                 EpidataFieldInfo("max_lag", EpidataFieldType.int),
