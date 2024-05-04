@@ -1,5 +1,5 @@
-"""Fetch data from Delphi's API.
-"""
+"""Fetch data from Delphi's API."""
+
 from ._constants import __version__
 from ._model import (
     EpiRange,
