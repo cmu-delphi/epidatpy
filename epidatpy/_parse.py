@@ -29,7 +29,9 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
     return d
 
 
-def fields_to_predicate(fields: Optional[Iterable[str]] = None) -> Callable[[str], bool]:
+def fields_to_predicate(
+    fields: Optional[Iterable[str]] = None,
+) -> Callable[[str], bool]:
     if not fields:
         return lambda _: True
     to_include: Set[str] = set()

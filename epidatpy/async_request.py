@@ -84,7 +84,9 @@ class EpiDataAsyncCall(AEpiDataCall):
         return await _async_request(url, params, self._session)
 
     async def classic(
-        self, fields: Optional[Iterable[str]] = None, disable_date_parsing: Optional[bool] = False
+        self,
+        fields: Optional[Iterable[str]] = None,
+        disable_date_parsing: Optional[bool] = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
         self._verify_parameters()
@@ -99,13 +101,17 @@ class EpiDataAsyncCall(AEpiDataCall):
             return {"result": 0, "message": f"error: {e}", "epidata": []}
 
     async def __call__(
-        self, fields: Optional[Iterable[str]] = None, disable_date_parsing: Optional[bool] = False
+        self,
+        fields: Optional[Iterable[str]] = None,
+        disable_date_parsing: Optional[bool] = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
         return await self.classic(fields, disable_date_parsing=disable_date_parsing)
 
     async def json(
-        self, fields: Optional[Iterable[str]] = None, disable_date_parsing: Optional[bool] = False
+        self,
+        fields: Optional[Iterable[str]] = None,
+        disable_date_parsing: Optional[bool] = False,
     ) -> List[Mapping[str, Union[str, int, float, date, None]]]:
         """Request and parse epidata in JSON format"""
         self._verify_parameters()
@@ -119,7 +125,9 @@ class EpiDataAsyncCall(AEpiDataCall):
         ]
 
     async def df(
-        self, fields: Optional[Iterable[str]] = None, disable_date_parsing: Optional[bool] = False
+        self,
+        fields: Optional[Iterable[str]] = None,
+        disable_date_parsing: Optional[bool] = False,
     ) -> DataFrame:
         """Request and parse epidata as a pandas data frame"""
         self._verify_parameters()
@@ -138,7 +146,9 @@ class EpiDataAsyncCall(AEpiDataCall):
         return await response.text()
 
     async def iter(
-        self, fields: Optional[Iterable[str]] = None, disable_date_parsing: Optional[bool] = False
+        self,
+        fields: Optional[Iterable[str]] = None,
+        disable_date_parsing: Optional[bool] = False,
     ) -> AsyncGenerator[Mapping[str, Union[str, int, float, date, None]], None]:
         """Request and streams epidata rows"""
         self._verify_parameters()
@@ -149,7 +159,9 @@ class EpiDataAsyncCall(AEpiDataCall):
         async for line in response.content:
             yield self._parse_row(loads(line), disable_date_parsing=disable_date_parsing)
 
-    async def __(self) -> AsyncGenerator[Mapping[str, Union[str, int, float, date, None]], None]:
+    async def __(
+        self,
+    ) -> AsyncGenerator[Mapping[str, Union[str, int, float, date, None]], None]:
         return self.iter()
 
 
@@ -258,10 +270,18 @@ async def CovidcastEpidata(
     meta_data_res.raise_for_status()
     meta_data = await meta_data_res.json()
 
-    def create_call(params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]) -> EpiDataAsyncCall:
+    def create_call(
+        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+    ) -> EpiDataAsyncCall:
         return EpiDataAsyncCall(base_url, session, "covidcast", params, define_covidcast_fields())
 
     return CovidcastDataSources.create(meta_data, create_call)
 
 
-__all__ = ["Epidata", "EpiDataAsyncCall", "EpiDataAsyncContext", "EpiRange", "CovidcastEpidata"]
+__all__ = [
+    "Epidata",
+    "EpiDataAsyncCall",
+    "EpiDataAsyncContext",
+    "EpiRange",
+    "CovidcastEpidata",
+]

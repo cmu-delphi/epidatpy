@@ -69,7 +69,11 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
             categories=list(get_args(GeoType)),
         ),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
-        EpidataFieldInfo("time_type", EpidataFieldType.categorical, categories=list(get_args(TimeType))),
+        EpidataFieldInfo(
+            "time_type",
+            EpidataFieldType.categorical,
+            categories=list(get_args(TimeType)),
+        ),
         EpidataFieldInfo("time_value", EpidataFieldType.date_or_epiweek),
         EpidataFieldInfo("issue", EpidataFieldType.date),
         EpidataFieldInfo("lag", EpidataFieldType.int),
@@ -215,7 +219,8 @@ class DataSource(Generic[CALL_TYPE]):
     signals: Sequence[DataSignal] = field(default_factory=list)
 
     def __post_init__(
-        self, _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE]
+        self,
+        _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE],
     ) -> None:
         self.link = [WebLink(alt=l["alt"], href=l["href"]) if isinstance(l, dict) else l for l in self.link]
         signal_fields = fields(DataSignal)
@@ -228,7 +233,14 @@ class DataSource(Generic[CALL_TYPE]):
     def to_df(sources: Iterable["DataSource"]) -> DataFrame:
         df = DataFrame(
             sources,
-            columns=["source", "name", "description", "reference_signal", "license", "dua"],
+            columns=[
+                "source",
+                "name",
+                "description",
+                "reference_signal",
+                "license",
+                "dua",
+            ],
         )
         df["signals"] = [",".join(ss.signal for ss in s.signals) for s in sources]
         return df.set_index("source")
@@ -389,12 +401,10 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         return iter(self.sources)
 
     @overload
-    def __getitem__(self, source: str) -> DataSource[CALL_TYPE]:
-        ...
+    def __getitem__(self, source: str) -> DataSource[CALL_TYPE]: ...
 
     @overload
-    def __getitem__(self, source_signal: Tuple[str, str]) -> DataSignal[CALL_TYPE]:
-        ...
+    def __getitem__(self, source_signal: Tuple[str, str]) -> DataSignal[CALL_TYPE]: ...
 
     def __getitem__(
         self, source_signal: Union[str, Tuple[str, str]]

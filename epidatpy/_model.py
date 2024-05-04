@@ -21,7 +21,12 @@ from typing import (
 from epiweeks import Week
 from pandas import DataFrame, CategoricalDtype
 
-from ._parse import parse_api_date, parse_api_week, parse_api_date_or_week, fields_to_predicate
+from ._parse import (
+    parse_api_date,
+    parse_api_week,
+    parse_api_date_or_week,
+    fields_to_predicate,
+)
 
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
@@ -33,6 +38,7 @@ def format_date(d: EpiDateLike) -> str:
         # YYYYMMDD
         return d.strftime("%Y%m%d")
     if isinstance(d, Week):
+        # YYYYww
         return cast(str, d.cdcformat())
     return str(d)
 
@@ -81,7 +87,9 @@ class EpiRange(Generic[EPI_RANGE_TYPE]):
         return f"{format_date(self.start)}-{format_date(self.end)}"
 
 
-EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
+EpiDataResponse = TypedDict(
+    "EpiDataResponse", {"result": int, "message": str, "epidata": List}
+)
 
 
 EpiRangeParam = Union[EpiRangeLike, Iterable[EpiRangeLike]]
@@ -180,8 +188,10 @@ class AEpiDataCall:
         # hook for verifying parameters before sending
         pass
 
-    def _formatted_paramters(
-        self, format_type: Optional[EpiDataFormatType] = None, fields: Optional[Iterable[str]] = None
+    def _formatted_parameters(
+        self,
+        format_type: Optional[EpiDataFormatType] = None,
+        fields: Optional[Iterable[str]] = None,
     ) -> Mapping[str, str]:
         """
         format this call into a [URL, Params] tuple
@@ -194,12 +204,14 @@ class AEpiDataCall:
         return {k: format_list(v) for k, v in all_params.items() if v is not None}
 
     def request_arguments(
-        self, format_type: Optional[EpiDataFormatType] = None, fields: Optional[Iterable[str]] = None
+        self,
+        format_type: Optional[EpiDataFormatType] = None,
+        fields: Optional[Iterable[str]] = None,
     ) -> Tuple[str, Mapping[str, str]]:
         """
         format this call into a [URL, Params] tuple
         """
-        formatted_params = self._formatted_paramters(format_type, fields)
+        formatted_params = self._formatted_parameters(format_type, fields)
         full_url = self._full_url()
         return full_url, formatted_params
 
@@ -225,13 +237,16 @@ class AEpiDataCall:
         return u
 
     def __repr__(self) -> str:
-        return f"EpiDataCall(endpoint={self._endpoint}, params={self._formatted_paramters()})"
+        return f"EpiDataCall(endpoint={self._endpoint}, params={self._formatted_parameters()})"
 
     def __str__(self) -> str:
         return self.request_url()
 
     def _parse_value(
-        self, key: str, value: Union[str, float, int, None], disable_date_parsing: Optional[bool] = False
+        self,
+        key: str,
+        value: Union[str, float, int, None],
+        disable_date_parsing: Optional[bool] = False,
     ) -> Union[str, float, int, date, None]:
         meta = self.meta_by_name.get(key)
         if not meta or value is None:
@@ -247,11 +262,15 @@ class AEpiDataCall:
         return value
 
     def _parse_row(
-        self, row: Mapping[str, Union[str, float, int, None]], disable_date_parsing: Optional[bool] = False
+        self,
+        row: Mapping[str, Union[str, float, int, None]],
+        disable_date_parsing: Optional[bool] = False,
     ) -> Mapping[str, Union[str, float, int, date, None]]:
         if not self.meta:
             return row
-        return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
+        return {
+            k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()
+        }
 
     def _as_df(
         self,
@@ -270,11 +289,19 @@ class AEpiDataCall:
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
             elif info.type == EpidataFieldType.categorical:
-                data_types[info.name] = CategoricalDtype(categories=info.categories or None, ordered=True)
+                data_types[info.name] = CategoricalDtype(
+                    categories=info.categories or None, ordered=True
+                )
             elif info.type == EpidataFieldType.int:
                 data_types[info.name] = int
-            elif info.type in (EpidataFieldType.date, EpidataFieldType.epiweek, EpidataFieldType.date_or_epiweek):
-                data_types[info.name] = int if disable_date_parsing else "datetime64[ns]"
+            elif info.type in (
+                EpidataFieldType.date,
+                EpidataFieldType.epiweek,
+                EpidataFieldType.date_or_epiweek,
+            ):
+                data_types[info.name] = (
+                    int if disable_date_parsing else "datetime64[ns]"
+                )
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = float
             else:
