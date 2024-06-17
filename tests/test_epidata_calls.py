@@ -1,7 +1,20 @@
+import os
 from epidatpy.request import Epidata, EpiRange
 
 # Requirements to run these:
-# DELPHI_EPIDATA_KEY environment variable is set https://api.delphi.cmu.edu/epidata/admin/registration_form
+# - DELPHI_EPIDATA_KEY environment variable is set https://api.delphi.cmu.edu/epidata/admin/registration_form
+# - it has access to the private endpoints being tested
+
+auth = os.environ.get("DELPHI_EPIDATA_KEY")
+
+def test_pvt_cdc() -> None:
+    apicall = Epidata.pvt_cdc(
+        auth = auth,
+        locations = "fl,ca",
+        epiweeks = EpiRange(201501, 201601)
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
 
 def test_pub_covid_hosp_facility_lookup() -> None:
     apicall = Epidata.pub_covid_hosp_facility_lookup(state="fl")
@@ -74,6 +87,16 @@ def test_pub_dengue_nowcast() -> None:
     data = apicall.json()
     assert(len(data) > 0)
 
+def test_pvt_dengue_sensors() -> None:
+    apicall = Epidata.pvt_dengue_sensors(
+        auth = auth,
+        names = "ght",
+        locations = "ag",
+        epiweeks = EpiRange(201501, 202001)
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
+
 def test_pub_ecdc_ili() -> None:
     apicall = Epidata.pub_ecdc_ili(
         regions = "austria",
@@ -119,12 +142,29 @@ def test_pub_gft() -> None:
     data = apicall.json()
     assert(len(data) > 0)
 
+def test_pvt_ght() -> None:
+    apicall = Epidata.pvt_ght(
+        auth = auth,
+        locations = "ma",
+        epiweeks = EpiRange(199301, 202304),
+        query = "how to get over the flu"
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
+
 def test_pub_kcdc_ili() -> None:
     apicall = Epidata.pub_kcdc_ili(
         regions = "ROK",
         epiweeks = 200436
     )
     data = apicall.json(disable_date_parsing=True)
+    assert(len(data) > 0)
+
+def test_pvt_meta_norostat() -> None:
+    apicall = Epidata.pvt_meta_norostat(
+        auth = auth
+    )
+    data = apicall.classic()
     assert(len(data) > 0)
 
 def test_pub_meta() -> None:
@@ -148,6 +188,15 @@ def test_pub_nidss_flu() -> None:
     data = apicall.json(disable_date_parsing=True)
     assert(len(data) > 0)
 
+def test_pvt_norostat() -> None:
+    apicall = Epidata.pvt_norostat(
+        auth = auth,
+        location = "1",
+        epiweeks = 201233
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
+
 def test_pub_nowcast() -> None:
     apicall = Epidata.pub_nowcast(
         locations = "ca",
@@ -162,6 +211,35 @@ def test_pub_paho_dengue() -> None:
         epiweeks = EpiRange(201401, 201501)
     )
     data = apicall.json(disable_date_parsing=True)
+    assert(len(data) > 0)
+
+def test_pvt_quidel() -> None:
+    apicall = Epidata.pvt_quidel(
+        auth = auth,
+        locations = "hhs1",
+        epiweeks = EpiRange(201201, 202001)
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
+
+def test_pvt_sensors() -> None:
+    apicall = Epidata.pvt_sensors(
+        auth = auth,
+        names = "sar3",
+        locations = "nat",
+        epiweeks = EpiRange(201501, 202001)
+    )
+    data = apicall.json()
+    assert(len(data) > 0)
+
+def test_pvt_twitter() -> None:
+    apicall = Epidata.pvt_twitter(
+        auth = auth,
+        locations = "CA",
+        time_type = "week",
+        time_values = EpiRange(201501, 202001)
+    )
+    data = apicall.json()
     assert(len(data) > 0)
 
 def test_pub_wiki() -> None:
