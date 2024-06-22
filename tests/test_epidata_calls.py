@@ -109,7 +109,7 @@ def test_pub_ecdc_ili() -> None:
         regions = "austria",
         epiweeks = EpiRange(201901, 202001)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pub_flusurv() -> None:
@@ -117,7 +117,7 @@ def test_pub_flusurv() -> None:
         locations = "CA",
         epiweeks = EpiRange(201701, 201801)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pub_fluview_clinical() -> None:
@@ -125,12 +125,12 @@ def test_pub_fluview_clinical() -> None:
         regions = "nat",
         epiweeks = EpiRange(201601, 201701)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pub_fluview_meta() -> None:
     apicall = Epidata.pub_fluview_meta()
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pub_fluview() -> None:
@@ -138,7 +138,7 @@ def test_pub_fluview() -> None:
         regions = "nat",
         epiweeks = EpiRange(201201, 202005)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pub_gft() -> None:
@@ -164,7 +164,7 @@ def test_pub_kcdc_ili() -> None:
         regions = "ROK",
         epiweeks = 200436
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pvt_meta_norostat() -> None:
@@ -192,7 +192,7 @@ def test_pub_nidss_flu() -> None:
         regions = "taipei",
         epiweeks = EpiRange(201501, 201601)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pvt_norostat() -> None:
@@ -218,7 +218,7 @@ def test_pub_paho_dengue() -> None:
         regions = "ca",
         epiweeks = EpiRange(201401, 201501)
     )
-    data = apicall.json(disable_date_parsing=True)
+    data = apicall.df(disable_date_parsing=True)
     assert(len(data) > 0)
 
 def test_pvt_quidel() -> None:
