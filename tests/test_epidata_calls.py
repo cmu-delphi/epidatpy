@@ -6,48 +6,55 @@ from epidatpy.request import Epidata, EpiRange
 # - it has access to the private endpoints being tested
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY")
+secret_cdc = os.environ.get("SECRET_API_AUTH_CDC")
+secret_fluview = os.environ.get("SECRET_API_AUTH_FLUVIEW")
+secret_ght = os.environ.get("SECRET_API_AUTH_GHT")
+secret_norostat = os.environ.get("SECRET_API_AUTH_NOROSTAT")
+secret_quidel = os.environ.get("SECRET_API_AUTH_QUIDEL")
+secret_sensors = os.environ.get("SECRET_API_AUTH_SENSORS")
+secret_twitter = os.environ.get("SECRET_API_AUTH_TWITTER")
 
 def test_pvt_cdc() -> None:
     apicall = Epidata.pvt_cdc(
-        auth = auth,
+        auth = secret_cdc,
         locations = "fl,ca",
         epiweeks = EpiRange(201501, 201601)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_covid_hosp_facility_lookup() -> None:
     apicall = Epidata.pub_covid_hosp_facility_lookup(state="fl")
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
     apicall = Epidata.pub_covid_hosp_facility_lookup(city="southlake")
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_covid_hosp_facility() -> None:
     apicall = Epidata.pub_covid_hosp_facility(
         hospital_pks = "100075",
         collection_weeks = EpiRange(20200101, 20200501))
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
     apicall = Epidata.pub_covid_hosp_facility(
         hospital_pks = "100075",
         collection_weeks = EpiRange(202001, 202005))
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0) # fails
 
 def test_pub_covid_hosp_state_timeseries() -> None:
     apicall = Epidata.pub_covid_hosp_state_timeseries(
         states = "fl",
         dates = EpiRange(20200101, 20200501))
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_covidcast_meta() -> None:
     apicall = Epidata.pub_covidcast_meta()
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_covidcast() -> None:
@@ -58,7 +65,7 @@ def test_pub_covidcast() -> None:
         time_type = "day",
         geo_values = ["ca", "fl"],
         time_values = EpiRange(20200601, 20200801))
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
     apicall = Epidata.pub_covidcast(
@@ -68,7 +75,7 @@ def test_pub_covidcast() -> None:
         time_type = "day",
         geo_values = "*",
         time_values = EpiRange(20200601, 20200801))
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_delphi() -> None:
@@ -84,17 +91,17 @@ def test_pub_dengue_nowcast() -> None:
         locations = "pr",
         epiweeks = EpiRange(201401, 202301)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pvt_dengue_sensors() -> None:
     apicall = Epidata.pvt_dengue_sensors(
-        auth = auth,
+        auth = secret_norostat,
         names = "ght",
         locations = "ag",
         epiweeks = EpiRange(201501, 202001)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_ecdc_ili() -> None:
@@ -139,17 +146,17 @@ def test_pub_gft() -> None:
         locations = "hhs1",
         epiweeks = EpiRange(201201, 202001)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pvt_ght() -> None:
     apicall = Epidata.pvt_ght(
-        auth = auth,
+        auth = secret_ght,
         locations = "ma",
         epiweeks = EpiRange(199301, 202304),
         query = "how to get over the flu"
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_kcdc_ili() -> None:
@@ -162,7 +169,7 @@ def test_pub_kcdc_ili() -> None:
 
 def test_pvt_meta_norostat() -> None:
     apicall = Epidata.pvt_meta_norostat(
-        auth = auth
+        auth = secret_norostat
     )
     data = apicall.classic()
     assert(len(data) > 0)
@@ -177,7 +184,7 @@ def test_pub_nidss_dengue() -> None:
         locations = "taipei",
         epiweeks = EpiRange(201201, 201301)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_nidss_flu() -> None:
@@ -190,19 +197,20 @@ def test_pub_nidss_flu() -> None:
 
 def test_pvt_norostat() -> None:
     apicall = Epidata.pvt_norostat(
-        auth = auth,
+        auth = secret_norostat,
         location = "1",
         epiweeks = 201233
     )
-    data = apicall.json()
-    assert(len(data) > 0)
+    data = apicall.df()
+    # TODO: Norostat is known to not return data
+    # assert(len(data) > 0)
 
 def test_pub_nowcast() -> None:
     apicall = Epidata.pub_nowcast(
         locations = "ca",
         epiweeks = EpiRange(201201, 201301)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_paho_dengue() -> None:
@@ -215,31 +223,31 @@ def test_pub_paho_dengue() -> None:
 
 def test_pvt_quidel() -> None:
     apicall = Epidata.pvt_quidel(
-        auth = auth,
+        auth = secret_quidel,
         locations = "hhs1",
         epiweeks = EpiRange(201201, 202001)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pvt_sensors() -> None:
     apicall = Epidata.pvt_sensors(
-        auth = auth,
+        auth = secret_sensors,
         names = "sar3",
         locations = "nat",
         epiweeks = EpiRange(201501, 202001)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pvt_twitter() -> None:
     apicall = Epidata.pvt_twitter(
-        auth = auth,
+        auth = secret_twitter,
         locations = "CA",
         time_type = "week",
         time_values = EpiRange(201501, 202001)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
 
 def test_pub_wiki() -> None:
@@ -248,5 +256,5 @@ def test_pub_wiki() -> None:
         time_type = "week",
         time_values = EpiRange(201501, 201601)
     )
-    data = apicall.json()
+    data = apicall.df()
     assert(len(data) > 0)
