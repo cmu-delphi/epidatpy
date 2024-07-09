@@ -1,3 +1,4 @@
+import numpy as np
 import os
 from epidatpy.request import Epidata, EpiRange
 
@@ -22,6 +23,7 @@ def test_pvt_cdc() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_covid_hosp_facility_lookup() -> None:
     apicall = Epidata.pub_covid_hosp_facility_lookup(state="fl")
@@ -51,6 +53,8 @@ def test_pub_covid_hosp_state_timeseries() -> None:
         dates = EpiRange(20200101, 20200501))
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['date'].dtype) == 'datetime64[ns]'
 
 def test_pub_covidcast_meta() -> None:
     apicall = Epidata.pub_covidcast_meta()
@@ -76,6 +80,8 @@ def test_pub_covidcast() -> None:
         geo_values = "*",
         time_values = EpiRange(20200601, 20200801))
     data = apicall.df()
+    assert str(data['time_value'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
     assert len(data) > 0
 
 def test_pub_delphi() -> None:
@@ -93,6 +99,7 @@ def test_pub_dengue_nowcast() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_dengue_sensors() -> None:
     apicall = Epidata.pvt_dengue_sensors(
@@ -103,43 +110,57 @@ def test_pvt_dengue_sensors() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_ecdc_ili() -> None:
     apicall = Epidata.pub_ecdc_ili(
         regions = "austria",
         epiweeks = EpiRange(201901, 202001)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_flusurv() -> None:
     apicall = Epidata.pub_flusurv(
         locations = "CA",
         epiweeks = EpiRange(201701, 201801)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_fluview_clinical() -> None:
     apicall = Epidata.pub_fluview_clinical(
         regions = "nat",
         epiweeks = EpiRange(201601, 201701)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_fluview_meta() -> None:
     apicall = Epidata.pub_fluview_meta()
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['latest_update'].dtype) == 'datetime64[ns]'
+    assert str(data['latest_issue'].dtype) == 'datetime64[ns]'
 
 def test_pub_fluview() -> None:
     apicall = Epidata.pub_fluview(
         regions = "nat",
         epiweeks = EpiRange(201201, 202005)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_gft() -> None:
     apicall = Epidata.pub_gft(
@@ -148,6 +169,7 @@ def test_pub_gft() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_ght() -> None:
     apicall = Epidata.pvt_ght(
@@ -158,14 +180,18 @@ def test_pvt_ght() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_kcdc_ili() -> None:
     apicall = Epidata.pub_kcdc_ili(
         regions = "ROK",
         epiweeks = 200436
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_meta_norostat() -> None:
     apicall = Epidata.pvt_meta_norostat(
@@ -186,14 +212,18 @@ def test_pub_nidss_dengue() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_nidss_flu() -> None:
     apicall = Epidata.pub_nidss_flu(
         regions = "taipei",
         epiweeks = EpiRange(201501, 201601)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_norostat() -> None:
     apicall = Epidata.pvt_norostat(
@@ -204,6 +234,8 @@ def test_pvt_norostat() -> None:
     data = apicall.df()
     # TODO: Norostat is known to not return data
     # assert len(data) > 0
+    # assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    # assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_nowcast() -> None:
     apicall = Epidata.pub_nowcast(
@@ -212,14 +244,18 @@ def test_pub_nowcast() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_paho_dengue() -> None:
     apicall = Epidata.pub_paho_dengue(
         regions = "ca",
         epiweeks = EpiRange(201401, 201501)
     )
-    data = apicall.df(disable_date_parsing=True)
+    data = apicall.df()
     assert len(data) > 0
+    assert str(data['release_date'].dtype) == 'datetime64[ns]'
+    assert str(data['issue'].dtype) == 'datetime64[ns]'
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_quidel() -> None:
     apicall = Epidata.pvt_quidel(
@@ -229,6 +265,7 @@ def test_pvt_quidel() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_sensors() -> None:
     apicall = Epidata.pvt_sensors(
@@ -239,6 +276,7 @@ def test_pvt_sensors() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pvt_twitter() -> None:
     apicall = Epidata.pvt_twitter(
@@ -249,6 +287,7 @@ def test_pvt_twitter() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'
 
 def test_pub_wiki() -> None:
     apicall = Epidata.pub_wiki(
@@ -258,3 +297,4 @@ def test_pub_wiki() -> None:
     )
     data = apicall.df()
     assert len(data) > 0
+    assert str(data['epiweek'].dtype) == 'datetime64[ns]'

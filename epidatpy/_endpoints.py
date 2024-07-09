@@ -663,7 +663,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             [
                 EpidataFieldInfo("release_date", EpidataFieldType.text),
                 EpidataFieldInfo("location", EpidataFieldType.text),
-                EpidataFieldInfo("issue", EpidataFieldType.date),
+                EpidataFieldInfo("issue", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
                 EpidataFieldInfo("lag", EpidataFieldType.int),
                 EpidataFieldInfo("rage_age_0", EpidataFieldType.float),
