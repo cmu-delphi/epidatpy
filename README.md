@@ -1,13 +1,19 @@
-# Delphi Epidata Python Client `epidatpy`
+# `epidatpy`
 
 [![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Read the Docs][docs-image]][docs-url]
 
+A Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
+
 ## Install
 
-Install latest version:
+Install with the following commands:
 
 ```sh
+# Latest dev version
 pip install -e "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
+
+# PyPI version
+pip install epidatpy
 ```
 
 ## Usage

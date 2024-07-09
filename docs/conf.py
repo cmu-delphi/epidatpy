@@ -18,9 +18,9 @@ sys.path.insert(0, os.path.abspath("../epidatpy"))
 
 # -- Project information -----------------------------------------------------
 
-project = "Delphi Epidata API client"
-copyright = "2021, Delphi research group"  # pylint: disable=redefined-builtin
-author = "Delphi research group"
+project = "epidatpy"
+copyright = "2024, Delphi Research Group"  # pylint: disable=redefined-builtin
+author = "Delphi Research Group"
 
 # The full version, including alpha/beta/rc tags
 release = "1.0.0"
@@ -43,7 +43,16 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "smoke_covid_test",
+    "smoke_test_async",
+    "smoke_test",
+    "tasks",
+    "test_pydantic",
+]
 
 add_module_names = False
 autoclass_content = "class"
@@ -63,7 +72,7 @@ html_static_path = ["_static"]
 
 html_theme_options = {
     "extra_nav_links": {
-        "Delphi group": "https://delphi.cmu.edu/",
+        "Delphi Research Group": "https://delphi.cmu.edu/",
         "Delphi Epidata API": "https://cmu-delphi.github.io/delphi-epidata",
     }
 }
