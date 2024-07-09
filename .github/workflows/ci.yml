@@ -1,0 +1,39 @@
+name: ci
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+      - name: Install Dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -e ".[dev]"
+      - name: Check Formatting
+        run: |
+          source venv/bin/activate
+          inv lint-black
+      - name: Check Linting
+        run: |
+          source venv/bin/activate
+          inv lint-pylint
+      - name: Check Types
+        run: |
+          source venv/bin/activate
+          inv lint-mypy
+      - name: Test
+        run: |
+          source venv/bin/activate
+          inv test
