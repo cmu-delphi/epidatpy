@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 from typing import (
-    Any,
-    Dict,
     Final,
     List,
     Mapping,
@@ -18,10 +16,8 @@ from typing import (
 from urllib.parse import urlencode
 
 from epiweeks import Week
-from pandas import CategoricalDtype, DataFrame, Series
 
 from ._parse import (
-    fields_to_predicate,
     parse_api_date,
     parse_api_date_or_week,
     parse_api_week,
@@ -88,17 +84,6 @@ class EpiRange:
 
     def __str__(self) -> str:
         return f"{format_date(self.start)}-{format_date(self.end)}"
-
-
-class EpiDataFormatType(str, Enum):
-    """
-    possible formatting options for API calls
-    """
-
-    json = "json"
-    classic = "classic"
-    csv = "csv"
-    jsonl = "jsonl"
 
 
 class InvalidArgumentException(Exception):
@@ -180,41 +165,36 @@ class AEpiDataCall:
 
     def _formatted_parameters(
         self,
-        format_type: Optional[EpiDataFormatType] = None,
         fields: Optional[Sequence[str]] = None,
     ) -> Mapping[str, str]:
         """
         format this call into a [URL, Params] tuple
         """
         all_params = dict(self._params)
-        if format_type and format_type != EpiDataFormatType.classic:
-            all_params["format"] = format_type
         if fields:
             all_params["fields"] = fields
         return {k: format_list(v) for k, v in all_params.items() if v is not None}
 
     def request_arguments(
         self,
-        format_type: Optional[EpiDataFormatType] = None,
         fields: Optional[Sequence[str]] = None,
     ) -> Tuple[str, Mapping[str, str]]:
         """
         format this call into a [URL, Params] tuple
         """
-        formatted_params = self._formatted_parameters(format_type, fields)
+        formatted_params = self._formatted_parameters(fields)
         full_url = add_endpoint_to_url(self._base_url, self._endpoint)
         return full_url, formatted_params
 
     def request_url(
         self,
-        format_type: Optional[EpiDataFormatType] = None,
         fields: Optional[Sequence[str]] = None,
     ) -> str:
         """
         format this call into a full HTTP request url with encoded parameters
         """
         self._verify_parameters()
-        u, p = self.request_arguments(format_type, fields)
+        u, p = self.request_arguments(fields)
         query = urlencode(p)
         if query:
             return f"{u}?{query}"
@@ -253,39 +233,3 @@ class AEpiDataCall:
         if not self.meta:
             return row
         return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
-
-    def _as_df(
-        self,
-        rows: Sequence[Mapping[str, Union[str, float, int, date, None]]],
-        fields: Optional[Sequence[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
-    ) -> DataFrame:
-        pred = fields_to_predicate(fields)
-        columns: List[str] = [info.name for info in self.meta if pred(info.name)]
-        df = DataFrame(rows, columns=columns or None)
-
-        data_types: Dict[str, Any] = {}
-        for info in self.meta:
-            if not pred(info.name) or df[info.name].isnull().all():
-                continue
-            if info.type == EpidataFieldType.bool:
-                data_types[info.name] = bool
-            elif info.type == EpidataFieldType.categorical:
-                data_types[info.name] = CategoricalDtype(
-                    categories=Series(info.categories) if info.categories else None, ordered=True
-                )
-            elif info.type == EpidataFieldType.int:
-                data_types[info.name] = int
-            elif info.type in (
-                EpidataFieldType.date,
-                EpidataFieldType.epiweek,
-                EpidataFieldType.date_or_epiweek,
-            ):
-                data_types[info.name] = int if disable_date_parsing else "datetime64[ns]"
-            elif info.type == EpidataFieldType.float:
-                data_types[info.name] = float
-            else:
-                data_types[info.name] = str
-        if data_types:
-            df = df.astype(data_types)
-        return df

@@ -13,9 +13,6 @@ print(apicall.request_url())
 classic = apicall.classic()
 print(classic)
 
-data = apicall.json()
-print(data[0])
-
 df = apicall.df()
 print(df.columns)
 print(df.dtypes)
@@ -52,9 +49,6 @@ print(apicall)
 
 classic = apicall.classic()
 print(classic)
-
-data = apicall.json()
-print(data[0])
 
 df = apicall.df()
 print(df.columns)
