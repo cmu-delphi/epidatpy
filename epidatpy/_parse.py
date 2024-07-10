@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Callable, Optional, Sequence, Set, Union, cast
+from typing import Callable, Literal, Optional, Sequence, Set, Union
 
 from epiweeks import Week
 
@@ -14,7 +14,7 @@ def parse_api_date(value: Union[str, int, float, None]) -> Optional[date]:
 def parse_api_week(value: Union[str, int, float, None]) -> Optional[date]:
     if value is None:
         return None
-    return cast(date, Week.fromstring(str(value)).startdate())
+    return Week.fromstring(str(value)).startdate()
 
 
 def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date]:
@@ -22,15 +22,50 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
         return None
     v = str(value)
     if len(v) == 6:
-        d = cast(date, Week.fromstring(v).startdate())
+        d = Week.fromstring(v).startdate()
     else:
         d = datetime.strptime(v, "%Y%m%d").date()
     return d
 
 
-def fields_to_predicate(
-    fields: Optional[Sequence[str]] = None,
-) -> Callable[[str], bool]:
+def parse_user_date_or_week(
+    value: Union[str, int, date, Week], out_type: Literal["day", "week", None] = None
+) -> Union[date, Week]:
+    if isinstance(value, Week):
+        if out_type == "day":
+            return value.startdate()
+        return value
+
+    if isinstance(value, date):
+        if out_type == "week":
+            return Week.fromdate(value)
+        return value
+
+    value = str(value)
+    if out_type == "week":
+        if len(value) == 6:
+            return Week.fromstring(value)
+        if len(value) == 8:
+            return Week.fromdate(datetime.strptime(value, "%Y%m%d").date())
+        if len(value) == 10:
+            return Week.fromdate(datetime.strptime(value, "%Y-%m-%d").date())
+    if out_type == "day":
+        if len(value) == 8:
+            return datetime.strptime(value, "%Y%m%d").date()
+        if len(value) == 10:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+    if out_type is None:
+        if len(value) == 6:
+            return Week.fromstring(value)
+        if len(value) == 8:
+            return datetime.strptime(value, "%Y%m%d").date()
+        if len(value) == 10:
+            return datetime.strptime(value, "%Y-%m-%d").date()
+
+    raise ValueError(f"Cannot parse date or week from {value}")
+
+
+def fields_to_predicate(fields: Optional[Sequence[str]] = None) -> Callable[[str], bool]:
     if not fields:
         return lambda _: True
     to_include: Set[str] = set()
