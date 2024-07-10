@@ -9,6 +9,8 @@ from typing import (
     Union,
 )
 
+from epiweeks import Week
+
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
     CALL_TYPE,
@@ -20,9 +22,8 @@ from ._model import (
     InvalidArgumentException,
     ParamType,
     StringParam,
-    format_epiweek,
 )
-from ._parse import parse_api_week
+from ._parse import parse_user_date_or_week
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -32,22 +33,6 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
         if time_type == "week":
             return EpiRange("100001", "300001")
     return time_value
-
-
-def reformat_epirange(epirange: EpiRange, to_type: Literal["day", "week"]) -> EpiRange:
-    """Reformat from week to day or vice versa or noop."""
-    if to_type == "day" and isinstance(epirange.start, (str, int)) and len(str(epirange.start)) == 6:
-        coercion_msg = (
-            "`collection_weeks` is in week format but `pub_covid_hosp_facility`"
-            "expects day format; dates will be converted to day format but may not"
-            "correspond exactly to desired time range"
-        )
-        warnings.warn(coercion_msg, UserWarning)
-        epirange = EpiRange(parse_api_week(epirange.start), parse_api_week(epirange.end))
-    elif to_type == "week" and isinstance(epirange.start, (int, str)) and len(str(epirange.start)) == 8:
-        epirange = EpiRange(format_epiweek(epirange.start), format_epiweek(epirange.end))
-
-    return epirange
 
 
 class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
@@ -141,11 +126,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
         # but correspond to epiweeks. Allow `collection_weeks` to be provided in
-        # either day or week format.
-        if isinstance(collection_weeks, EpiRange):
-            parsed_weeks = reformat_epirange(collection_weeks, to_type="day")
-        elif isinstance(collection_weeks, (str, int)):
-            parsed_weeks = parse_api_week(collection_weeks)
+        # either day or week format and convert to day format.
+        parsed_weeks = collection_weeks
+        if isinstance(collection_weeks, EpiRange) and isinstance(collection_weeks.start, Week):
+            warnings.warn(
+                "`collection_weeks` is in week format but `pub_covid_hosp_facility`"
+                "expects day format; dates will be converted to day format but may not"
+                "correspond exactly to desired time range",
+                UserWarning,
+            )
+            parsed_weeks = EpiRange(
+                parse_user_date_or_week(collection_weeks.start, "day"),
+                parse_user_date_or_week(collection_weeks.end, "day"),
+            )
+        elif isinstance(collection_weeks, (str, int)) and len(str(collection_weeks)) == 6:
+            warnings.warn(
+                "`collection_weeks` is in week format but `pub_covid_hosp_facility`"
+                "expects day format; dates will be converted to day format but may not"
+                "correspond exactly to desired time range",
+                UserWarning,
+            )
+            parsed_weeks = parse_user_date_or_week(collection_weeks, "day")
 
         fields_string = [
             "hospital_pk",
