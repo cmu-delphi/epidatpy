@@ -14,7 +14,7 @@ from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
-from ._auth import get_api_key
+from ._auth import _get_api_key
 from ._constants import BASE_URL, HTTP_HEADERS
 from ._covidcast import CovidcastDataSources, define_covidcast_fields
 from ._endpoints import AEpiDataEndpoints
@@ -41,7 +41,7 @@ def _request_with_retry(
     stream: bool = False,
 ) -> Response:
     """Make request with a retry if an exception is thrown."""
-    basic_auth = HTTPBasicAuth("epidata", get_api_key())
+    basic_auth = HTTPBasicAuth("epidata", _get_api_key())
 
     def call_impl(s: Session) -> Response:
         res = s.get(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
