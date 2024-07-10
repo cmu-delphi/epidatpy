@@ -5,7 +5,6 @@ from typing import (
     Any,
     Dict,
     Final,
-    Generic,
     List,
     Mapping,
     Optional,
@@ -26,6 +25,7 @@ from ._parse import (
     parse_api_date,
     parse_api_date_or_week,
     parse_api_week,
+    parse_user_date_or_week,
 )
 
 EpiDateLike = Union[int, str, date, Week]
@@ -34,9 +34,8 @@ EpiRangeLike = Union[int, str, "EpiRange", EpiRangeDict, date, Week]
 EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
 StringParam = Union[str, Sequence[str]]
 IntParam = Union[int, Sequence[int]]
-EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
 ParamType = Union[StringParam, IntParam, EpiRangeParam]
-EPI_RANGE_TYPE = TypeVar("EPI_RANGE_TYPE", int, date, str, Week)
+EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
 CALL_TYPE = TypeVar("CALL_TYPE")
 
 
@@ -70,20 +69,15 @@ def format_list(values: EpiRangeParam) -> str:
     return format_item(values)
 
 
-def format_epiweek(value: Union[str, int]) -> str:
-    return Week.fromstring(str(value)).cdcformat()
-
-
-@dataclass(repr=False)
-class EpiRange(Generic[EPI_RANGE_TYPE]):
+class EpiRange:
     """
     Range object for dates/epiweeks
     """
 
-    start: EPI_RANGE_TYPE
-    end: EPI_RANGE_TYPE
-
-    def __post_init__(self) -> None:
+    def __init__(self, start: EpiDateLike, end: EpiDateLike) -> None:
+        # check if types are correct
+        self.start = parse_user_date_or_week(start)
+        self.end = parse_user_date_or_week(end)
         # swap if wrong order
         # complicated construct for typing inference
         if self.end < self.start:
