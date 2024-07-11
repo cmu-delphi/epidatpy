@@ -1,5 +1,5 @@
 from datetime import date
-from epidatpy.request import Epidata, EpiRange
+from epidatpy import CovidcastEpidata, Epidata, EpiRange
 
 apicall = Epidata.covidcast("fb-survey", "smoothed_cli", "day", "nation", EpiRange(20210405, 20210410), "us")
 
