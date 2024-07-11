@@ -144,8 +144,8 @@ class DataSignal(Generic[CALL_TYPE]):
                 "has_sample_size",
             ],
         )
-        df.insert(6, "geo_types", [",".join(s.geo_types.keys()) for s in signals])
-        return df.set_index(["source", "signal"])
+        df["geo_types"] = [",".join(s.geo_types.keys()) for s in signals]
+        return df
 
     @property
     def key(self) -> Tuple[str, str]:
@@ -236,7 +236,7 @@ class DataSource(Generic[CALL_TYPE]):
             ],
         )
         df["signals"] = [",".join(ss.signal for ss in s.signals) for s in sources]
-        return df.set_index("source")
+        return df
 
     def get_signal(self, signal: str) -> Optional[DataSignal]:
         return next((s for s in self.signals if s.signal == signal), None)
@@ -266,12 +266,13 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
             for signal in source.signals:
                 self._signals_by_key[signal.key] = signal
 
-    def get_source(self, source: str) -> Optional[DataSource[CALL_TYPE]]:
-        return self._source_by_name.get(source)
-
-    @property
     def source_names(self) -> Sequence[str]:
         return [s.source for s in self.sources]
+
+    def signal_names(self, source: Optional[str] = None) -> Sequence[str]:
+        if not source:
+            return [x.signal for src in self._source_by_name.values() for x in src.signals]
+        return [s.signal for s in self._source_by_name[source].signals]
 
     @cached_property
     def source_df(self) -> DataFrame:
@@ -305,10 +306,6 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
             Link to the Data Use Agreement.
         """
         return DataSource.to_df(self.sources)
-
-    @property
-    def signals(self) -> Iterable[DataSignal[CALL_TYPE]]:
-        return self._signals_by_key.values()
 
     @cached_property
     def signal_df(self) -> DataFrame:
@@ -386,17 +383,7 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
             ``has_sample_size``
             Whether the signal has `sample_size` statistic.
         """
-        return DataSignal.to_df(self.signals)
-
-    def get_signal(self, source: str, signal: str) -> Optional[DataSignal[CALL_TYPE]]:
-        return self._signals_by_key.get((source, signal))
-
-    @property
-    def signal_names(self) -> Iterable[Tuple[str, str]]:
-        return self._signals_by_key.keys()
-
-    def __iter__(self) -> Iterable[DataSource[CALL_TYPE]]:
-        return iter(self.sources)
+        return DataSignal.to_df(self._signals_by_key.values())
 
     @overload
     def __getitem__(self, source: str, /) -> DataSource[CALL_TYPE]: ...
@@ -408,10 +395,10 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         self, source_signal: Union[str, Tuple[str, str]]
     ) -> Union[DataSource[CALL_TYPE], DataSignal[CALL_TYPE]]:
         if isinstance(source_signal, str):
-            r = self.get_source(source_signal)
+            r = self._source_by_name.get(source_signal)
             assert r is not None
             return r
-        s = self.get_signal(source_signal[0], source_signal[1])
+        s = self._signals_by_key.get((source_signal[0], source_signal[1]))
         assert s is not None
         return s
 

@@ -3,7 +3,10 @@ from epidatpy import CovidcastEpidata, Epidata, EpiRange
 
 apicall = Epidata.covidcast("fb-survey", "smoothed_cli", "day", "nation", EpiRange(20210405, 20210410), "us")
 
+# Call info
 print(apicall)
+# URL
+print(apicall.request_url())
 
 classic = apicall.classic()
 print(classic)
@@ -18,6 +21,10 @@ df = apicall.df()
 print(df.columns)
 print(df.dtypes)
 print(df.iloc[0])
+print(df)
+# Classic
+classic = apicall.classic()
+# DataFrame
 df = apicall.df(disable_date_parsing=True)
 print(df.columns)
 print(df.dtypes)

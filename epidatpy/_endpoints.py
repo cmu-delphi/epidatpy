@@ -12,7 +12,6 @@ from typing import (
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
     CALL_TYPE,
-    EPI_RANGE_TYPE,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRange,
@@ -55,10 +54,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     """
     epidata endpoint list and fetcher
     """
-
-    @staticmethod
-    def range(from_: EPI_RANGE_TYPE, to: EPI_RANGE_TYPE) -> EpiRange[EPI_RANGE_TYPE]:
-        return EpiRange[EPI_RANGE_TYPE](from_, to)
 
     @abstractmethod
     def _create_call(

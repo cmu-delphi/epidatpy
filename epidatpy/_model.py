@@ -208,14 +208,8 @@ class AEpiDataCall:
         format this call into a [URL, Params] tuple
         """
         formatted_params = self._formatted_parameters(format_type, fields)
-        full_url = self._full_url()
+        full_url = add_endpoint_to_url(self._base_url, self._endpoint)
         return full_url, formatted_params
-
-    def _full_url(self) -> str:
-        """
-        combines the endpoint with the given base url
-        """
-        return add_endpoint_to_url(self._base_url, self._endpoint)
 
     def request_url(
         self,
@@ -233,10 +227,10 @@ class AEpiDataCall:
         return u
 
     def __repr__(self) -> str:
-        return f"EpiDataCall(endpoint={self._endpoint}, params={self._formatted_parameters()})"
+        return str(self)
 
     def __str__(self) -> str:
-        return self.request_url()
+        return f"EpiDataCall(endpoint={self._endpoint}, params={self._formatted_parameters()})"
 
     def _parse_value(
         self,
