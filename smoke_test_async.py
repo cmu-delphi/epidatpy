@@ -1,4 +1,5 @@
 from asyncio import get_event_loop
+
 from epidatpy.async_request import Epidata
 
 
