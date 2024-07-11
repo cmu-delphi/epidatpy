@@ -1,9 +1,6 @@
 from datetime import date
-from json import loads
 from typing import (
     Final,
-    Generator,
-    Iterable,
     List,
     Mapping,
     Optional,
@@ -26,13 +23,14 @@ from ._model import (
     EpidataFieldInfo,
     EpiDataFormatType,
     EpiDataResponse,
-    EpiRangeLike,
+    EpiRange,
+    EpiRangeParam,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
 )
 
 # Make the linter happy about the unused variables
-__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "CovidcastEpidata"]
+__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "EpiRange", "CovidcastEpidata"]
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -70,7 +68,7 @@ class EpiDataCall(AEpiDataCall):
         base_url: str,
         session: Optional[Session],
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> None:
@@ -86,7 +84,7 @@ class EpiDataCall(AEpiDataCall):
     def _call(
         self,
         format_type: Optional[EpiDataFormatType] = None,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         stream: bool = False,
     ) -> Response:
         url, params = self.request_arguments(format_type, fields)
@@ -94,7 +92,7 @@ class EpiDataCall(AEpiDataCall):
 
     def classic(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
@@ -111,7 +109,7 @@ class EpiDataCall(AEpiDataCall):
 
     def __call__(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
@@ -119,7 +117,7 @@ class EpiDataCall(AEpiDataCall):
 
     def json(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> List[Mapping[str, Union[str, int, float, date, None]]]:
         """Request and parse epidata in JSON format"""
@@ -135,7 +133,7 @@ class EpiDataCall(AEpiDataCall):
 
     def df(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> DataFrame:
         """Request and parse epidata as a pandas data frame"""
@@ -197,7 +195,7 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
     def _create_call(
         self,
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> EpiDataCall:
@@ -214,7 +212,7 @@ def CovidcastEpidata(base_url: str = BASE_URL, session: Optional[Session] = None
     meta_data = meta_data_res.json()
 
     def create_call(
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
     ) -> EpiDataCall:
         return EpiDataCall(base_url, session, "covidcast", params, define_covidcast_fields())
 

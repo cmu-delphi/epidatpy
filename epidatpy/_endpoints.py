@@ -1,9 +1,13 @@
 import warnings
 from abc import ABC, abstractmethod
-from datetime import date
-from typing import Generic, Iterable, Literal, Mapping, Optional, Sequence, Union
-
-from epiweeks import Week
+from typing import (
+    Generic,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
@@ -12,16 +16,18 @@ from ._model import (
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRange,
-    EpiRangeLike,
     EpiRangeParam,
     IntParam,
     InvalidArgumentException,
+    ParamType,
     StringParam,
+    format_epiweek,
 )
+from ._parse import parse_api_week
 
 
-def get_wildcard_equivalent_dates(time_value: str, time_type: Literal["day", "week"]) -> str:
-    if time_value == "*":
+def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
+    if isinstance(time_value, str) and time_value == "*":
         if time_type == "day":
             return EpiRange("10000101", "30000101")
         if time_type == "week":
@@ -29,11 +35,8 @@ def get_wildcard_equivalent_dates(time_value: str, time_type: Literal["day", "we
     return time_value
 
 
-def reformat_epirange(epirange: EpiRange, to_type: str) -> EpiRange:
+def reformat_epirange(epirange: EpiRange, to_type: Literal["day", "week"]) -> EpiRange:
     """Reformat from week to day or vice versa or noop."""
-    if to_type not in ("day", "week"):
-        raise InvalidArgumentException("`to_type` must be 'day' or 'week'")
-
     if to_type == "day" and isinstance(epirange.start, (str, int)) and len(str(epirange.start)) == 6:
         coercion_msg = (
             "`collection_weeks` is in week format but `pub_covid_hosp_facility`"
@@ -46,14 +49,6 @@ def reformat_epirange(epirange: EpiRange, to_type: str) -> EpiRange:
         epirange = EpiRange(format_epiweek(epirange.start), format_epiweek(epirange.end))
 
     return epirange
-
-
-def parse_api_week(value: Union[str, int]) -> date:
-    return Week.fromstring(str(value)).startdate()
-
-
-def format_epiweek(value: Union[str, int]) -> str:
-    return Week.fromstring(str(value)).cdcformat()
 
 
 class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
@@ -69,7 +64,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def _create_call(
         self,
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[ParamType]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> CALL_TYPE:
@@ -145,7 +140,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_covid_hosp_facility(
         self,
         hospital_pks: StringParam,
-        collection_weeks: StringParam = "*",
+        collection_weeks: EpiRangeParam = "*",
         publication_dates: Optional[EpiRangeParam] = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalization data for specific facilities."""
@@ -468,7 +463,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         signals: StringParam,
         geo_type: GeoType,
         time_type: TimeType,
-        geo_values: Union[int, str, Iterable[Union[int, str]]] = "*",
+        geo_values: Union[str, Sequence[str]] = "*",
         time_values: EpiRangeParam = "*",
         as_of: Union[None, str, int] = None,
         issues: Optional[EpiRangeParam] = None,
@@ -984,13 +979,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         auth: str,
         locations: StringParam,
-        time_type: str,
-        time_values: EpiRangeLike = "*",
+        time_type: Literal["day", "week"],
+        time_values: EpiRangeParam = "*",
     ) -> CALL_TYPE:
         """Fetch HealthTweets data."""
-        if time_type not in ["day", "week"]:
-            raise InvalidArgumentException("`time_type` must be 'day' or 'week'")
-
         if time_type == "day":
             dates = time_values
             epiweeks = None
@@ -1032,16 +1024,12 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_wiki(
         self,
         articles: StringParam,
-        time_type: str,
-        time_values: EpiRangeLike = "*",
+        time_type: Literal["day", "week"],
+        time_values: EpiRangeParam = "*",
         hours: Optional[IntParam] = None,
         language: str = "en",
     ) -> CALL_TYPE:
         """Fetch Wikipedia access data."""
-
-        if time_type not in ["day", "week"]:
-            raise InvalidArgumentException("`time_type` must be 'day' or 'week'")
-
         if time_type == "day":
             dates = time_values
             epiweeks = None

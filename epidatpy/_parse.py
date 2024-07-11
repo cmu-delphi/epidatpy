@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Callable, Iterable, Optional, Set, Union, cast
+from typing import Callable, Optional, Sequence, Set, Union, cast
 
 from epiweeks import Week
 
@@ -29,7 +29,7 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
 
 
 def fields_to_predicate(
-    fields: Optional[Iterable[str]] = None,
+    fields: Optional[Sequence[str]] = None,
 ) -> Callable[[str], bool]:
     if not fields:
         return lambda _: True

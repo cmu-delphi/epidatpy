@@ -6,7 +6,6 @@ from typing import (
     Dict,
     Final,
     Generic,
-    Iterable,
     List,
     Mapping,
     Optional,
@@ -20,7 +19,7 @@ from typing import (
 from urllib.parse import urlencode
 
 from epiweeks import Week
-from pandas import CategoricalDtype, DataFrame
+from pandas import CategoricalDtype, DataFrame, Series
 
 from ._parse import (
     fields_to_predicate,
@@ -32,6 +31,13 @@ from ._parse import (
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
 EpiRangeLike = Union[int, str, "EpiRange", EpiRangeDict, date, Week]
+EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
+StringParam = Union[str, Sequence[str]]
+IntParam = Union[int, Sequence[int]]
+EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
+ParamType = Union[StringParam, IntParam, EpiRangeParam]
+EPI_RANGE_TYPE = TypeVar("EPI_RANGE_TYPE", int, date, str, Week)
+CALL_TYPE = TypeVar("CALL_TYPE")
 
 
 def format_date(d: EpiDateLike) -> str:
@@ -57,13 +63,15 @@ def format_item(value: EpiRangeLike) -> str:
     return str(value)
 
 
-def format_list(values: Union[EpiRangeLike, Iterable[EpiRangeLike]]) -> str:
+def format_list(values: EpiRangeParam) -> str:
     """Turn a list/tuple of values/ranges into a comma-separated string."""
-    list_values = values if isinstance(values, (list, tuple, set)) else [values]
-    return ",".join([format_item(value) for value in list_values])
+    if isinstance(values, Sequence) and not isinstance(values, str):
+        return ",".join([format_item(value) for value in values])
+    return format_item(values)
 
 
-EPI_RANGE_TYPE = TypeVar("EPI_RANGE_TYPE", int, date, str, Week)
+def format_epiweek(value: Union[str, int]) -> str:
+    return Week.fromstring(str(value)).cdcformat()
 
 
 @dataclass(repr=False)
@@ -86,14 +94,6 @@ class EpiRange(Generic[EPI_RANGE_TYPE]):
 
     def __str__(self) -> str:
         return f"{format_date(self.start)}-{format_date(self.end)}"
-
-
-EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
-
-
-EpiRangeParam = Union[EpiRangeLike, Iterable[EpiRangeLike]]
-StringParam = Union[str, Iterable[str]]
-IntParam = Union[int, Iterable[int]]
 
 
 class EpiDataFormatType(str, Enum):
@@ -146,9 +146,6 @@ class EpidataFieldInfo:
     categories: Final[Sequence[str]] = field(default_factory=list)
 
 
-CALL_TYPE = TypeVar("CALL_TYPE")
-
-
 def add_endpoint_to_url(url: str, endpoint: str) -> str:
     if not url.endswith("/"):
         url += "/"
@@ -163,7 +160,7 @@ class AEpiDataCall:
 
     _base_url: Final[str]
     _endpoint: Final[str]
-    _params: Final[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]]
+    _params: Final[Mapping[str, Optional[EpiRangeParam]]]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
     only_supports_classic: Final[bool]
@@ -172,7 +169,7 @@ class AEpiDataCall:
         self,
         base_url: str,
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> None:
@@ -190,7 +187,7 @@ class AEpiDataCall:
     def _formatted_parameters(
         self,
         format_type: Optional[EpiDataFormatType] = None,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
     ) -> Mapping[str, str]:
         """
         format this call into a [URL, Params] tuple
@@ -205,7 +202,7 @@ class AEpiDataCall:
     def request_arguments(
         self,
         format_type: Optional[EpiDataFormatType] = None,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
     ) -> Tuple[str, Mapping[str, str]]:
         """
         format this call into a [URL, Params] tuple
@@ -223,7 +220,7 @@ class AEpiDataCall:
     def request_url(
         self,
         format_type: Optional[EpiDataFormatType] = None,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
     ) -> str:
         """
         format this call into a full HTTP request url with encoded parameters
@@ -272,7 +269,7 @@ class AEpiDataCall:
     def _as_df(
         self,
         rows: Sequence[Mapping[str, Union[str, float, int, date, None]]],
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> DataFrame:
         pred = fields_to_predicate(fields)
@@ -281,12 +278,14 @@ class AEpiDataCall:
 
         data_types: Dict[str, Any] = {}
         for info in self.meta:
-            if not pred(info.name) or df[info.name].isnull().values.all():
+            if not pred(info.name) or df[info.name].isnull().all():
                 continue
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
             elif info.type == EpidataFieldType.categorical:
-                data_types[info.name] = CategoricalDtype(categories=info.categories or None, ordered=True)
+                data_types[info.name] = CategoricalDtype(
+                    categories=Series(info.categories) if info.categories else None, ordered=True
+                )
             elif info.type == EpidataFieldType.int:
                 data_types[info.name] = int
             elif info.type in (
