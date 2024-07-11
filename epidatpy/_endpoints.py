@@ -74,9 +74,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch CDC page hits."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "day")
 
-        if auth is None or epiweeks is None or locations is None:
-            raise InvalidArgumentException("`auth`, `epiweeks`, and `locations` are all required")
-
         return self._create_call(
             "cdc/",
             {"auth": auth, "epiweeks": epiweeks, "locations": locations},
@@ -140,18 +137,15 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         """Fetch COVID hospitalization data for specific facilities."""
 
-        if hospital_pks is None or collection_weeks is None:
-            raise InvalidArgumentException("`hospital_pks` and `collection_weeks` are both required")
-
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
         # but correspond to epiweeks. Allow `collection_weeks` to be provided in
         # either day or week format.
         if isinstance(collection_weeks, EpiRange):
-            collection_weeks = reformat_epirange(collection_weeks, to_type="day")
+            parsed_weeks = reformat_epirange(collection_weeks, to_type="day")
         elif isinstance(collection_weeks, (str, int)):
-            collection_weeks = parse_api_week(collection_weeks)
+            parsed_weeks = parse_api_week(collection_weeks)
 
         fields_string = [
             "hospital_pk",
@@ -255,7 +249,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             "covid_hosp_facility/",
             {
                 "hospital_pks": hospital_pks,
-                "collection_weeks": collection_weeks,
+                "collection_weeks": parsed_weeks,
                 "publication_dates": publication_dates,
             },
             [
@@ -276,9 +270,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         as_of: Union[None, int, str] = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalization data."""
-
-        if states is None or dates is None:
-            raise InvalidArgumentException("`states` and `dates` are both required")
 
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
@@ -465,20 +456,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
         """Fetch Delphi's COVID-19 Surveillance Streams"""
-        if any(
-            v is None
-            for v in (
-                data_source,
-                signals,
-                time_type,
-                geo_type,
-                time_values,
-                geo_values,
-            )
-        ):
-            raise InvalidArgumentException(
-                "`data_source`, `signals`, `time_type`, `geo_type`, `time_values`, and `geo_values` are all required."
-            )
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
@@ -504,8 +481,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_delphi(self, system: str, epiweek: Union[int, str]) -> CALL_TYPE:
         """Fetch Delphi's forecast."""
 
-        if system is None or epiweek is None:
-            raise InvalidArgumentException("`system` and `epiweek` are both required")
         return self._create_call(
             "delphi/",
             {"system": system, "epiweek": epiweek},
@@ -520,9 +495,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_dengue_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
         """Fetch Delphi's dengue nowcast."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if locations is None or epiweeks is None:
-            raise InvalidArgumentException("`locations` and `epiweeks` are both required")
 
         return self._create_call(
             "dengue_nowcast/",
@@ -544,9 +516,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         """Fetch Delphi's digital surveillance sensors."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if auth is None or names is None or locations is None or epiweeks is None:
-            raise InvalidArgumentException("`auth`, `names`, `locations`, and `epiweeks` are all required")
 
         return self._create_call(
             "dengue_sensors/",
@@ -574,9 +543,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch ECDC ILI data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
-
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
@@ -602,9 +568,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         """Fetch FluSurv data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if locations is None or epiweeks is None:
-            raise InvalidArgumentException("`locations` and `epiweeks` are both required")
 
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
@@ -641,9 +604,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         """Fetch FluView clinical data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
 
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
@@ -687,9 +647,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
-
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
@@ -725,9 +682,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch Google Flu Trends data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if locations is None or epiweeks is None:
-            raise InvalidArgumentException("`locations` and `epiweeks` are both required")
-
         return self._create_call(
             "gft/",
             {"locations": locations, "epiweeks": epiweeks},
@@ -746,7 +700,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         query: str = "",
     ) -> CALL_TYPE:
         """Fetch Google Health Trends data."""
-        if auth is None or locations is None or epiweeks is None or query == "":
+        if auth is None or locations is None or query == "":
             raise InvalidArgumentException("`auth`, `locations`, `epiweeks`, and `query` are all required")
 
         return self._create_call(
@@ -774,8 +728,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch KCDC ILI data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
@@ -794,8 +746,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
     def pvt_meta_norostat(self, auth: str) -> CALL_TYPE:
         """Fetch NoroSTAT metadata."""
-        if auth is None:
-            raise InvalidArgumentException("`auth` is required")
         return self._create_call(
             "meta_norostat/",
             {"auth": auth},
@@ -813,9 +763,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_nidss_dengue(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
         """Fetch NIDSS dengue data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if locations is None or epiweeks is None:
-            raise InvalidArgumentException("`locations` and `epiweeks` are both required")
 
         return self._create_call(
             "nidss_dengue/",
@@ -837,8 +784,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch NIDSS flu data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
@@ -860,9 +805,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch NoroSTAT data (point data, no min/max)."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if auth is None or location is None or epiweeks is None:
-            raise InvalidArgumentException("`auth`, `location`, and `epiweeks` are all required")
-
         return self._create_call(
             "norostat/",
             {"auth": auth, "epiweeks": epiweeks, "location": location},
@@ -876,9 +818,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
         """Fetch Delphi's wILI nowcast."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if locations is None or epiweeks is None:
-            raise InvalidArgumentException("`locations` and `epiweeks` are both required")
 
         return self._create_call(
             "nowcast/",
@@ -901,8 +840,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch PAHO Dengue data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if regions is None or epiweeks is None:
-            raise InvalidArgumentException("`regions` and `epiweeks` are both required")
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
 
@@ -928,9 +865,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """Fetch Quidel data."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if auth is None or epiweeks is None or locations is None:
-            raise InvalidArgumentException("`auth`, `epiweeks`, and `locations` are all required")
-
         return self._create_call(
             "quidel/",
             {"auth": auth, "epiweeks": epiweeks, "locations": locations},
@@ -950,9 +884,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     ) -> CALL_TYPE:
         """Fetch Delphi's digital surveillance sensors."""
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if auth is None or names is None or locations is None or epiweeks is None:
-            raise InvalidArgumentException("`auth`, `names`, `locations`, and `epiweeks` are all required")
 
         return self._create_call(
             "sensors/",
@@ -986,12 +917,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             epiweeks = time_values
             dates = None
             epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
-
-        if auth is None or locations is None:
-            raise InvalidArgumentException("`auth` and `locations` are both required")
-
-        if not (dates is None) ^ (epiweeks is None):
-            raise InvalidArgumentException("exactly one of `dates` and `epiweeks` is required")
 
         time_field = (
             EpidataFieldInfo("date", EpidataFieldType.date)
@@ -1034,18 +959,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             dates = None
             epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
-        if articles is None:
-            raise InvalidArgumentException("`articles` is required")
-
-        if not (dates is None) ^ (epiweeks is None):
-            raise InvalidArgumentException("exactly one of `dates` and `epiweeks` is required")
-
-        time_field = (
-            EpidataFieldInfo("date", EpidataFieldType.date)
-            if dates
-            else EpidataFieldInfo("epiweek", EpidataFieldType.epiweek)
-        )
-
         return self._create_call(
             "wiki/",
             {
@@ -1057,7 +970,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             },
             [
                 EpidataFieldInfo("article", EpidataFieldType.text),
-                time_field,
+                (
+                    EpidataFieldInfo("date", EpidataFieldType.date)
+                    if dates
+                    else EpidataFieldInfo("epiweek", EpidataFieldType.epiweek)
+                ),
                 EpidataFieldInfo("count", EpidataFieldType.int),
                 EpidataFieldInfo("total", EpidataFieldType.int),
                 EpidataFieldInfo("hour", EpidataFieldType.int),
