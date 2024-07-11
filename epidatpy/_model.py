@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
-from enum import Enum
 from datetime import date
-from urllib.parse import urlencode
+from enum import Enum
 from typing import (
     Any,
     Dict,
@@ -13,19 +12,21 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
-    TypeVar,
     TypedDict,
+    TypeVar,
     Union,
     cast,
 )
+from urllib.parse import urlencode
+
 from epiweeks import Week
-from pandas import DataFrame, CategoricalDtype
+from pandas import CategoricalDtype, DataFrame
 
 from ._parse import (
-    parse_api_date,
-    parse_api_week,
-    parse_api_date_or_week,
     fields_to_predicate,
+    parse_api_date,
+    parse_api_date_or_week,
+    parse_api_week,
 )
 
 EpiDateLike = Union[int, str, date, Week]
@@ -87,9 +88,7 @@ class EpiRange(Generic[EPI_RANGE_TYPE]):
         return f"{format_date(self.start)}-{format_date(self.end)}"
 
 
-EpiDataResponse = TypedDict(
-    "EpiDataResponse", {"result": int, "message": str, "epidata": List}
-)
+EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
 
 
 EpiRangeParam = Union[EpiRangeLike, Iterable[EpiRangeLike]]
@@ -268,9 +267,7 @@ class AEpiDataCall:
     ) -> Mapping[str, Union[str, float, int, date, None]]:
         if not self.meta:
             return row
-        return {
-            k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()
-        }
+        return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
 
     def _as_df(
         self,
@@ -289,9 +286,7 @@ class AEpiDataCall:
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
             elif info.type == EpidataFieldType.categorical:
-                data_types[info.name] = CategoricalDtype(
-                    categories=info.categories or None, ordered=True
-                )
+                data_types[info.name] = CategoricalDtype(categories=info.categories or None, ordered=True)
             elif info.type == EpidataFieldType.int:
                 data_types[info.name] = int
             elif info.type in (
@@ -299,9 +294,7 @@ class AEpiDataCall:
                 EpidataFieldType.epiweek,
                 EpidataFieldType.date_or_epiweek,
             ):
-                data_types[info.name] = (
-                    int if disable_date_parsing else "datetime64[ns]"
-                )
+                data_types[info.name] = int if disable_date_parsing else "datetime64[ns]"
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = float
             else:

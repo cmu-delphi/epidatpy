@@ -1,36 +1,38 @@
 from datetime import date
+from json import loads
 from typing import (
     Final,
     Generator,
-    Sequence,
-    cast,
     Iterable,
+    List,
     Mapping,
     Optional,
+    Sequence,
     Union,
-    List,
+    cast,
 )
-from json import loads
 
+from pandas import DataFrame
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
-from pandas import DataFrame
 
+from ._auth import get_api_key
+from ._constants import BASE_URL, HTTP_HEADERS
+from ._covidcast import CovidcastDataSources, define_covidcast_fields
+from ._endpoints import AEpiDataEndpoints
 from ._model import (
-    EpiRangeLike,
     AEpiDataCall,
+    EpidataFieldInfo,
     EpiDataFormatType,
     EpiDataResponse,
-    EpiRange,
-    EpidataFieldInfo,
+    EpiRangeLike,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
 )
-from ._endpoints import AEpiDataEndpoints
-from ._constants import HTTP_HEADERS, BASE_URL
-from ._covidcast import CovidcastDataSources, define_covidcast_fields
-from ._auth import get_api_key
+
+# Make the linter happy about the unused variables
+__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "CovidcastEpidata"]
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -217,6 +219,3 @@ def CovidcastEpidata(base_url: str = BASE_URL, session: Optional[Session] = None
         return EpiDataCall(base_url, session, "covidcast", params, define_covidcast_fields())
 
     return CovidcastDataSources.create(meta_data, create_call)
-
-
-__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "EpiRange", "CovidcastEpidata"]

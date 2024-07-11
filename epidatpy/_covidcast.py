@@ -1,4 +1,5 @@
 from dataclasses import Field, InitVar, dataclass, field, fields
+from functools import cached_property
 from typing import (
     Any,
     Callable,
@@ -13,20 +14,20 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    overload,
     get_args,
+    overload,
 )
-from functools import cached_property
+
 from pandas import DataFrame
+
 from ._model import (
-    EpiRangeLike,
     CALL_TYPE,
     EpidataFieldInfo,
     EpidataFieldType,
+    EpiRangeLike,
     EpiRangeParam,
     InvalidArgumentException,
 )
-
 
 GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
 TimeType = Literal["day", "week"]
@@ -63,17 +64,9 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
     return [
         EpidataFieldInfo("source", EpidataFieldType.text),
         EpidataFieldInfo("signal", EpidataFieldType.text),
-        EpidataFieldInfo(
-            "geo_type",
-            EpidataFieldType.categorical,
-            categories=list(get_args(GeoType)),
-        ),
+        EpidataFieldInfo("geo_type", EpidataFieldType.categorical, categories=list(get_args(GeoType))),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
-        EpidataFieldInfo(
-            "time_type",
-            EpidataFieldType.categorical,
-            categories=list(get_args(TimeType)),
-        ),
+        EpidataFieldInfo("time_type", EpidataFieldType.categorical, categories=list(get_args(TimeType))),
         EpidataFieldInfo("time_value", EpidataFieldType.date_or_epiweek),
         EpidataFieldInfo("issue", EpidataFieldType.date),
         EpidataFieldInfo("lag", EpidataFieldType.int),
@@ -119,11 +112,13 @@ class DataSignal(Generic[CALL_TYPE]):
     geo_types: Dict[GeoType, DataSignalGeoStatistics] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.link = [WebLink(alt=l["alt"], href=l["href"]) if isinstance(l, dict) else l for l in self.link]
+        self.link = [
+            WebLink(alt=link["alt"], href=link["href"]) if isinstance(link, dict) else link for link in self.link
+        ]
         stats_fields = fields(DataSignalGeoStatistics)
         self.geo_types = {
-            k: DataSignalGeoStatistics(**_limit_fields(l, stats_fields)) if isinstance(l, dict) else l
-            for k, l in self.geo_types.items()
+            k: DataSignalGeoStatistics(**_limit_fields(v, stats_fields)) if isinstance(v, dict) else v
+            for k, v in self.geo_types.items()
         }
 
     @staticmethod
@@ -222,7 +217,9 @@ class DataSource(Generic[CALL_TYPE]):
         self,
         _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE],
     ) -> None:
-        self.link = [WebLink(alt=l["alt"], href=l["href"]) if isinstance(l, dict) else l for l in self.link]
+        self.link = [
+            WebLink(alt=link["alt"], href=link["href"]) if isinstance(link, dict) else link for link in self.link
+        ]
         signal_fields = fields(DataSignal)
         self.signals = [
             DataSignal(_create_call=_create_call, **_limit_fields(s, signal_fields)) if isinstance(s, dict) else s
@@ -284,31 +281,31 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
     def source_df(self) -> DataFrame:
         """Fetch metadata about available covidcast sources.
 
-        Obtains a data frame of source metadata describing all publicly available data
-        streams from the covidcast API.
+        Obtains a data frame of source metadata describing all publicly
+        available data streams from the covidcast API.
 
         :returns: A data frame containing one row per available source, with the
-          following columns:
+            following columns:
 
-          ``source``
+            ``source``
             Data source name.
 
-          ``signal``
+            ``signal``
             Signal name.
 
-          ``description``
+            ``description``
             Description of the signal.
 
-          ``reference_signal``
+            ``reference_signal``
             Geographic level for which this signal is available, such as county,
-            state, msa, hss, hrr, or nation. Most signals are available at multiple geographic
-            levels and will hence be listed in multiple rows with their own
-            metadata.
+            state, msa, hss, hrr, or nation. Most signals are available at
+            multiple geographic levels and will hence be listed in multiple rows
+            with their own metadata.
 
-          ``license``
+            ``license``
             The license
 
-          ``dua``
+            ``dua``
             Link to the Data Use Agreement.
         """
         return DataSource.to_df(self.sources)
@@ -327,65 +324,70 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         for descriptions of the available sources.
 
         :returns: A data frame containing one row per available signal, with the
-          following columns:
+            following columns:
 
-          ``data_source``
+            ``data_source``
             Data source name.
 
-          ``signal``
+            ``signal``
             Signal name.
 
-          ``name``
+            ``name``
             Name of signal.
 
-          ``active``
-            Whether the signal is currently not updated or not. Signals may be inactive
-            because the sources have become unavailable, other sources have replaced
-            them, or additional work is required for us to continue updating them.
+            ``active``
+            Whether the signal is currently not updated or not. Signals may be
+            inactive because the sources have become unavailable, other sources
+            have replaced them, or additional work is required for us to
+            continue updating them.
 
-          ``short_description``
+            ``short_description``
             Brief description of the signal.
 
-          ``description``
+            ``description``
             Full description of the signal.
 
-          ``geo_types``
-            Spatial resolution of the signal (e.g., `county`, `hrr`, `msa`, `dma`, `state`).
-            More detail about all `geo_types` is given in the `geographic coding documentation
+            ``geo_types``
+            Spatial resolution of the signal (e.g., `county`, `hrr`, `msa`,
+            `dma`, `state`). More detail about all `geo_types` is given in the
+            `geographic coding documentation
             <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>`_.
 
-          ``time_type``
-            Temporal resolution of the signal (e.g., day, week; see
-            `date coding details <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html>`_).
+            ``time_type``
+            Temporal resolution of the signal (e.g., day, week; see `date coding
+            details
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html>`_).
 
-          ``time_label``
+            ``time_label``
             The time label ("Date", "Week").
 
-          ``value_label``
-            The value label ("Value", "Percentage", "Visits", "Visits per 100,000 people").
+            ``value_label``
+            The value label ("Value", "Percentage", "Visits", "Visits per
+            100,000 people").
 
-          ``format``
+            ``format``
             The value format ("per100k", "percent", "fraction", "count", "raw").
 
-          ``category``
+            ``category``
             The signal category ("early", "public", "late", "other").
 
-          ``high_values_are``
-            What the higher value of signal indicates ("good", "bad", "neutral").
+            ``high_values_are``
+            What the higher value of signal indicates ("good", "bad",
+            "neutral").
 
-          ``is_smoothed``
+            ``is_smoothed``
             Whether the signal is smoothed.
 
-          ``is_weighted``
+            ``is_weighted``
             Whether the signal is weighted.
 
-          ``is_cumulative``
+            ``is_cumulative``
             Whether the signal is cumulative.
 
-          ``has_stderr``
+            ``has_stderr``
             Whether the signal has `stderr` statistic.
 
-          ``has_sample_size``
+            ``has_sample_size``
             Whether the signal has `sample_size` statistic.
         """
         return DataSignal.to_df(self.signals)

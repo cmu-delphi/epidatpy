@@ -1,7 +1,6 @@
-from typing import Callable, Iterable, Optional, Set, cast
-
-from typing import Union
 from datetime import date, datetime
+from typing import Callable, Iterable, Optional, Set, Union, cast
+
 from epiweeks import Week
 
 

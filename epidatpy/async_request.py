@@ -1,4 +1,6 @@
+from asyncio import gather, get_event_loop
 from datetime import date
+from json import loads
 from typing import (
     AsyncGenerator,
     Callable,
@@ -13,25 +15,25 @@ from typing import (
     Union,
     cast,
 )
-from json import loads
 
-from asyncio import get_event_loop, gather
-from aiohttp import TCPConnector, ClientSession, ClientResponse
+from aiohttp import ClientResponse, ClientSession, TCPConnector
 from pandas import DataFrame
 
+from ._constants import BASE_URL, HTTP_HEADERS
+from ._covidcast import CovidcastDataSources, define_covidcast_fields
+from ._endpoints import AEpiDataEndpoints
 from ._model import (
-    EpiRangeLike,
     AEpiDataCall,
+    EpidataFieldInfo,
     EpiDataFormatType,
     EpiDataResponse,
-    EpiRange,
-    EpidataFieldInfo,
+    EpiRangeLike,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
 )
-from ._endpoints import AEpiDataEndpoints
-from ._constants import HTTP_HEADERS, BASE_URL
-from ._covidcast import CovidcastDataSources, define_covidcast_fields
+
+# Make the linter happy about the unused variables
+__all__ = ["Epidata", "EpiDataAsyncCall", "EpiDataAsyncContext", "CovidcastEpidata"]
 
 
 async def _async_request(
@@ -276,12 +278,3 @@ async def CovidcastEpidata(
         return EpiDataAsyncCall(base_url, session, "covidcast", params, define_covidcast_fields())
 
     return CovidcastDataSources.create(meta_data, create_call)
-
-
-__all__ = [
-    "Epidata",
-    "EpiDataAsyncCall",
-    "EpiDataAsyncContext",
-    "EpiRange",
-    "CovidcastEpidata",
-]
