@@ -38,7 +38,8 @@ print(epicall._base_url)
 # Covidcast test
 print("Covidcast Test")
 epidata = CovidcastEpidata()
-print(epidata.source_names)
+print(epidata.source_names())
+print(epidata.signal_names("fb-survey"))
 epidata["fb-survey"].signal_df
 apicall = epidata[("fb-survey", "smoothed_cli")].call(
     "nation",
