@@ -10,7 +10,7 @@ from typing import (
     cast,
 )
 
-from pandas import CategoricalDtype, DataFrame, Series
+from pandas import CategoricalDtype, DataFrame, Series, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
@@ -137,6 +137,7 @@ class EpiDataCall(AEpiDataCall):
         df = DataFrame(rows, columns=columns or None)
 
         data_types: Dict[str, Any] = {}
+        time_fields: List[str] = []
         for info in self.meta:
             if not pred(info.name) or df[info.name].isnull().all():
                 continue
@@ -153,13 +154,17 @@ class EpiDataCall(AEpiDataCall):
                 EpidataFieldType.epiweek,
                 EpidataFieldType.date_or_epiweek,
             ):
-                data_types[info.name] = "Int64" if disable_date_parsing else "datetime64[ns]"
+                data_types[info.name] = "Int64"
+                time_fields.append(info.name)
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = "Float64"
             else:
                 data_types[info.name] = "string"
         if data_types:
             df = df.astype(data_types)
+        if not disable_date_parsing:
+            for field in time_fields:
+                df[field] = to_datetime(df[field], format="%Y%m%d", errors="ignore")
         return df
 
 
