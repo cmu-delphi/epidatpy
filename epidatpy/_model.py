@@ -305,7 +305,7 @@ class AEpiDataCall:
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = float
             else:
-                data_types[info.name] = str
+                data_types[info.name] = "string"
         if data_types:
             df = df.astype(data_types)
         return df
