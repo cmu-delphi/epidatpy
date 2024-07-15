@@ -1,10 +1,9 @@
 import os
 import warnings
-from typing import Optional
 
 
-def get_api_key() -> Optional[str]:
-    key = os.environ.get("DELPHI_EPIDATA_KEY", None)
+def _get_api_key() -> str:
+    key = os.environ.get("DELPHI_EPIDATA_KEY", "")
 
     if not key:
         warnings.warn(

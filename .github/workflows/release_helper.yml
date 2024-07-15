@@ -17,20 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
       - name: Extract version
         id: extract_version
         run: |
           python -m pip install bump2version
-          echo -n "::set-output name=version::"
-          bump2version --dry-run --list patch | grep ^current_version | sed -r s,"^.*=",,
+          NEXT_TAG=$(bump2version --dry-run --list patch | grep ^current_version | sed -r s,"^.*=",,)
+          echo "version=$NEXT_TAG" >> $GITHUB_OUTPUT
       - name: Create Release
         id: create_release
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -41,20 +41,19 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       tag_name: ${{ steps.create_release.outputs.tag_name }}
 
-  release_package:
-    needs: create_release
+  lint:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --use-feature=2020-resolver -r requirements.txt -r requirements-dev.txt
+          pip install -e ".[dev]"
       - name: Linting
         run: |
           . venv/bin/activate
@@ -63,14 +62,42 @@ jobs:
         run: |
           . venv/bin/activate
           inv test
-      - name: Create release
+
+  build:
+    needs: [create_release, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Build
         run: |
           inv dist
-      - uses: actions/upload-artifact@v2
+
+  release_package:
+    needs: [create_release, lint]
+    runs-on: ubuntu-latest
+    # TODO: Make sure this works, copied from best practices here
+    # https://github.com/pypa/gh-action-pypi-publish/tree/release/v1/?tab=readme-ov-file#trusted-publishing
+    environment:
+      name: pypi
+      url: https://pypi.org/p/epidatpy
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/upload-artifact@v4
         with:
           name: epidatpy
+          path: dist/*.tar.gz
       - name: Upload Release Asset
-        uses: AButler/upload-release-assets@v2.0
+        uses: AButler/upload-release-assets@v3.0
         with:
           files: "dist/*.tar.gz"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,9 +105,7 @@ jobs:
       - name: Publish a Python distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          user: __token__
-          password: ${{ secrets.DELPHI_PYPI_PROD_TOKEN }}
-          skip_existing: true
+          skip-existing: true
           # repository_url: https://test.pypi.org/legacy/
 
   sync_dev:
@@ -88,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: dev
           ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
@@ -97,14 +122,14 @@ jobs:
           git fetch origin main:main
           git reset --hard main
       - name: Create pull request into dev
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v6
         with:
           branch: bot/sync-main-dev
           commit-message: "chore: sync main-dev"
           base: dev
           title: "chore: sync main->dev"
           labels: chore
-          # reviewers: 
-          assignees: melange396
+          # reviewers:
+          assignees: dshemetov
           body: |
             Syncing Main->Dev.

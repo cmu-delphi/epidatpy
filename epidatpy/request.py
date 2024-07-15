@@ -1,36 +1,38 @@
-from datetime import date
 from typing import (
+    Any,
+    Dict,
     Final,
-    Generator,
-    Sequence,
-    cast,
-    Iterable,
+    List,
     Mapping,
     Optional,
+    Sequence,
     Union,
-    List,
+    cast,
 )
-from json import loads
 
+from pandas import CategoricalDtype, DataFrame, Series, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
-from pandas import DataFrame
 
+from ._auth import _get_api_key
+from ._constants import BASE_URL, HTTP_HEADERS
+from ._covidcast import CovidcastDataSources, define_covidcast_fields
+from ._endpoints import AEpiDataEndpoints
 from ._model import (
-    EpiRangeLike,
     AEpiDataCall,
-    EpiDataFormatType,
+    EpidataFieldInfo,
+    EpidataFieldType,
     EpiDataResponse,
     EpiRange,
-    EpidataFieldInfo,
+    EpiRangeParam,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
 )
-from ._endpoints import AEpiDataEndpoints
-from ._constants import HTTP_HEADERS, BASE_URL
-from ._covidcast import CovidcastDataSources, define_covidcast_fields
-from ._auth import get_api_key
+from ._parse import fields_to_predicate
+
+# Make the linter happy about the unused variables
+__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "EpiRange", "CovidcastEpidata"]
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -41,7 +43,7 @@ def _request_with_retry(
     stream: bool = False,
 ) -> Response:
     """Make request with a retry if an exception is thrown."""
-    basic_auth = HTTPBasicAuth("epidata", get_api_key())
+    basic_auth = HTTPBasicAuth("epidata", _get_api_key())
 
     def call_impl(s: Session) -> Response:
         res = s.get(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
@@ -68,7 +70,7 @@ class EpiDataCall(AEpiDataCall):
         base_url: str,
         session: Optional[Session],
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> None:
@@ -83,23 +85,25 @@ class EpiDataCall(AEpiDataCall):
 
     def _call(
         self,
-        format_type: Optional[EpiDataFormatType] = None,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         stream: bool = False,
     ) -> Response:
-        url, params = self.request_arguments(format_type, fields)
+        url, params = self.request_arguments(fields)
         return _request_with_retry(url, params, self._session, stream)
 
     def classic(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
+        disable_type_parsing: Optional[bool] = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
         self._verify_parameters()
         try:
-            response = self._call(None, fields)
+            response = self._call(fields)
             r = cast(EpiDataResponse, response.json())
+            if disable_type_parsing:
+                return r
             epidata = r.get("epidata")
             if epidata and isinstance(epidata, list) and len(epidata) > 0 and isinstance(epidata[0], dict):
                 r["epidata"] = [self._parse_row(row, disable_date_parsing=disable_date_parsing) for row in epidata]
@@ -109,68 +113,59 @@ class EpiDataCall(AEpiDataCall):
 
     def __call__(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
-    ) -> EpiDataResponse:
-        """Request and parse epidata in CLASSIC message format."""
-        return self.classic(fields, disable_date_parsing=disable_date_parsing)
-
-    def json(
-        self,
-        fields: Optional[Iterable[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
-    ) -> List[Mapping[str, Union[str, int, float, date, None]]]:
-        """Request and parse epidata in JSON format"""
+    ) -> Union[EpiDataResponse, DataFrame]:
+        """Request and parse epidata in df message format."""
         if self.only_supports_classic:
-            raise OnlySupportsClassicFormatException()
-        self._verify_parameters()
-        response = self._call(EpiDataFormatType.json, fields)
-        response.raise_for_status()
-        return [
-            self._parse_row(row, disable_date_parsing=disable_date_parsing)
-            for row in cast(List[Mapping[str, Union[str, int, float, None]]], response.json())
-        ]
+            return self.classic(fields, disable_date_parsing=disable_date_parsing, disable_type_parsing=False)
+        return self.df(fields, disable_date_parsing=disable_date_parsing)
 
     def df(
         self,
-        fields: Optional[Iterable[str]] = None,
+        fields: Optional[Sequence[str]] = None,
         disable_date_parsing: Optional[bool] = False,
     ) -> DataFrame:
         """Request and parse epidata as a pandas data frame"""
         if self.only_supports_classic:
             raise OnlySupportsClassicFormatException()
         self._verify_parameters()
-        r = self.json(fields, disable_date_parsing=disable_date_parsing)
-        return self._as_df(r, fields, disable_date_parsing=disable_date_parsing)
+        json = self.classic(fields, disable_type_parsing=True)
+        rows = json.get("epidata", [])
+        pred = fields_to_predicate(fields)
+        columns: List[str] = [info.name for info in self.meta if pred(info.name)]
+        df = DataFrame(rows, columns=columns or None)
 
-    def csv(self, fields: Optional[Iterable[str]] = None) -> str:
-        """Request and parse epidata in CSV format"""
-        if self.only_supports_classic:
-            raise OnlySupportsClassicFormatException()
-        self._verify_parameters()
-        response = self._call(EpiDataFormatType.csv, fields)
-        response.raise_for_status()
-        return response.text
-
-    def iter(
-        self,
-        fields: Optional[Iterable[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Generator[Mapping[str, Union[str, int, float, date, None]], None, Response]:
-        """Request and streams epidata rows"""
-        if self.only_supports_classic:
-            raise OnlySupportsClassicFormatException()
-        self._verify_parameters()
-        response = self._call(EpiDataFormatType.jsonl, fields, stream=True)
-        response.raise_for_status()
-        for line in response.iter_lines():
-            yield self._parse_row(loads(line), disable_date_parsing=disable_date_parsing)
-        return response
-
-    def __iter__(
-        self,
-    ) -> Generator[Mapping[str, Union[str, int, float, date, None]], None, Response]:
-        return self.iter()
+        data_types: Dict[str, Any] = {}
+        time_fields: List[str] = []
+        for info in self.meta:
+            if not pred(info.name) or df[info.name].isnull().all():
+                continue
+            if info.type == EpidataFieldType.bool:
+                data_types[info.name] = bool
+            elif info.type == EpidataFieldType.categorical:
+                data_types[info.name] = CategoricalDtype(
+                    categories=Series(info.categories) if info.categories else None, ordered=True
+                )
+            elif info.type == EpidataFieldType.int:
+                data_types[info.name] = "Int64"
+            elif info.type in (
+                EpidataFieldType.date,
+                EpidataFieldType.epiweek,
+                EpidataFieldType.date_or_epiweek,
+            ):
+                data_types[info.name] = "Int64"
+                time_fields.append(info.name)
+            elif info.type == EpidataFieldType.float:
+                data_types[info.name] = "Float64"
+            else:
+                data_types[info.name] = "string"
+        if data_types:
+            df = df.astype(data_types)
+        if not disable_date_parsing:
+            for field in time_fields:
+                df[field] = to_datetime(df[field], format="%Y%m%d", errors="ignore")
+        return df
 
 
 class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
@@ -195,7 +190,7 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
     def _create_call(
         self,
         endpoint: str,
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
     ) -> EpiDataCall:
@@ -212,11 +207,8 @@ def CovidcastEpidata(base_url: str = BASE_URL, session: Optional[Session] = None
     meta_data = meta_data_res.json()
 
     def create_call(
-        params: Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]],
+        params: Mapping[str, Optional[EpiRangeParam]],
     ) -> EpiDataCall:
         return EpiDataCall(base_url, session, "covidcast", params, define_covidcast_fields())
 
     return CovidcastDataSources.create(meta_data, create_call)
-
-
-__all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "EpiRange", "CovidcastEpidata"]

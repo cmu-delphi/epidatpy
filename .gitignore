@@ -1,10 +1,11 @@
 .mypy_cache
 *.pyc
 __pycache__
-/venv
-/docs/_build
 .coverage
 .pytest_cache
-*.egg-info
-/dist
 .DS_Store
+*.egg-info
+dist/
+build/
+docs/_build
+venv/
