@@ -4,6 +4,7 @@ from enum import Enum
 from typing import (
     Final,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
@@ -24,6 +25,8 @@ from ._parse import (
     parse_user_date_or_week,
 )
 
+GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
+TimeType = Literal["day", "week"]
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
 EpiRangeLike = Union[int, str, "EpiRange", EpiRangeDict, date, Week]

@@ -25,11 +25,10 @@ from ._model import (
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRangeParam,
+    GeoType,
     InvalidArgumentException,
+    TimeType,
 )
-
-GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
-TimeType = Literal["day", "week"]
 
 
 @dataclass
