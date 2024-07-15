@@ -1,27 +1,33 @@
-# Delphi Epidata Python Client `epidatpy`
+# `epidatpy`
 
 [![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Read the Docs][docs-image]][docs-url]
 
+A Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
+
 ## Install
 
-Install latest version:
+Install with the following commands:
 
 ```sh
+# Latest dev version
 pip install -e "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
+
+# PyPI version (not yet available)
+pip install epidatpy
 ```
 
 ## Usage
 
 TODO
 
-## Development Environment
+## Development
 
 Prepare virtual environment and install dependencies
 
 ```sh
 python -m venv venv
 source ./venv/bin/activate
-pip install --use-feature=2020-resolver -r requirements.txt -r requirements-dev.txt
+pip install -e ".[dev]"
 ```
 
 ### Common Commands
@@ -38,7 +44,7 @@ inv dist     # build distribution packages
 inv release  # upload the current version to pypi
 ```
 
-## Release Process
+### Release Process
 
 The release consists of multiple steps which can be all done via the GitHub website:
 

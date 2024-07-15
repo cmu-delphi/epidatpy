@@ -1,4 +1,5 @@
-from dataclasses import Field, InitVar, dataclass, field, fields
+from dataclasses import Field, InitVar, asdict, dataclass, field, fields
+from functools import cached_property
 from typing import (
     Any,
     Callable,
@@ -13,23 +14,21 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    overload,
     get_args,
+    overload,
 )
-from functools import cached_property
+
 from pandas import DataFrame
+
 from ._model import (
-    EpiRangeLike,
     CALL_TYPE,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRangeParam,
+    GeoType,
     InvalidArgumentException,
+    TimeType,
 )
-
-
-GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
-TimeType = Literal["day", "week"]
 
 
 @dataclass
@@ -63,17 +62,9 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
     return [
         EpidataFieldInfo("source", EpidataFieldType.text),
         EpidataFieldInfo("signal", EpidataFieldType.text),
-        EpidataFieldInfo(
-            "geo_type",
-            EpidataFieldType.categorical,
-            categories=list(get_args(GeoType)),
-        ),
+        EpidataFieldInfo("geo_type", EpidataFieldType.categorical, categories=list(get_args(GeoType))),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
-        EpidataFieldInfo(
-            "time_type",
-            EpidataFieldType.categorical,
-            categories=list(get_args(TimeType)),
-        ),
+        EpidataFieldInfo("time_type", EpidataFieldType.categorical, categories=list(get_args(TimeType))),
         EpidataFieldInfo("time_value", EpidataFieldType.date_or_epiweek),
         EpidataFieldInfo("issue", EpidataFieldType.date),
         EpidataFieldInfo("lag", EpidataFieldType.int),
@@ -93,7 +84,7 @@ class DataSignal(Generic[CALL_TYPE]):
     represents a COVIDcast data signal
     """
 
-    _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE]
+    _create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]
 
     source: str
     signal: str
@@ -119,17 +110,19 @@ class DataSignal(Generic[CALL_TYPE]):
     geo_types: Dict[GeoType, DataSignalGeoStatistics] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.link = [WebLink(alt=l["alt"], href=l["href"]) if isinstance(l, dict) else l for l in self.link]
+        self.link = [
+            WebLink(alt=link["alt"], href=link["href"]) if isinstance(link, dict) else link for link in self.link
+        ]
         stats_fields = fields(DataSignalGeoStatistics)
         self.geo_types = {
-            k: DataSignalGeoStatistics(**_limit_fields(l, stats_fields)) if isinstance(l, dict) else l
-            for k, l in self.geo_types.items()
+            k: DataSignalGeoStatistics(**_limit_fields(v, stats_fields)) if isinstance(v, dict) else v
+            for k, v in self.geo_types.items()
         }
 
     @staticmethod
     def to_df(signals: Iterable["DataSignal"]) -> DataFrame:
         df = DataFrame(
-            signals,
+            [asdict(s) for s in signals],
             columns=[
                 "source",
                 "signal",
@@ -150,8 +143,8 @@ class DataSignal(Generic[CALL_TYPE]):
                 "has_sample_size",
             ],
         )
-        df.insert(6, "geo_types", [",".join(s.geo_types.keys()) for s in signals])
-        return df.set_index(["source", "signal"])
+        df["geo_types"] = [",".join(s.geo_types.keys()) for s in signals]
+        return df
 
     @property
     def key(self) -> Tuple[str, str]:
@@ -160,7 +153,7 @@ class DataSignal(Generic[CALL_TYPE]):
     def call(
         self,
         geo_type: GeoType,
-        geo_values: Union[int, str, Iterable[Union[int, str]]],
+        geo_values: Union[str, Sequence[str]],
         time_values: EpiRangeParam,
         as_of: Union[None, str, int] = None,
         issues: Optional[EpiRangeParam] = None,
@@ -189,7 +182,7 @@ class DataSignal(Generic[CALL_TYPE]):
     def __call__(
         self,
         geo_type: GeoType,
-        geo_values: Union[int, str, Iterable[Union[int, str]]],
+        geo_values: Union[str, Sequence[str]],
         time_values: EpiRangeParam,
         as_of: Union[None, str, int] = None,
         issues: Optional[EpiRangeParam] = None,
@@ -205,7 +198,7 @@ class DataSource(Generic[CALL_TYPE]):
     represents a COVIDcast data source
     """
 
-    _create_call: InitVar[Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE]]
+    _create_call: InitVar[Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]]
 
     source: str
     db_source: str
@@ -218,11 +211,10 @@ class DataSource(Generic[CALL_TYPE]):
 
     signals: Sequence[DataSignal] = field(default_factory=list)
 
-    def __post_init__(
-        self,
-        _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE],
-    ) -> None:
-        self.link = [WebLink(alt=l["alt"], href=l["href"]) if isinstance(l, dict) else l for l in self.link]
+    def __post_init__(self, _create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]) -> None:
+        self.link = [
+            WebLink(alt=link["alt"], href=link["href"]) if isinstance(link, dict) else link for link in self.link
+        ]
         signal_fields = fields(DataSignal)
         self.signals = [
             DataSignal(_create_call=_create_call, **_limit_fields(s, signal_fields)) if isinstance(s, dict) else s
@@ -232,7 +224,7 @@ class DataSource(Generic[CALL_TYPE]):
     @staticmethod
     def to_df(sources: Iterable["DataSource"]) -> DataFrame:
         df = DataFrame(
-            sources,
+            [asdict(source) for source in sources],
             columns=[
                 "source",
                 "name",
@@ -243,7 +235,7 @@ class DataSource(Generic[CALL_TYPE]):
             ],
         )
         df["signals"] = [",".join(ss.signal for ss in s.signals) for s in sources]
-        return df.set_index("source")
+        return df
 
     def get_signal(self, signal: str) -> Optional[DataSignal]:
         return next((s for s in self.signals if s.signal == signal), None)
@@ -265,7 +257,7 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         init=False, default_factory=OrderedDict
     )
 
-    _create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE]
+    _create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]
 
     def __post_init__(self) -> None:
         self._source_by_name = {s.source: s for s in self.sources}
@@ -273,49 +265,46 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
             for signal in source.signals:
                 self._signals_by_key[signal.key] = signal
 
-    def get_source(self, source: str) -> Optional[DataSource[CALL_TYPE]]:
-        return self._source_by_name.get(source)
+    def source_names(self) -> Sequence[str]:
+        return [s.source for s in self.sources]
 
-    @property
-    def source_names(self) -> Iterable[str]:
-        return (s.source for s in self.sources)
+    def signal_names(self, source: Optional[str] = None) -> Sequence[str]:
+        if not source:
+            return [x.signal for src in self._source_by_name.values() for x in src.signals]
+        return [s.signal for s in self._source_by_name[source].signals]
 
     @cached_property
     def source_df(self) -> DataFrame:
         """Fetch metadata about available covidcast sources.
 
-        Obtains a data frame of source metadata describing all publicly available data
-        streams from the covidcast API.
+        Obtains a data frame of source metadata describing all publicly
+        available data streams from the covidcast API.
 
         :returns: A data frame containing one row per available source, with the
-          following columns:
+            following columns:
 
-          ``source``
+            ``source``
             Data source name.
 
-          ``signal``
+            ``signal``
             Signal name.
 
-          ``description``
+            ``description``
             Description of the signal.
 
-          ``reference_signal``
+            ``reference_signal``
             Geographic level for which this signal is available, such as county,
-            state, msa, hss, hrr, or nation. Most signals are available at multiple geographic
-            levels and will hence be listed in multiple rows with their own
-            metadata.
+            state, msa, hss, hrr, or nation. Most signals are available at
+            multiple geographic levels and will hence be listed in multiple rows
+            with their own metadata.
 
-          ``license``
+            ``license``
             The license
 
-          ``dua``
+            ``dua``
             Link to the Data Use Agreement.
         """
         return DataSource.to_df(self.sources)
-
-    @property
-    def signals(self) -> Iterable[DataSignal[CALL_TYPE]]:
-        return self._signals_by_key.values()
 
     @cached_property
     def signal_df(self) -> DataFrame:
@@ -327,100 +316,95 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         for descriptions of the available sources.
 
         :returns: A data frame containing one row per available signal, with the
-          following columns:
+            following columns:
 
-          ``data_source``
+            ``data_source``
             Data source name.
 
-          ``signal``
+            ``signal``
             Signal name.
 
-          ``name``
+            ``name``
             Name of signal.
 
-          ``active``
-            Whether the signal is currently not updated or not. Signals may be inactive
-            because the sources have become unavailable, other sources have replaced
-            them, or additional work is required for us to continue updating them.
+            ``active``
+            Whether the signal is currently not updated or not. Signals may be
+            inactive because the sources have become unavailable, other sources
+            have replaced them, or additional work is required for us to
+            continue updating them.
 
-          ``short_description``
+            ``short_description``
             Brief description of the signal.
 
-          ``description``
+            ``description``
             Full description of the signal.
 
-          ``geo_types``
-            Spatial resolution of the signal (e.g., `county`, `hrr`, `msa`, `dma`, `state`).
-            More detail about all `geo_types` is given in the `geographic coding documentation
+            ``geo_types``
+            Spatial resolution of the signal (e.g., `county`, `hrr`, `msa`,
+            `dma`, `state`). More detail about all `geo_types` is given in the
+            `geographic coding documentation
             <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>`_.
 
-          ``time_type``
-            Temporal resolution of the signal (e.g., day, week; see
-            `date coding details <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html>`_).
+            ``time_type``
+            Temporal resolution of the signal (e.g., day, week; see `date coding
+            details
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html>`_).
 
-          ``time_label``
+            ``time_label``
             The time label ("Date", "Week").
 
-          ``value_label``
-            The value label ("Value", "Percentage", "Visits", "Visits per 100,000 people").
+            ``value_label``
+            The value label ("Value", "Percentage", "Visits", "Visits per
+            100,000 people").
 
-          ``format``
+            ``format``
             The value format ("per100k", "percent", "fraction", "count", "raw").
 
-          ``category``
+            ``category``
             The signal category ("early", "public", "late", "other").
 
-          ``high_values_are``
-            What the higher value of signal indicates ("good", "bad", "neutral").
+            ``high_values_are``
+            What the higher value of signal indicates ("good", "bad",
+            "neutral").
 
-          ``is_smoothed``
+            ``is_smoothed``
             Whether the signal is smoothed.
 
-          ``is_weighted``
+            ``is_weighted``
             Whether the signal is weighted.
 
-          ``is_cumulative``
+            ``is_cumulative``
             Whether the signal is cumulative.
 
-          ``has_stderr``
+            ``has_stderr``
             Whether the signal has `stderr` statistic.
 
-          ``has_sample_size``
+            ``has_sample_size``
             Whether the signal has `sample_size` statistic.
         """
-        return DataSignal.to_df(self.signals)
-
-    def get_signal(self, source: str, signal: str) -> Optional[DataSignal[CALL_TYPE]]:
-        return self._signals_by_key.get((source, signal))
-
-    @property
-    def signal_names(self) -> Iterable[Tuple[str, str]]:
-        return self._signals_by_key.keys()
-
-    def __iter__(self) -> Iterable[DataSource[CALL_TYPE]]:
-        return iter(self.sources)
+        return DataSignal.to_df(self._signals_by_key.values())
 
     @overload
-    def __getitem__(self, source: str) -> DataSource[CALL_TYPE]: ...
+    def __getitem__(self, source: str, /) -> DataSource[CALL_TYPE]: ...
 
     @overload
-    def __getitem__(self, source_signal: Tuple[str, str]) -> DataSignal[CALL_TYPE]: ...
+    def __getitem__(self, source_signal: Tuple[str, str], /) -> DataSignal[CALL_TYPE]: ...
 
     def __getitem__(
         self, source_signal: Union[str, Tuple[str, str]]
     ) -> Union[DataSource[CALL_TYPE], DataSignal[CALL_TYPE]]:
         if isinstance(source_signal, str):
-            r = self.get_source(source_signal)
+            r = self._source_by_name.get(source_signal)
             assert r is not None
             return r
-        s = self.get_signal(source_signal[0], source_signal[1])
+        s = self._signals_by_key.get((source_signal[0], source_signal[1]))
         assert s is not None
         return s
 
     @staticmethod
     def create(
         meta: List[Dict],
-        create_call: Callable[[Mapping[str, Union[None, EpiRangeLike, Iterable[EpiRangeLike]]]], CALL_TYPE],
+        create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE],
     ) -> "CovidcastDataSources":
         source_fields = fields(DataSource)
         sources = [DataSource(_create_call=create_call, **_limit_fields(k, source_fields)) for k in meta]

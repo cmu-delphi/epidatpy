@@ -1,126 +1,72 @@
 Fetching Data
 =============
->>> from delphi_epidata.request import Epidata
 
-This package provides various functions that can be called on the ``Epidata`` object to obtain any :ref:`Epidata endpoint <epidata-endpoints>` signals of interest. 
+>>> from epidatpy.request import Epidata
+>>> epi = Epidata()
+>>> epi.pub_covidcast('usa-facts', 'confirmed_7dav_incidence_num', '20210101', '20210131', 'state', 'tx')
 
-The functions below will return an ``EpiDataCall`` object, which contains the appropriate URL 
-and parameters required to make an API request. The signal of interest can then be obtained in 5 different :ref:`output formats <output-data>`.
+This package provides various functions that can be called on the ``Epidata`` object to obtain any :ref:`Epidata endpoint <epidata-endpoints>` signals of interest. The functions below are inherited by the ``Epidata`` object.
 
 Detailed examples are provided in the :ref:`usage examples <getting-started>`.
 
 COVIDcast Signals
 -----------------
 
-.. autofunction:: delphi_epidata.request.Epidata.covidcast
-|
-.. autofunction:: delphi_epidata.request.Epidata.covidcast_meta
-|
-.. autofunction:: delphi_epidata.request.Epidata.covid_hosp_facility
-|
-.. autofunction:: delphi_epidata.request.Epidata.covid_hosp_facility_lookup
-|
-.. autofunction:: delphi_epidata.request.Epidata.covid_hosp_state_timeseries
-|
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_covidcast
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_covidcast_meta
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_covid_hosp_facility
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_covid_hosp_facility_lookup
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_covid_hosp_state_timeseries
+
 Other Epidata Signals
------------------
-.. autofunction:: delphi_epidata.request.Epidata.pvt_afhsb
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_meta_afhsb
-|
-.. autofunction:: delphi_epidata.request.Epidata.cdc
-|
-.. autofunction:: delphi_epidata.request.Epidata.delphi
-|
-.. autofunction:: delphi_epidata.request.Epidata.ecdc_ili
-|
-.. autofunction:: delphi_epidata.request.Epidata.flusurv
-|
-.. autofunction:: delphi_epidata.request.Epidata.fluview
-|
-.. autofunction:: delphi_epidata.request.Epidata.fluview_meta
-|
-.. autofunction:: delphi_epidata.request.Epidata.fluview_clinical
-|
-.. autofunction:: delphi_epidata.request.Epidata.gft
-|
-.. autofunction:: delphi_epidata.request.Epidata.ght
-|
-.. autofunction:: delphi_epidata.request.Epidata.kcdc_ili
-|
-.. autofunction:: delphi_epidata.request.Epidata.meta
-|
-.. autofunction:: delphi_epidata.request.Epidata.nidss_flu
-|
-.. autofunction:: delphi_epidata.request.Epidata.nowcast
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_quidel
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_sensors
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_twitter
-|
-.. autofunction:: delphi_epidata.request.Epidata.wiki
-|
-.. autofunction:: delphi_epidata.request.Epidata.dengue_nowcast
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_dengue_sensors
-|
-.. autofunction:: delphi_epidata.request.Epidata.nidss_dengue
-|
-.. autofunction:: delphi_epidata.request.Epidata.paho_dengue
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_meta_norostat
-|
-.. autofunction:: delphi_epidata.request.Epidata.pvt_norostat
+---------------------
 
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_cdc
 
-.. _output-data:
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_delphi
 
-Output Functions
---------
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_ecdc_ili
 
-The following functions can be called on an ``EpiDataCall`` object to make an API request and parse the signal in 
-5 different formats: 
-    - Classic
-    - JSON
-    - Pandas DataFrame
-    - CSV
-    - Iterator
-|
-.. autofunction:: delphi_epidata.request.EpiDataCall.classic
-|
-.. autofunction:: delphi_epidata.request.EpiDataCall.json
-|
-.. autofunction:: delphi_epidata.request.EpiDataCall.df
-|
-.. autofunction:: delphi_epidata.request.EpiDataCall.csv
-|
-.. autofunction:: delphi_epidata.request.EpiDataCall.iter
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_flusurv
 
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_fluview
 
-More on COVIDcast (TODO)
-------------------------
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_fluview_meta
 
-Many data sources and signals are available, so one can also obtain a data frame
-of all signals and their associated metadata:
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_fluview_clinical
 
->>> from epidatpy.request import CovidcastEpidata
->>> covid_ds = CovidcastEpidata()
->>> df_source = covid_ds.source_df
->>> df_signal = covid_ds.signal_df
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_gft
 
-Calling ``CovidcastEpidata`` function will return a class object ``CovidcastDataSources``, 
-which has the property ``source_df`` and ``signal_df``, two data frames containing 
-the information of all available sources and signals.
-More details of the two data frames are listed below.
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_ght
 
-.. autoclass:: epidatpy.request.CovidcastDataSources()
-    :members:
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_kcdc_ili
 
-More metadata statistics can also be obtained as follows:
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_meta
 
->>> from epidatpy.request import Epidata
->>> df = Epidata.covidcast_meta().df()
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_nidss_flu
 
-.. autofunction:: epidatpy.request.Epidata.covidcast_meta()
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_nowcast
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_quidel
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_sensors
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_twitter
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_wiki
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_dengue_nowcast
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_dengue_sensors
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_nidss_dengue
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pub_paho_dengue
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_meta_norostat
+
+.. automethod:: epidatpy.AEpiDataEndpoints.pvt_norostat

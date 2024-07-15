@@ -4,156 +4,143 @@ Getting Started
 Overview
 --------------
 
-This package provides access to data from various Epidata API endpoints including COVIDcast, 
-which provides numerous COVID-related data streams, updated daily. 
+This package provides access to data from various Epidata API endpoints including COVIDcast,
+which provides numerous COVID-related data streams, updated daily.
 
 .. _epidata-endpoints:
 
 Epidata Data Sources
---------------
+--------------------
 The parameters available for each source data are documented in each linked source-specific API page.
 
-|
 **COVID-19 Data**
 
-.. list-table:: 
+.. list-table::
    :widths: 20 20 40
    :header-rows: 1
 
    * - Endpoint
      - Name
      - Description
-   * - `covidcast <https://cmu-delphi.github.io/delphi-epidata/api/covidcast.html>`_
+   * - `pub_covidcast <https://cmu-delphi.github.io/delphi-epidata/api/covidcast.html>`_
      - COVIDcast
      - Delphi’s COVID-19 surveillance streams.
-   * - `covidcast_meta <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>`_
+   * - `pub_covidcast_meta <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>`_
      - COVIDcast metadata
      - Metadata for Delphi's COVID-19 surveillance streams.
-   * - `covid_hosp_facility <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html>`_
+   * - `pub_covid_hosp_facility <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html>`_
      - COVID-19 Hospitalization by Facility
      - COVID-19 Reported Patient Impact and Hospital Capacity - Facility Lookup
-   * - `covid_hosp <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html>`_
+   * - `pub_covid_hosp <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html>`_
      - COVID-19 Hospitalization
      - COVID-19 Reported Patient Impact and Hospital Capacity.
 
-|
 **Influenza Data**
 
-.. list-table:: 
+.. list-table::
    :widths: 20 20 40
    :header-rows: 1
 
    * - Endpoint
      - Name
      - Description
-   * - `afhsb <https://cmu-delphi.github.io/delphi-epidata/api/afhsb.html>`_
-     - AFHSB
+   * - `pvt_cdc <https://cmu-delphi.github.io/delphi-epidata/api/cdc.html>`_
+     - CDC Page Hits
      - ...
-   * - `meta_afhsb <https://cmu-delphi.github.io/delphi-epidata/api/meta_afhsb.html>`_
-     - AFHSB Metadata
+   * - `pub_delphi <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>`_
+     - Delphi’s Forecast
      - ...
-   * - `cdc <https://cmu-delphi.github.io/delphi-epidata/api/cdc.html>`_
-     - CDC Page Hits 
-     - ...
-   * - `delphi <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>`_
-     - Delphi’s Forecast 
-     - ...
-   * - `ecdc_ili <https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html>`_
+   * - `pub_ecdc_ili <https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html>`_
      - ECDC ILI
      - ECDC ILI data from the ECDC website.
-   * - `flusurv <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>`_
-     - FluSurv 
+   * - `pub_flusurv <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>`_
+     - FluSurv
      - FluSurv-NET data (flu hospitaliation rates) from CDC.
-   * - `fluview <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>`_
+   * - `pub_fluview <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>`_
      - FluView
      - Influenza-like illness (ILI) from U.S. Outpatient Influenza-like Illness Surveillance Network (ILINet).
-   * - `fluview_meta <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>`_
+   * - `pub_fluview_meta <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>`_
      - FluView Metadata
      - Summary data about ``fluview``.
-   * - `fluview_clinical <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>`_
+   * - `pub_fluview_clinical <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>`_
      - FluView Clinical
      - ...
-   * - `gft <https://cmu-delphi.github.io/delphi-epidata/api/gft.html>`_
+   * - `pub_gft <https://cmu-delphi.github.io/delphi-epidata/api/gft.html>`_
      - Google Flu Trends
      - Estimate of influenza activity based on volume of certain search queries. This is now a static endpoint due to discontinuation.
-   * - `ght <https://cmu-delphi.github.io/delphi-epidata/api/ght.html>`_
-     - Google Health Trends
-     - Estimate of influenza activity based on volume of certain search queries.
-   * - `kcdc_ili <https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html>`_
+   * - `pub_kcdc_ili <https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html>`_
      - KCDC ILI
      - KCDC ILI data from KCDC website.
-   * - `meta <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>`_
+   * - `pub_meta <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>`_
      - API Metadata
      - Metadata for ``fluview``, ``twitter``, ``wiki``, and ``delphi``.
-   * - `nidss_flu <https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html>`_
+   * - `pub_nidss_flu <https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html>`_
      - NIDSS Flu
      - Outpatient ILI from Taiwan's National Infectious Disease Statistics System (NIDSS).
-   * - `nowcast <https://cmu-delphi.github.io/delphi-epidata/api/nowcast.html>`_
+   * - `pub_nowcast <https://cmu-delphi.github.io/delphi-epidata/api/nowcast.html>`_
      - ILI Nearby
      - A nowcast of U.S. national, regional, and state-level (weighted) percent ILI, available seven days (regionally) or five days (state-level) before the first ILINet report for the corresponding week.
-   * - `quidel <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>`_
+   * - `pvt_quidel <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>`_
      - Quidel
      - Data provided by Quidel Corp., which contains flu lab test results.
-   * - `sensors <https://cmu-delphi.github.io/delphi-epidata/api/sensors.html>`_
+   * - `pvt_sensors <https://cmu-delphi.github.io/delphi-epidata/api/sensors.html>`_
      - Delphi's Digital Surveillance Sensors
      - ...
-   * - `twitter <https://cmu-delphi.github.io/delphi-epidata/api/twitter.html>`_
+   * - `pvt_twitter <https://cmu-delphi.github.io/delphi-epidata/api/twitter.html>`_
      - Twitter Stream
      - Estimate of influenza activity based on analysis of language used in tweets from HealthTweets.
-   * - `wiki <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html>`_
+   * - `pub_wiki <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html>`_
      - Wikipedia Access Logs
      - Number of page visits for selected English, Influenza-related wikipedia articles.
-|
 
 **Dengue Data**
 
-.. list-table:: 
+.. list-table::
    :widths: 20 20 40
    :header-rows: 1
 
    * - Endpoint
      - Name
      - Description
-   * - `dengue_nowcast <https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html>`_
+   * - `pub_dengue_nowcast <https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html>`_
      - Delphi's Dengue Nowcast
      - ...
-   * - `dengue_sensors <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html>`_
+   * - `pvt_dengue_sensors <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html>`_
      - Delphi’s Dengue Digital Surveillance Sensors
      - ...
-   * - `nidss_dengue <https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html>`_
+   * - `pub_nidss_dengue <https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html>`_
      - NIDSS Dengue
      - Counts of confirmed dengue cases from Taiwan's NIDSS.
-   * - `paho_dengue <https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html>`_
+   * - `pub_paho_dengue <https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html>`_
      - PAHO Dengue
      - ...
-|
 
 **Norovirus Data**
 
-.. list-table:: 
+.. list-table::
    :widths: 20 20 40
    :header-rows: 1
 
    * - Endpoint
      - Name
      - Description
-   * - `meta_norostat <https://cmu-delphi.github.io/delphi-epidata/api/meta_norostat.html>`_
+   * - `pvt_meta_norostat <https://cmu-delphi.github.io/delphi-epidata/api/meta_norostat.html>`_
      - NoroSTAT Metadata
      - ...
-   * - `norostat <https://cmu-delphi.github.io/delphi-epidata/api/norostat.html>`_
+   * - `pvt_norostat <https://cmu-delphi.github.io/delphi-epidata/api/norostat.html>`_
      - NoroSTAT
      - Suspected and confirmed norovirus outbreaks reported by state health departments to the CDC.
 
-|
-
 Epiweeks and Dates
 ------------------
-Epiweeks use the U.S. definition. That is, the first epiweek each year is the week, starting on a Sunday, 
-containing January 4. See `this page <https://www.cmmcp.org/mosquito-surveillance-data/pages/epi-week-calendars-2008-2021>`_ for more information.
+Epiweeks use the U.S. definition. That is, the first epiweek each year is the
+week, starting on a Sunday, containing January 4. See `this page
+<https://www.cmmcp.org/mosquito-surveillance-data/pages/epi-week-calendars-2008-2021>`_
+for more information.
 
 Formatting for epiweeks is YYYYWW and for dates is YYYYMMDD.
 
-Use individual values, comma-separated lists or, a hyphenated range of values to specify single or several dates.  
+Use individual values, comma-separated lists or, a hyphenated range of values to specify single or several dates.
 An ``EpiRange`` object can be also used to construct a range of epiweeks or dates. Examples include:
 
 - ``param = 201530`` (A single epiweek)
@@ -161,8 +148,6 @@ An ``EpiRange`` object can be also used to construct a range of epiweeks or date
 - ``param = '200501-200552'`` (A range of epiweeks)
 - ``param = '201440,201501-201510'`` (Several epiweeks, including a range)
 - ``param = EpiRange(20070101, 20071231)`` (A range of dates)
-
-|
 
 .. _getting-started:
 
@@ -176,8 +161,8 @@ distributed through Facebook, for every county in the United States between
 2020-05-01 and 2020-05-07:
 
 >>> from epidatpy.request import Epidata, EpiRange
->>> apicall = Epidata.covidcast("fb-survey", "smoothed_cli", 
-...                              "day", "county", 
+>>> apicall = Epidata.covidcast("fb-survey", "smoothed_cli",
+...                              "day", "county",
 ...                              EpiRange(20200501, 20200507), "*")
 >>> data = apicall.df()
 >>> data.head()
@@ -197,7 +182,7 @@ May 1st were updated on September 3rd based on new data, giving a ``lag`` of 125
 See the :py:func:`epidatpy.request.Epidata.covidcast` documentation for further details on the returned
 columns.
 
-In the above code, the ``.df()`` function on the ``apicall`` variable generated a Pandas DataFrame. We can use 
+In the above code, the ``.df()`` function on the ``apicall`` variable generated a Pandas DataFrame. We can use
 other :ref:`output functions <output-data>` to parse the requested API call in different formats. To parse the data
 into JSON format, we can use the following command:
 
@@ -238,7 +223,7 @@ into JSON format, we can use the following command:
   .
   }]
 
-Note that all of the :ref:`output functions <output-data>` have a ``field`` parameter which takes in any form of iterator objects 
+Note that all of the :ref:`output functions <output-data>` have a ``field`` parameter which takes in any form of iterator objects
 to enable fetching the data with customization (e.g. specifying which fields or columns to output). Similar to the previous example,
 to parse the data in JSON format, but customize the field to show only ``geo_value`` and ``value``, we would use the following
 command:
@@ -259,17 +244,12 @@ command:
  .
  }]
 
-
-|
-
 **Wikipedia Access article "influenza" on 2020w01**
 
 >>> apicall_wiki = Epidata.wiki(articles='influenza', epiweeks='202001')
 >>> data = apicall_wiki.json()
 >>> print(data)
 [{'article': 'influenza', 'count': 6516, 'total': 663604044, 'hour': -1, 'epiweek': datetime.date(2019, 12, 29), 'value': 9.81910834}]
-
-|
 
 **FluView on 2019w01 (national)**
 
@@ -294,10 +274,3 @@ command:
    'ili': 3.63095}],
  'result': 1,
  'message': 'success'}
-
-|
-
-Other examples (TODO)
---------------
-
-(TODO)

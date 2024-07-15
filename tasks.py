@@ -4,18 +4,13 @@ Tasks for maintaining the project.
 Execute 'invoke --list' for guidance on using Invoke
 """
 
-import pathlib
 import shutil
-from pathlib import Path
 import webbrowser
+from pathlib import Path
 
-from invoke import task, Context
-
-Path().expanduser()
-
+from invoke import task
 
 ROOT_DIR = Path(__file__).parent
-SETUP_FILE = ROOT_DIR.joinpath("setup.py")
 TEST_DIR = ROOT_DIR.joinpath("tests")
 SOURCE_DIR = ROOT_DIR.joinpath("epidatpy")
 TOX_DIR = ROOT_DIR.joinpath(".tox")
@@ -29,7 +24,7 @@ PYTHON_DIRS = [str(d) for d in [SOURCE_DIR, TEST_DIR]]
 JOINED_PYTHON_DIRS = " ".join(PYTHON_DIRS)
 
 
-def _delete_file(file: pathlib.Path) -> None:
+def _delete_file(file: Path) -> None:
     try:
         file.unlink(missing_ok=True)
     except TypeError:
@@ -41,7 +36,7 @@ def _delete_file(file: pathlib.Path) -> None:
 
 
 @task()
-def format(c):  # pylint: disable=unused-argument,redefined-builtin
+def format(c):  # pylint: redefined-builtin
     """
     Format code
     """
@@ -144,7 +139,7 @@ def clean_tests(c):  # pylint: disable=unused-argument
 
 
 @task(pre=[clean_build, clean_python, clean_tests, clean_docs])
-def clean(_c):  # pylint: disable=unused-argument
+def clean(c):  # pylint: disable=unused-argument
     """
     Runs all clean sub-tasks
     """
@@ -155,8 +150,7 @@ def dist(c):
     """
     Build source and wheel packages
     """
-    c.run("python setup.py sdist")
-    c.run("python setup.py bdist_wheel")
+    c.run("python -m build --sdist --wheel")
 
 
 @task(pre=[clean, dist])
