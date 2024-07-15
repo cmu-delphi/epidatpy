@@ -25,7 +25,6 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
     if value is None:
         return None
     v = str(value)
-    print(len(v))
     if len(v) == 6:
         d = Week.fromstring(v).startdate()
     elif len(v) == 10: # yyyy-mm-dd
