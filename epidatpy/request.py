@@ -137,9 +137,9 @@ class EpiDataCall(AEpiDataCall):
         df = DataFrame(rows, columns=columns or None)
 
         data_types: Dict[str, Any] = {}
-        time_fields: List[str] = []
+        time_fields: List[EpidataFieldInfo] = []
         for info in self.meta:
-            if not pred(info.name) or df[info.name].isnull().all():
+            if not pred(info.name):
                 continue
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
@@ -154,8 +154,8 @@ class EpiDataCall(AEpiDataCall):
                 EpidataFieldType.epiweek,
                 EpidataFieldType.date_or_epiweek,
             ):
-                data_types[info.name] = "Int64"
-                time_fields.append(info.name)
+                data_types[info.name] = "string"
+                time_fields.append(info)
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = "Float64"
             else:
@@ -163,8 +163,18 @@ class EpiDataCall(AEpiDataCall):
         if data_types:
             df = df.astype(data_types)
         if not disable_date_parsing:
-            for field in time_fields:
-                df[field] = to_datetime(df[field], format="%Y%m%d", errors="ignore")
+            for info in time_fields:
+                if info.type == EpidataFieldType.epiweek:
+                    continue
+                try:
+                    df[info.name] = to_datetime(df[info.name], format="%Y-%m-%d")
+                    continue
+                except ValueError:
+                    pass
+                try:
+                    df[info.name] = to_datetime(df[info.name], format="%Y%m%d")
+                except ValueError:
+                    pass
         return df
 
 
