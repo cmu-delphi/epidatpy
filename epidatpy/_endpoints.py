@@ -109,7 +109,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("city", EpidataFieldType.text),
                 EpidataFieldInfo("zip", EpidataFieldType.text),
                 EpidataFieldInfo("hospital_subtype", EpidataFieldType.text),
-                EpidataFieldInfo("fip_code", EpidataFieldType.text),
+                EpidataFieldInfo("fips_code", EpidataFieldType.text),
                 EpidataFieldInfo("is_metro_micro", EpidataFieldType.int),
             ],
         )
@@ -553,7 +553,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             [
                 EpidataFieldInfo("region", EpidataFieldType.text),
                 EpidataFieldInfo("release_date", EpidataFieldType.date),
-                EpidataFieldInfo("issue", EpidataFieldType.date),
+                EpidataFieldInfo("issue", EpidataFieldType.epiweek),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
                 EpidataFieldInfo("lag", EpidataFieldType.int),
                 EpidataFieldInfo("incidence_rate", EpidataFieldType.float),
@@ -587,12 +587,12 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("issue", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("epiweek", EpidataFieldType.epiweek),
                 EpidataFieldInfo("lag", EpidataFieldType.int),
-                EpidataFieldInfo("rage_age_0", EpidataFieldType.float),
-                EpidataFieldInfo("rage_age_1", EpidataFieldType.float),
-                EpidataFieldInfo("rage_age_2", EpidataFieldType.float),
-                EpidataFieldInfo("rage_age_3", EpidataFieldType.float),
-                EpidataFieldInfo("rage_age_4", EpidataFieldType.float),
-                EpidataFieldInfo("rage_overall", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_0", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_1", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_2", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_3", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_4", EpidataFieldType.float),
+                EpidataFieldInfo("rate_overall", EpidataFieldType.float),
             ],
         )
 
