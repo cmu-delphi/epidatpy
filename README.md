@@ -2,7 +2,7 @@
 
 [![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Read the Docs][docs-image]][docs-url]
 
-A Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
+A Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/). Still in development.
 
 ## Install
 
