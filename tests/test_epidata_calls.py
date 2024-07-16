@@ -22,6 +22,8 @@ secret_twitter = os.environ.get("SECRET_API_AUTH_TWITTER", "")
 
 @pytest.mark.skipif(not auth, reason="DELPHI_EPIDATA_KEY not available.")
 class TestEpidataCalls:
+    """Make network call tests for Epidata."""
+
     @pytest.mark.skipif(not secret_cdc, reason="CDC key not available.")
     def test_pvt_cdc(self) -> None:
         apicall = Epidata.pvt_cdc(auth=secret_cdc, locations="fl,ca", epiweeks=EpiRange(201501, 201601))
@@ -313,9 +315,10 @@ class TestEpidataCalls:
         data = apicall.df()
 
         # TODO: Need a non-trivial query for Norostat
-        # assert len(data) > 0
-        # assert str(data['release_date'].dtype) == 'datetime64[ns]'
-        # assert str(data['epiweek'].dtype) == 'string'
+        assert len(data) > 0
+        assert str(data["release_date"].dtype) == "datetime64[ns]"
+        assert str(data["epiweek"].dtype) == "string"
+        assert str(data["value"].dtype) == "Int64"
 
     def test_pub_nowcast(self) -> None:
         apicall = Epidata.pub_nowcast(locations="ca", epiweeks=EpiRange(201201, 201301))
