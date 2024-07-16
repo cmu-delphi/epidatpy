@@ -8,7 +8,11 @@ def parse_api_date(value: Union[str, int, float, None]) -> Optional[date]:
     if value is None:
         return value
     v = str(value)
-    return datetime.strptime(v, "%Y%m%d").date()
+    if len(v) == 10:  # yyyy-mm-dd
+        d = datetime.strptime(v, "%Y-%m-%d").date()
+    else:
+        d = datetime.strptime(v, "%Y%m%d").date()
+    return d
 
 
 def parse_api_week(value: Union[str, int, float, None]) -> Optional[date]:
@@ -23,6 +27,8 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
     v = str(value)
     if len(v) == 6:
         d = Week.fromstring(v).startdate()
+    elif len(v) == 10:  # yyyy-mm-dd
+        d = datetime.strptime(v, "%Y-%m-%d").date()
     else:
         d = datetime.strptime(v, "%Y%m%d").date()
     return d
