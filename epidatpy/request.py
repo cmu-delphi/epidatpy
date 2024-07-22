@@ -10,6 +10,9 @@ from typing import (
     cast,
 )
 
+from appdirs import user_cache_dir
+from diskcache import Cache
+from json import dumps
 from pandas import CategoricalDtype, DataFrame, Series, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
@@ -33,7 +36,7 @@ from ._parse import fields_to_predicate
 
 # Make the linter happy about the unused variables
 __all__ = ["Epidata", "EpiDataCall", "EpiDataContext", "EpiRange", "CovidcastEpidata"]
-
+CACHE_DIRECTORY = user_cache_dir(appname="epidatpy", appauthor="delphi")
 
 @retry(reraise=True, stop=stop_after_attempt(2))
 def _request_with_retry(
@@ -73,8 +76,9 @@ class EpiDataCall(AEpiDataCall):
         params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
+        use_cache = None,
     ) -> None:
-        super().__init__(base_url, endpoint, params, meta, only_supports_classic)
+        super().__init__(base_url, endpoint, params, meta, only_supports_classic, use_cache)
         self._session = session
 
     def with_base_url(self, base_url: str) -> "EpiDataCall":
@@ -100,6 +104,11 @@ class EpiDataCall(AEpiDataCall):
         """Request and parse epidata in CLASSIC message format."""
         self._verify_parameters()
         try:
+            if self.use_cache:
+                with Cache(CACHE_DIRECTORY) as cache:
+                    cache_key = str(self._endpoint) + str(self._params)
+                    if cache_key in cache:
+                        return cache[cache_key]
             response = self._call(fields)
             r = cast(EpiDataResponse, response.json())
             if disable_type_parsing:
@@ -107,6 +116,11 @@ class EpiDataCall(AEpiDataCall):
             epidata = r.get("epidata")
             if epidata and isinstance(epidata, list) and len(epidata) > 0 and isinstance(epidata[0], dict):
                 r["epidata"] = [self._parse_row(row, disable_date_parsing=disable_date_parsing) for row in epidata]
+            if self.use_cache:
+                with Cache(CACHE_DIRECTORY) as cache:
+                    cache_key = str(self._endpoint) + str(self._params)
+                    # Set TTL to 7 days (TODO: configurable?)
+                    cache.set(cache_key, r, expire=7*24*60*60)
             return r
         except Exception as e:  # pylint: disable=broad-except
             return {"result": 0, "message": f"error: {e}", "epidata": []}
@@ -130,6 +144,13 @@ class EpiDataCall(AEpiDataCall):
         if self.only_supports_classic:
             raise OnlySupportsClassicFormatException()
         self._verify_parameters()
+
+        if self.use_cache:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache_key = str(self._endpoint) + str(self._params)
+                if cache_key in cache:
+                    return cache[cache_key]
+
         json = self.classic(fields, disable_type_parsing=True)
         rows = json.get("epidata", [])
         pred = fields_to_predicate(fields)
@@ -175,6 +196,13 @@ class EpiDataCall(AEpiDataCall):
                     df[info.name] = to_datetime(df[info.name], format="%Y%m%d")
                 except ValueError:
                     pass
+
+        if self.use_cache:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache_key = str(self._endpoint) + str(self._params)
+                # Set TTL to 7 days (TODO: configurable?)
+                cache.set(cache_key, df, expire=7*24*60*60)
+
         return df
 
 
@@ -203,8 +231,9 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
         params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
+        use_cache: bool = False,
     ) -> EpiDataCall:
-        return EpiDataCall(self._base_url, self._session, endpoint, params, meta, only_supports_classic)
+        return EpiDataCall(self._base_url, self._session, endpoint, params, meta, only_supports_classic, use_cache)
 
 
 Epidata = EpiDataContext()
