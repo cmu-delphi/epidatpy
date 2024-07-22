@@ -12,7 +12,6 @@ from typing import (
 
 from appdirs import user_cache_dir
 from diskcache import Cache
-from json import dumps
 from pandas import CategoricalDtype, DataFrame, Series, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
