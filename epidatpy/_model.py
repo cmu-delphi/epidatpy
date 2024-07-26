@@ -157,6 +157,7 @@ class AEpiDataCall:
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
         use_cache: Optional[bool] = None,
+        cache_max_age_days: Optional[int] = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
@@ -166,8 +167,17 @@ class AEpiDataCall:
         self.meta_by_name = {k.name: k for k in self.meta}
         # Set the use_cache value from the constructor if present.
         # Otherwise check the USE_EPIDATPY_CACHE variable, accepting various "truthy" values.
-        self.use_cache = use_cache \
-            or (environ.get("USE_EPIDATPY_CACHE", "").lower() in ['true', 't', '1'])
+        self.use_cache = use_cache if use_cache is not None \
+            else (environ.get("USE_EPIDATPY_CACHE", "").lower() in ['true', 't', '1'])
+        # Set cache_max_age_days from the constructor, fall back to environment variable.
+        if cache_max_age_days:
+            self.cache_max_age_days = cache_max_age_days
+        else:
+            env_days = environ.get("EPIDATPY_CACHE_MAX_AGE_DAYS", "7")
+            if env_days.isdigit():
+                self.cache_max_age_days = int(env_days)
+            else: # handle string / negative / invalid enviromment variable
+                self.cache_max_age_days = 7
 
     def _verify_parameters(self) -> None:
         # hook for verifying parameters before sending

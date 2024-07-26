@@ -6,4 +6,4 @@ __author__ = "Delphi Research Group"
 
 
 from ._constants import __version__
-from .request import CovidcastEpidata, Epidata, EpiRange
+from .request import CovidcastEpidata, EpiDataContext, EpiRange
