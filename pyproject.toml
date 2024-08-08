@@ -31,6 +31,8 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "aiohttp",
+    "appdirs",
+    "diskcache",
     "epiweeks>=2.1",
     "pandas>=1",
     "requests>=2.25",
