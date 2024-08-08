@@ -35,8 +35,15 @@ EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
 StringParam = Union[str, Sequence[str]]
 IntParam = Union[int, Sequence[int]]
 ParamType = Union[StringParam, IntParam, EpiRangeParam]
-EpiDataResponse = TypedDict("EpiDataResponse", {"result": int, "message": str, "epidata": List})
 CALL_TYPE = TypeVar("CALL_TYPE")
+
+
+class EpiDataResponse(TypedDict):
+    """response from the API"""
+
+    result: int
+    message: str
+    epidata: List
 
 
 def format_date(d: EpiDateLike) -> str:
@@ -70,9 +77,7 @@ def format_list(values: EpiRangeParam) -> str:
 
 
 class EpiRange:
-    """
-    Range object for dates/epiweeks
-    """
+    """Range object for dates/epiweeks"""
 
     def __init__(self, start: EpiDateLike, end: EpiDateLike) -> None:
         # check if types are correct
@@ -91,21 +96,15 @@ class EpiRange:
 
 
 class InvalidArgumentException(Exception):
-    """
-    exception for an invalid argument
-    """
+    """exception for an invalid argument"""
 
 
 class OnlySupportsClassicFormatException(Exception):
-    """
-    the endpoint only supports the classic message format, due to an non-standard behavior
-    """
+    """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
 
 class EpidataFieldType(Enum):
-    """
-    field type
-    """
+    """field type"""
 
     text = 0
     int = 1
@@ -119,9 +118,7 @@ class EpidataFieldType(Enum):
 
 @dataclass
 class EpidataFieldInfo:
-    """
-    meta data information about an return field
-    """
+    """meta data information about an return field"""
 
     name: Final[str] = ""
     type: Final[EpidataFieldType] = EpidataFieldType.text
@@ -137,9 +134,7 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
 
 
 class AEpiDataCall:
-    """
-    base epidata call class
-    """
+    """base epidata call class"""
 
     _base_url: Final[str]
     _endpoint: Final[str]
@@ -167,8 +162,11 @@ class AEpiDataCall:
         self.meta_by_name = {k.name: k for k in self.meta}
         # Set the use_cache value from the constructor if present.
         # Otherwise check the USE_EPIDATPY_CACHE variable, accepting various "truthy" values.
-        self.use_cache = use_cache if use_cache is not None \
-            else (environ.get("USE_EPIDATPY_CACHE", "").lower() in ['true', 't', '1'])
+        self.use_cache = (
+            use_cache
+            if use_cache is not None
+            else (environ.get("USE_EPIDATPY_CACHE", "").lower() in ["true", "t", "1"])
+        )
         # Set cache_max_age_days from the constructor, fall back to environment variable.
         if cache_max_age_days:
             self.cache_max_age_days = cache_max_age_days
@@ -176,7 +174,7 @@ class AEpiDataCall:
             env_days = environ.get("EPIDATPY_CACHE_MAX_AGE_DAYS", "7")
             if env_days.isdigit():
                 self.cache_max_age_days = int(env_days)
-            else: # handle string / negative / invalid enviromment variable
+            else:  # handle string / negative / invalid enviromment variable
                 self.cache_max_age_days = 7
 
     def _verify_parameters(self) -> None:
@@ -187,9 +185,7 @@ class AEpiDataCall:
         self,
         fields: Optional[Sequence[str]] = None,
     ) -> Mapping[str, str]:
-        """
-        format this call into a [URL, Params] tuple
-        """
+        """Format this call into a [URL, Params] tuple"""
         all_params = dict(self._params)
         if fields:
             all_params["fields"] = fields
@@ -199,9 +195,7 @@ class AEpiDataCall:
         self,
         fields: Optional[Sequence[str]] = None,
     ) -> Tuple[str, Mapping[str, str]]:
-        """
-        format this call into a [URL, Params] tuple
-        """
+        """Format this call into a [URL, Params] tuple"""
         formatted_params = self._formatted_parameters(fields)
         full_url = add_endpoint_to_url(self._base_url, self._endpoint)
         return full_url, formatted_params
@@ -210,9 +204,7 @@ class AEpiDataCall:
         self,
         fields: Optional[Sequence[str]] = None,
     ) -> str:
-        """
-        format this call into a full HTTP request url with encoded parameters
-        """
+        """Format this call into a full HTTP request url with encoded parameters"""
         self._verify_parameters()
         u, p = self.request_arguments(fields)
         query = urlencode(p)

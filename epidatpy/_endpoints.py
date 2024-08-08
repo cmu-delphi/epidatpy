@@ -36,8 +36,7 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
 
 
 class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
-    """
-    epidata endpoint list and fetcher
+    """epidata endpoint list and fetcher
     """
 
     @abstractmethod
@@ -87,8 +86,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         fips_code: Optional[str] = None,
     ) -> CALL_TYPE:
         """Lookup COVID hospitalization facility identifiers."""
-
-        if all((v is None for v in (state, ccn, city, zip, fips_code))):
+        if all(v is None for v in (state, ccn, city, zip, fips_code)):
             raise InvalidArgumentException("one of `state`, `ccn`, `city`, `zip`, or `fips_code` is required")
 
         return self._create_call(
@@ -121,7 +119,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         publication_dates: Optional[EpiRangeParam] = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalization data for specific facilities."""
-
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
@@ -271,7 +268,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         as_of: Union[None, int, str] = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalization data."""
-
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
 
@@ -481,7 +477,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
     def pub_delphi(self, system: str, epiweek: Union[int, str]) -> CALL_TYPE:
         """Fetch Delphi's forecast."""
-
         return self._create_call(
             "delphi/",
             {"system": system, "epiweek": epiweek},

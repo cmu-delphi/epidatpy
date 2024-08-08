@@ -71,7 +71,9 @@ def parse_user_date_or_week(
     raise ValueError(f"Cannot parse date or week from {value}")
 
 
-def fields_to_predicate(fields: Optional[Sequence[str]] = None) -> Callable[[str], bool]:
+def fields_to_predicate(
+    fields: Optional[Sequence[str]] = None,
+) -> Callable[[str], bool]:
     if not fields:
         return lambda _: True
     to_include: Set[str] = set()

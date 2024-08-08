@@ -320,15 +320,15 @@ class TestEpidataCalls:
         assert str(data["ili"].dtype) == "Float64"
 
     @pytest.mark.skipif(not secret_norostat, reason="Norostat key not available.")
+    @pytest.mark.skip(reason="TODO: Need working Norostat query.")
     def test_pvt_norostat(self) -> None:
         apicall = EpiDataContext().pvt_norostat(auth=secret_norostat, location="1", epiweeks=201233)
         data = apicall.df()
 
-        # TODO: Need a non-trivial query for Norostat
-        # assert len(data) > 0
-        # assert str(data["release_date"].dtype) == "datetime64[ns]"
-        # assert str(data["epiweek"].dtype) == "string"
-        # assert str(data["value"].dtype) == "Int64"
+        assert len(data) > 0
+        assert str(data["release_date"].dtype) == "datetime64[ns]"
+        assert str(data["epiweek"].dtype) == "string"
+        assert str(data["value"].dtype) == "Int64"
 
     def test_pub_nowcast(self) -> None:
         apicall = EpiDataContext().pub_nowcast(locations="ca", epiweeks=EpiRange(201201, 201301))

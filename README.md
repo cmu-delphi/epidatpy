@@ -22,26 +22,17 @@ TODO
 
 ## Development
 
-Prepare virtual environment and install dependencies
+The following commands are available for developers:
 
 ```sh
-python -m venv venv
-source ./venv/bin/activate
-pip install -e ".[dev]"
-```
-
-### Common Commands
-
-```sh
-source ./venv/bin/activate
-inv format   # format code
-inv lint     # check linting
-inv docs     # build docs
-inv test     # run unit tests
-inv coverage # run unit tests with coverage
-inv clean    # clean build artifacts
-inv dist     # build distribution packages
-inv release  # upload the current version to pypi
+make install  # setup venv, install dependencies and local package
+make test     # run unit tests
+make format   # format code
+make lint     # check linting
+make docs     # build docs
+make dist     # build distribution packages
+make release  # upload the current version to pypi
+make clean    # clean build and docs artifacts
 ```
 
 ### Release Process

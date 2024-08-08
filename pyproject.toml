@@ -30,7 +30,6 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "aiohttp",
     "appdirs",
     "diskcache",
     "epiweeks>=2.1",
@@ -41,21 +40,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black",
-    "coverage",
-    "invoke",
     "mypy",
-    "pre-commit",
     "pylint",
     "pytest",
     "recommonmark",
+    "ruff",
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
     "sphinx",
     "twine",
     "types-requests",
-    "watchdog",
-    "wheel",
 ]
 
 [project.urls]
@@ -63,12 +57,14 @@ homepage = "https://github.com/cmu-delphi/epidatpy"
 repository = "https://github.com/cmu-delphi/epidatpy"
 
 
-[tool.black]
-line-length = 120
-target-version = ['py38']
-
 [tool.ruff]
-lint.extend-select = ["I"]
+line-length = 120
+format.docstring-code-format = true
+format.docstring-code-line-length = "dynamic"
+lint.extend-select = [
+    "I",  # isort
+    "UP", # pyupgrade
+]
 
 [tool.pylint]
 max-line-length = 120

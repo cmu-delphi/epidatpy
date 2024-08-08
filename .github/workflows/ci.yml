@@ -18,22 +18,16 @@ jobs:
           cache: "pip"
       - name: Install Dependencies
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -e ".[dev]"
+          make install
       - name: Check Formatting
         run: |
-          source venv/bin/activate
-          inv lint-black
+          make lint_ruff
       - name: Check Linting
         run: |
-          source venv/bin/activate
-          inv lint-pylint
+          make lint_pylint
       - name: Check Types
         run: |
-          source venv/bin/activate
-          inv lint-mypy
+          make lint_mypy
       - name: Test
         run: |
-          source venv/bin/activate
-          inv test
+          make test
