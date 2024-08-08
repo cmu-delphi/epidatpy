@@ -26,7 +26,7 @@ test:
 
 docs:
 	env/bin/sphinx-build -b html docs docs/_build
-	python -m webbrowser -t "docs/_build/index.html"
+	env/bin/python -m webbrowser -t "docs/_build/index.html"
 
 clean_docs:
 	rm -rf docs/_build
