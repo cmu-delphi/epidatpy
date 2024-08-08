@@ -33,8 +33,7 @@ from ._model import (
 
 @dataclass
 class WebLink:
-    """
-    represents a web link
+    """represents a web link
     """
 
     alt: str
@@ -43,8 +42,7 @@ class WebLink:
 
 @dataclass
 class DataSignalGeoStatistics:
-    """
-    COVIDcast signal statistics
+    """COVIDcast signal statistics
     """
 
     min: float
@@ -64,7 +62,11 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
         EpidataFieldInfo("signal", EpidataFieldType.text),
         EpidataFieldInfo("geo_type", EpidataFieldType.categorical, categories=list(get_args(GeoType))),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
-        EpidataFieldInfo("time_type", EpidataFieldType.categorical, categories=list(get_args(TimeType))),
+        EpidataFieldInfo(
+            "time_type",
+            EpidataFieldType.categorical,
+            categories=list(get_args(TimeType)),
+        ),
         EpidataFieldInfo("time_value", EpidataFieldType.date_or_epiweek),
         EpidataFieldInfo("issue", EpidataFieldType.date),
         EpidataFieldInfo("lag", EpidataFieldType.int),
@@ -80,8 +82,7 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
 
 @dataclass
 class DataSignal(Generic[CALL_TYPE]):
-    """
-    represents a COVIDcast data signal
+    """represents a COVIDcast data signal
     """
 
     _create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]
@@ -160,7 +161,7 @@ class DataSignal(Generic[CALL_TYPE]):
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
         """Fetch Delphi's COVID-19 Surveillance Streams"""
-        if any((v is None for v in (geo_type, geo_values, time_values))):
+        if any(v is None for v in (geo_type, geo_values, time_values)):
             raise InvalidArgumentException("`geo_type`, `time_values`, and `geo_values` are all required")
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
@@ -194,8 +195,7 @@ class DataSignal(Generic[CALL_TYPE]):
 
 @dataclass
 class DataSource(Generic[CALL_TYPE]):
-    """
-    represents a COVIDcast data source
+    """represents a COVIDcast data source
     """
 
     _create_call: InitVar[Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]]
@@ -247,8 +247,7 @@ class DataSource(Generic[CALL_TYPE]):
 
 @dataclass
 class CovidcastDataSources(Generic[CALL_TYPE]):
-    """
-    COVIDcast data source helper.
+    """COVIDcast data source helper.
     """
 
     sources: Sequence[DataSource[CALL_TYPE]]
