@@ -74,3 +74,5 @@ Contents
 
    epidatpy
 
+   getting_started_with_epidatpy
+

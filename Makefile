@@ -24,11 +24,11 @@ format:
 test:
 	env/bin/pytest .
 
-docs:
+doc:
 	env/bin/sphinx-build -b html docs docs/_build
 	env/bin/python -m webbrowser -t "docs/_build/index.html"
 
-clean_docs:
+clean_doc:
 	rm -rf docs/_build
 
 clean_build:

@@ -72,7 +72,7 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
         EpidataFieldInfo("lag", EpidataFieldType.int),
         EpidataFieldInfo("value", EpidataFieldType.float),
         EpidataFieldInfo("stderr", EpidataFieldType.float),
-        EpidataFieldInfo("sample_size", EpidataFieldType.int),
+        EpidataFieldInfo("sample_size", EpidataFieldType.text),
         EpidataFieldInfo("direction", EpidataFieldType.float),
         EpidataFieldInfo("missing_value", EpidataFieldType.int),
         EpidataFieldInfo("missing_stderr", EpidataFieldType.int),
