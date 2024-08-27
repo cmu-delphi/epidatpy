@@ -76,3 +76,6 @@ Contents
 
    getting_started_with_epidatpy
 
+   signal_discovery
+
+   versioned_data
