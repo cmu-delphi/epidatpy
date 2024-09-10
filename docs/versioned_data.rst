@@ -90,6 +90,51 @@ for forecasting tasks. To backtest a forecasting model on past data, it is
 important to use the data that would have been available *at the time* the model
 was or would have been fit, not data that arrived much later.
 
+By plotting API results with different values of the ``as_of`` parameter, we can
+see how the indicator value changes over time as new observations become available:
+
+.. code-block:: python
+
+   results = []
+   for as_of_date in ["2020-05-07", "2020-05-14", "2020-05-21", "2020-05-28"]:
+      apicall = epidata.pub_covidcast(
+         data_source = "doctor-visits",
+         signals = "smoothed_adj_cli",
+         time_type = "day",
+         time_values = EpiRange("2020-04-20", "2020-04-27"),
+         geo_type = "state",
+         geo_values = "pa",
+         as_of = as_of_date)
+
+      results.append(apicall.df())
+
+   final_df = pd.concat(results)
+   final_df["issue"] = final_df["issue"].dt.date
+
+   fig, ax = plt.subplots(figsize=(6, 5))
+   ax.spines["right"].set_visible(False)
+   ax.spines["left"].set_visible(False)
+   ax.spines["top"].set_visible(False)
+
+   def sub_cmap(cmap, vmin, vmax):
+      return lambda v: cmap(vmin + (vmax - vmin) * v)
+
+   final_df.pivot_table(values = "value", index = "time_value", columns = "issue").plot(
+      xlabel="Date",
+      ylabel="CLI",
+      ax = ax,
+      linewidth = 1.5,
+      colormap=sub_cmap(plt.get_cmap('viridis').reversed(), 0.2, 1)
+   )
+
+   plt.title("Smoothed CLI from Doctor Visits", fontsize=16)
+   plt.subplots_adjust(bottom=.2)
+   plt.show()
+
+.. image:: images/Versioned_Data.png
+   :width: 800
+   :alt: Smoothed CLI from Facebook Survey
+
 Multiple issues of observations
 -------------------------------
 

@@ -77,7 +77,7 @@ The ``pub_covidcast`` function lets us access the ``covidcast`` endpoint:
 
    print(apicall)
 
-``pub_covidcast`` returns an ``EpiDataCall``, which can be further converted into different output formats - such as a Pandas DataFrame:
+``pub_covidcast`` returns an ``EpiDataCall``, which is a not-yet-executed query that can be inspected. The query can be executed and converted to a DataFrame by using the ``.df()`` method:
 
 .. exec::
    :context: true
@@ -175,9 +175,29 @@ it using any of the available Python libraries:
 
 .. code-block:: python
    
-   data.plot(x="time_value", y="value", title="Smoothed CLI from Facebook Survey", xlabel="Date", ylabel="CLI")
+   import matplotlib.pyplot as plt
 
-.. image:: images/Figure_1.png
+   fig, ax = plt.subplots(figsize=(6, 5))
+   plt.rc("axes", titlesize=16)
+   plt.rc("axes", labelsize=16)
+   plt.rc("xtick", labelsize=14)
+   plt.rc("ytick", labelsize=14)
+   ax.spines["right"].set_visible(False)
+   ax.spines["left"].set_visible(False)
+   ax.spines["top"].set_visible(False)
+
+   data.pivot_table(values = "value", index = "time_value", columns = "geo_value").plot(
+      title="Smoothed CLI from Facebook Survey",
+      xlabel="Date",
+      ylabel="CLI",
+      ax = ax,
+      linewidth = 1.5
+   )
+
+   plt.subplots_adjust(bottom=.2)
+   plt.show()
+
+.. image:: images/Getting_Started.png
    :width: 800
    :alt: Smoothed CLI from Facebook Survey
 
