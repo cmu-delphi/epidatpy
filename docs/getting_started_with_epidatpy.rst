@@ -13,11 +13,15 @@ Setup
 
 You can install the stable version of this package from PyPi:
 
->>> pip install epidatpy
+.. code-block:: sh
+
+   pip install epidatpy
 
 Or if you want the development version, install from GitHub:
 
->>> pip install -e "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
+.. code-block:: sh
+
+   pip install -e "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
 
 **API Keys**
 
@@ -48,29 +52,38 @@ the location and times of interest.
 
 The ``pub_covidcast`` function lets us access the ``covidcast`` endpoint:
 
->>> from epidatpy import EpiDataContext, EpiRange
->>> epidata = EpiDataContext(use_cache=True, cache_max_age_days=1)
->>> # Obtain the most up-to-date version of the smoothed covid-like illness (CLI)
->>> # signal from the COVID-19 Trends and Impact survey for the US
->>> apicall = epidata.pub_covidcast(
-...    data_source = "fb-survey",
-...    signals = "smoothed_cli", 
-...    geo_type = "nation",
-...    time_type = "day",
-...    geo_values = "us",
-...    time_values = EpiRange(20210405, 20210410))
-EpiDataCall(endpoint=covidcast/, params={'data_source': 'fb-survey', 'signals': 'smoothed_cli', 'geo_type': 'nation', 'time_type': 'day', 'geo_values': 'us', 'time_values': '20210405-20210410'})
+.. exec::
+   :context: true
+
+   from epidatpy import EpiDataContext, EpiRange
+   import pandas as pd
+
+   # Set common options and context
+   pd.set_option('display.max_columns', None)
+   pd.set_option('display.max_rows', None)
+   pd.set_option('display.width', 1000)
+
+   epidata = EpiDataContext(use_cache=False)
+
+   # Obtain the most up-to-date version of the smoothed covid-like illness (CLI)
+   # signal from the COVID-19 Trends and Impact survey for the US
+   apicall = epidata.pub_covidcast(
+      data_source = "fb-survey",
+      signals = "smoothed_cli",
+      geo_type = "nation",
+      time_type = "day",
+      geo_values = "us",
+      time_values = EpiRange(20210405, 20210410))
+
+   print(apicall)
 
 ``pub_covidcast`` returns an ``EpiDataCall``, which can be further converted into different output formats - such as a Pandas DataFrame:
 
->>> data = apicall.df()
->>> data.head()
-      source        signal geo_type geo_value time_type time_value      issue  lag     value    stderr  sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  fb-survey  smoothed_cli   nation        us       day 2021-04-05 2021-04-10    5  0.675832  0.014826       244046       <NA>              0               0                    0
-1  fb-survey  smoothed_cli   nation        us       day 2021-04-06 2021-04-11    5  0.690687  0.014998       242979       <NA>              0               0                    0
-2  fb-survey  smoothed_cli   nation        us       day 2021-04-07 2021-04-12    5  0.690664  0.015023       242153       <NA>              0               0                    0
-3  fb-survey  smoothed_cli   nation        us       day 2021-04-08 2021-04-13    5  0.706503  0.015236       241380       <NA>              0               0                    0
-4  fb-survey  smoothed_cli   nation        us       day 2021-04-09 2021-04-14    5  0.724306  0.015466       240256       <NA>              0               0                    0
+.. exec::
+   :context: true
+
+   data = apicall.df()
+   print(data.head())
 
 Each row represents one observation in the US on one
 day. The geographical abbreviation is given in the ``geo_value`` column, the date in
@@ -85,57 +98,51 @@ entire US, we use the ``geo_type`` argument paired with ``*`` for the
 access data at all locations. Check the help for a given endpoint to see if
 it supports ``*``.)
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "fb-survey",
-...    signals = "smoothed_cli", 
-...    geo_type = "state",
-...    time_type = "day",
-...    geo_values = "*",
-...    time_values = EpiRange(20210405, 20210410))
-EpiDataCall(endpoint=covidcast/, params={'data_source': 'fb-survey', 'signals': 'smoothed_cli', 'geo_type': 'state', 'time_type': 'day', 'geo_values': '*', 'time_values': '20210405-20210410'})
->>> apicall.df.head()
-      source        signal geo_type geo_value time_type time_value      issue  lag     value    stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  fb-survey  smoothed_cli    state        ak       day 2021-04-05 2021-04-10    5  0.736883  0.275805       720.0       <NA>              0               0                    0
-1  fb-survey  smoothed_cli    state        al       day 2021-04-05 2021-04-10    5  0.796627  0.137734   3332.1117       <NA>              0               0                    0
-2  fb-survey  smoothed_cli    state        ar       day 2021-04-05 2021-04-10    5  0.561916  0.131108   2354.9911       <NA>              0               0                    0
-3  fb-survey  smoothed_cli    state        az       day 2021-04-05 2021-04-10    5   0.62283  0.105354   4742.2778       <NA>              0               0                    0
-4  fb-survey  smoothed_cli    state        ca       day 2021-04-05 2021-04-10    5  0.444169  0.040576  21382.3806       <NA>              0               0                    0
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "fb-survey",
+      signals = "smoothed_cli",
+      geo_type = "state",
+      time_type = "day",
+      geo_values = "*",
+      time_values = EpiRange(20210405, 20210410))
+
+   print(apicall)
+   print(apicall.df().head())
 
 We can fetch a subset of states by listing out the desired locations:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "fb-survey",
-...    signals = "smoothed_cli", 
-...    geo_type = "state",
-...    time_type = "day",
-...    geo_values = "pa,ca,fl",
-...    time_values = EpiRange(20210405, 20210410))
-EpiDataCall(endpoint=covidcast/, params={'data_source': 'fb-survey', 'signals': 'smoothed_cli', 'geo_type': 'state', 'time_type': 'day', 'geo_values': 'pa,ca,fl', 'time_values': '20210405-20210410'})
->>> apicall.df.head()
-      source        signal geo_type geo_value time_type time_value      issue  lag     value    stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  fb-survey  smoothed_cli    state        ca       day 2021-04-05 2021-04-10    5  0.444169  0.040576  21382.3806       <NA>              0               0                    0
-1  fb-survey  smoothed_cli    state        fl       day 2021-04-05 2021-04-10    5  0.690415  0.058204  16099.0005       <NA>              0               0                    0
-2  fb-survey  smoothed_cli    state        pa       day 2021-04-05 2021-04-10    5  0.715758  0.072999  10894.0057       <NA>              0               0                    0
-3  fb-survey  smoothed_cli    state        ca       day 2021-04-06 2021-04-11    5   0.45604   0.04127  21176.3902       <NA>              0               0                    0
-4  fb-survey  smoothed_cli    state        fl       day 2021-04-06 2021-04-11    5  0.730692  0.059907  15975.0007       <NA>              0               0                    0
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "fb-survey",
+      signals = "smoothed_cli",
+      geo_type = "state",
+      time_type = "day",
+      geo_values = "pa,ca,fl",
+      time_values = EpiRange(20210405, 20210410))
+
+   print(apicall)
+   print(apicall.df().head())
 
 We can also request data for a single location at a time, via the ``geo_values`` argument.
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "fb-survey",
-...    signals = "smoothed_cli", 
-...    geo_type = "state",
-...    time_type = "day",
-...    geo_values = "pa,ca,fl",
-...    time_values = EpiRange(20210405, 20210410))
-EpiDataCall(endpoint=covidcast/, params={'data_source': 'fb-survey', 'signals': 'smoothed_cli', 'geo_type': 'state', 'time_type': 'day', 'geo_values': 'pa', 'time_values': '20210405-20210410'})
->>> apicall.df.head()
-      source        signal geo_type geo_value time_type time_value      issue  lag     value    stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  fb-survey  smoothed_cli    state        pa       day 2021-04-05 2021-04-10    5  0.715758  0.072999  10894.0057       <NA>              0               0                    0
-1  fb-survey  smoothed_cli    state        pa       day 2021-04-06 2021-04-11    5   0.69321  0.070869  10862.0055       <NA>              0               0                    0
-2  fb-survey  smoothed_cli    state        pa       day 2021-04-07 2021-04-12    5  0.685934  0.070654  10790.0054       <NA>              0               0                    0
-3  fb-survey  smoothed_cli    state        pa       day 2021-04-08 2021-04-13    5  0.681511  0.071394  10731.0044       <NA>              0               0                    0
-4  fb-survey  smoothed_cli    state        pa       day 2021-04-09 2021-04-14    5  0.709416  0.072162  10590.0049       <NA>              0               0                    0
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "fb-survey",
+      signals = "smoothed_cli",
+      geo_type = "state",
+      time_type = "day",
+      geo_values = "pa",
+      time_values = EpiRange(20210405, 20210410))
+
+   print(apicall)
+   print(apicall.df().head())
 
 Getting versioned data
 ----------------------
@@ -145,14 +152,20 @@ and updates, which is particularly useful for accurately backtesting
 forecasting models. To fetch versioned data, we can use the ``as_of``
 argument:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "fb-survey",
-...    signals = "smoothed_cli", 
-...    geo_type = "state",
-...    time_type = "day",
-...    geo_values = "pa,ca,fl",
-...    time_values = EpiRange(20210405, 20210410),
-...    as_of = "2021-06-01")
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "fb-survey",
+      signals = "smoothed_cli",
+      geo_type = "state",
+      time_type = "day",
+      geo_values = "pa",
+      time_values = EpiRange(20210405, 20210410),
+      as_of = "2021-06-01")
+
+   print(apicall)
+   print(apicall.df().head())
 
 Plotting
 --------
@@ -160,11 +173,13 @@ Plotting
 Because the output data is a standard Pandas DataFrame, we can easily plot
 it using any of the available Python libraries:
 
->>> data.plot(x="time_value", y="value", title="Smoothed CLI from Facebook Survey", xlabel="Date", ylabel="CLI")
+.. code-block:: python
+   
+   data.plot(x="time_value", y="value", title="Smoothed CLI from Facebook Survey", xlabel="Date", ylabel="CLI")
 
 .. image:: images/Figure_1.png
-  :width: 800
-  :alt: Smoothed CLI from Facebook Survey
+   :width: 800
+   :alt: Smoothed CLI from Facebook Survey
 
 Finding locations of interest
 -----------------------------

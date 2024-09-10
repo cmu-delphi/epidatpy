@@ -39,35 +39,49 @@ check the documentation for that specific endpoint.
 First, we can request the data that was available *as of* a specific date, using
 the ``as_of`` argument:
 
->>> from epidatpy import EpiDataContext, EpiRange
->>> epidata = EpiDataContext(use_cache=True, cache_max_age_days=1)
->>> apicall = epidata.pub_covidcast(
-...    data_source = "doctor-visits",
-...    signals = "smoothed_cli", 
-...    time_type = "day",
-...    time_values = EpiRange("2020-05-01", "2020-05-01"),
-...    geo_type = "state",
-...    geo_values = "pa",
-...    as_of = "2020-05-07"
-...)
->>> apicall.df.head()
-          source        signal geo_type geo_value time_type time_value      issue  lag    value  stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  doctor-visits  smoothed_cli    state        pa       day 2020-05-01 2020-05-07    6  2.32192    <NA>        <NA>       <NA>              0               5                    5
+.. exec::
+   :context: true
+
+   from epidatpy import EpiDataContext, EpiRange
+   import pandas as pd
+
+   # Set common options and context
+   pd.set_option('display.max_columns', None)
+   pd.set_option('display.max_rows', None)
+   pd.set_option('display.width', 1000)
+
+   epidata = EpiDataContext(use_cache=False)
+
+   # Obtain the most up-to-date version of the smoothed covid-like illness (CLI)
+   # signal from the COVID-19 Trends and Impact survey for the US
+   apicall = epidata.pub_covidcast(
+      data_source = "doctor-visits",
+      signals = "smoothed_cli",
+      time_type = "day",
+      time_values = EpiRange("2020-05-01", "2020-05-01"),
+      geo_type = "state",
+      geo_values = "pa",
+      as_of = "2020-05-07")
+   
+   print(apicall.df().head())
+   print(apicall.df().head()["value"])
 
 This shows that an estimate of about 2.3% was issued on May 7. If we don't
 specify `as_of`, we get the most recent estimate available:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "doctor-visits",
-...    signals = "smoothed_cli", 
-...    time_type = "day",
-...    time_values = EpiRange("2020-05-01", "2020-05-01"),
-...    geo_type = "state",
-...    geo_values = "pa"
-...)
->>> apicall.df.head()
-          source        signal geo_type geo_value time_type time_value      issue  lag     value  stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  doctor-visits  smoothed_cli    state        pa       day 2020-05-01 2020-07-04   64  5.075015    <NA>        <NA>       <NA>              0               5                    5
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "doctor-visits",
+      signals = "smoothed_cli",
+      time_type = "day",
+      time_values = EpiRange("2020-05-01", "2020-05-01"),
+      geo_type = "state",
+      geo_values = "pa")
+   
+   print(apicall.df().head())
+   print(apicall.df().head()["value"])
 
 Note the substantial change in the estimate, from less than 3% to over 5%,
 reflecting new data that became available after May 7 about visits *occurring on*
@@ -82,23 +96,19 @@ Multiple issues of observations
 By using the ``issues`` argument, we can request all issues in a certain time
 period:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "doctor-visits",
-...    signals = "smoothed_adj_cli",
-...    time_type = "day",
-...    time_values = EpiRange("2020-05-01", "2020-05-01"),
-...    geo_type = "state",
-...    geo_values = "pa",
-...    issues = EpiRange("2020-05-01", "2020-05-15")
-...)
->>> apicall.df.head(7)
-          source            signal geo_type geo_value time_type time_value      issue  lag     value  stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-07    6  2.581509    <NA>        <NA>       <NA>              0               5                    5
-1  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-08    7  3.278896    <NA>        <NA>       <NA>              0               5                    5
-2  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-09    8  3.321781    <NA>        <NA>       <NA>              0               5                    5
-3  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-12   11  3.588683    <NA>        <NA>       <NA>              0               5                    5
-4  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-13   12  3.631978    <NA>        <NA>       <NA>              0               5                    5
-5  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-14   13  3.658009    <NA>        <NA>       <NA>              0               5                    5
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "doctor-visits",
+      signals = "smoothed_adj_cli",
+      time_type = "day",
+      time_values = EpiRange("2020-05-01", "2020-05-01"),
+      geo_type = "state",
+      geo_values = "pa",
+      issues = EpiRange("2020-05-01", "2020-05-15"))
+   
+   print(apicall.df().head(7))
 
 This estimate was clearly updated many times as new data for May 1st arrived.
 
@@ -114,41 +124,35 @@ Finally, we can use the ``lag`` argument to request only data reported with a
 certain lag. For example, requesting a lag of 7 days fetches only data issued
 exactly 7 days after the corresponding ``time_value``:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "doctor-visits",
-...    signals = "smoothed_adj_cli",
-...    time_type = "day",
-...    time_values = EpiRange("2020-05-01", "2020-05-07"),
-...    geo_type = "state",
-...    geo_values = "pa",
-...    lag = 7
-...)
->>> apicall.df.head()
-          source            signal geo_type geo_value time_type time_value      issue  lag     value  stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-01 2020-05-08    7  3.278896    <NA>        <NA>       <NA>              0               5                    5
-1  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-02 2020-05-09    7  3.225292    <NA>        <NA>       <NA>              0               5                    5
-2  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-05 2020-05-12    7  2.779908    <NA>        <NA>       <NA>              0               5                    5
-3  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-06 2020-05-13    7  2.557698    <NA>        <NA>       <NA>              0               5                    5
-4  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-07 2020-05-14    7  2.191677    <NA>        <NA>       <NA>              0               5                    5
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "doctor-visits",
+      signals = "smoothed_adj_cli",
+      time_type = "day",
+      time_values = EpiRange("2020-05-01", "2020-05-01"),
+      geo_type = "state",
+      geo_values = "pa",
+      lag = 7)
+   
+   print(apicall.df().head())
 
 **Note** that though this query requested all values between 2020-05-01 and
 2020-05-07, May 3rd and May 4th were *not* included in the results set. This is
 because the query will only include a result for May 3rd if a value were issued
 on May 10th (a 7-day lag), but in fact the value was not updated on that day:
 
->>> apicall = epidata.pub_covidcast(
-...    data_source = "doctor-visits",
-...    signals = "smoothed_adj_cli",
-...    time_type = "day",
-...    time_values = EpiRange("2020-05-03", "2020-05-03"),
-...    geo_type = "state",
-...    geo_values = "pa",
-...    issues = EpiRange("2020-05-09", "2020-05-15")
-...)
->>> apicall.df.head()
-          source            signal geo_type geo_value time_type time_value      issue  lag     value  stderr sample_size  direction  missing_value  missing_stderr  missing_sample_size
-0  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-03 2020-05-09    6  2.788618    <NA>        <NA>       <NA>              0               5                    5
-1  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-03 2020-05-12    9  3.015368    <NA>        <NA>       <NA>              0               5                    5
-2  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-03 2020-05-13   10   3.03931    <NA>        <NA>       <NA>              0               5                    5
-3  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-03 2020-05-14   11  3.021245    <NA>        <NA>       <NA>              0               5                    5
-4  doctor-visits  smoothed_adj_cli    state        pa       day 2020-05-03 2020-05-15   12  3.048725    <NA>        <NA>       <NA>              0               5                    5
+.. exec::
+   :context: true
+
+   apicall = epidata.pub_covidcast(
+      data_source = "doctor-visits",
+      signals = "smoothed_adj_cli",
+      time_type = "day",
+      time_values = EpiRange("2020-05-03", "2020-05-03"),
+      geo_type = "state",
+      geo_values = "pa",
+      issues = EpiRange("2020-05-09", "2020-05-15"))
+   
+   print(apicall.df().head())

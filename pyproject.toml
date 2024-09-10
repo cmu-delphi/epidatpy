@@ -40,6 +40,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "matplotlib",
     "mypy",
     "pylint",
     "pytest",
@@ -47,6 +48,7 @@ dev = [
     "ruff",
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
+    "sphinx-exec-directive",
     "sphinx",
     "twine",
     "types-requests",

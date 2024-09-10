@@ -68,13 +68,9 @@ Contents
 
    getting_started
 
-   covidcast_examples
-
-   signals_covid
+   getting_started_with_epidatpy
 
    epidatpy
-
-   getting_started_with_epidatpy
 
    signal_discovery
 
