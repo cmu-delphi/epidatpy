@@ -19,6 +19,14 @@ through the API for
 for `other diseases <https://cmu-delphi.github.io/delphi-epidata/api/README.html#source-specific-parameters>`_.
 The site also includes a search tool if you have a keyword (e.g. "Taiwan") in mind.
 
+Epidata Data Sources
+--------------------
+The parameters available for each source data are documented in each linked source-specific API page.
+
+.. csv-table::
+   :file: data/endpoints.csv
+   :widths: 20 40
+   :header-rows: 1
 
 Signal metadata
 ---------------
@@ -45,12 +53,13 @@ for descriptions of the available sources.
 
 This DataFrame contains the following columns:
 
-- ``source`` - Data source name.
-- ``signal`` - Signal name.
+- ``source`` - API-internal source name.
+- ``name`` - Human-readable source name.
 - ``description`` - Description of the signal.
 - ``reference_signal`` - Geographic level for which this signal is available, such as county, state, msa, hss, hrr, or nation. Most signals are available at multiple geographic levels and will hence be listed in multiple rows with their own metadata.
-- ``license`` - The license
+- ``license`` - The license.
 - ``dua`` - Link to the Data Use Agreement.
+- ``signals`` - List of signals available from this data source.
 
 The ``signal_df`` DataFrame can also be used to obtain information about the signals
 that are available - for example, what time range they are available for,
@@ -65,9 +74,9 @@ and when they have been updated.
 
 This DataFrame contains one row each available signal, with the following columns:
 
-- ``data_source`` - Data source name.
-- ``signal`` - Signal name.
-- ``name`` - Name of signal.
+- ``source`` - Data source name.
+- ``signal`` - API-internal signal name.
+- ``name`` - Human-readable signal name.
 - ``active`` - Whether the signal is currently not updated or not. Signals may be inactive because the sources have become unavailable, other sources have replaced them, or additional work is required for us to continue updating them.
 - ``short_description`` - Brief description of the signal.
 - ``description`` - Full description of the signal.
@@ -83,3 +92,4 @@ This DataFrame contains one row each available signal, with the following column
 - ``is_cumulative`` - Whether the signal is cumulative.
 - ``has_stderr`` - Whether the signal has `stderr` statistic.
 - ``has_sample_size`` - Whether the signal has `sample_size` statistic.
+- ``geo_types`` - Geographical levels for which this signal is available.

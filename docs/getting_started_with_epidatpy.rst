@@ -112,7 +112,9 @@ it supports ``*``.)
    print(apicall)
    print(apicall.df().head())
 
-We can fetch a subset of states by listing out the desired locations:
+Alternatively, we can fetch the full time series for a subset of states by 
+listing out the desired locations in the ``geo_value`` argument and using
+``*`` in the ``time_values`` argument:
 
 .. exec::
    :context: true
@@ -123,22 +125,6 @@ We can fetch a subset of states by listing out the desired locations:
       geo_type = "state",
       time_type = "day",
       geo_values = "pa,ca,fl",
-      time_values = EpiRange(20210405, 20210410))
-
-   print(apicall)
-   print(apicall.df().head())
-
-We can also request data for a single location at a time, via the ``geo_values`` argument.
-
-.. exec::
-   :context: true
-
-   apicall = epidata.pub_covidcast(
-      data_source = "fb-survey",
-      signals = "smoothed_cli",
-      geo_type = "state",
-      time_type = "day",
-      geo_values = "pa",
       time_values = EpiRange(20210405, 20210410))
 
    print(apicall)
@@ -234,3 +220,21 @@ the data stream that you are most interested in.
 The Epidata documentation lists all the data sources and signals available
 through the API for `COVID-19 <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
 and for `other diseases <https://cmu-delphi.github.io/delphi-epidata/api/README.html#source-specific-parameters>`_.
+
+Epiweeks and Dates
+------------------
+Epiweeks use the U.S. definition. That is, the first epiweek each year is the
+week, starting on a Sunday, containing January 4. See `this page
+<https://www.cmmcp.org/mosquito-surveillance-data/pages/epi-week-calendars-2008-2021>`_
+for more information.
+
+Formatting for epiweeks is YYYYWW and for dates is YYYYMMDD.
+
+Use individual values, comma-separated lists or, a hyphenated range of values to specify single or several dates.
+An ``EpiRange`` object can be also used to construct a range of epiweeks or dates. Examples include:
+
+- ``param = 201530`` (A single epiweek)
+- ``param = '201401,201501,201601'`` (Several epiweeks)
+- ``param = '200501-200552'`` (A range of epiweeks)
+- ``param = '201440,201501-201510'`` (Several epiweeks, including a range)
+- ``param = EpiRange(20070101, 20071231)`` (A range of dates)

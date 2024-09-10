@@ -66,12 +66,10 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   getting_started
-
    getting_started_with_epidatpy
-
-   epidatpy
 
    signal_discovery
 
    versioned_data
+
+   epidatpy

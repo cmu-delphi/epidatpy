@@ -25,6 +25,7 @@ test:
 	env/bin/pytest .
 
 doc:
+	env/bin/python docs/preprocess.py
 	env/bin/sphinx-build -b html docs docs/_build
 	env/bin/python -m webbrowser -t "docs/_build/index.html"
 

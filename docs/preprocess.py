@@ -1,4 +1,6 @@
 from epidatpy import EpiDataContext, EpiRange
+from epidatpy._endpoints import AEpiDataEndpoints
+import inspect
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -19,7 +21,6 @@ apicall = epidata.pub_covidcast(
     geo_values = "pa,ca,fl",
     time_type = "day",
     time_values = EpiRange(20210405, 20210410))
-print(apicall)
 
 data = apicall.df()
 
@@ -74,3 +75,13 @@ final_df.pivot_table(values = "value", index = "time_value", columns = "issue").
 plt.title("Smoothed CLI from Doctor Visits", fontsize=16)
 plt.subplots_adjust(bottom=.2)
 plt.savefig("docs/images/Versioned_Data.png", dpi=300)
+
+# Get AEpiDataEndpoints methods that start with pvt_ and pub_
+endpoints = [x for x in inspect.getmembers(AEpiDataEndpoints) if x[0].startswith("pvt_") or x[0].startswith("pub_")]
+
+# 
+data = {e[0]: e[1].__doc__.split("\n")[0] if e[1].__doc__ else "" for e in endpoints}
+
+table = pd.DataFrame(data.items(), columns = ["Endpoint", "Description"])
+
+table.to_csv("docs/data/endpoints.csv", index = False)
