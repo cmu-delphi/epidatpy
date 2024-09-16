@@ -35,6 +35,21 @@ make release  # upload the current version to pypi
 make clean    # clean build and docs artifacts
 ```
 
+Building the documentation additionally requires the Pandoc package. These commands can be used
+to install the package on common platforms (see the
+[official documentation](https://pandoc.org/installing.html) for more options):
+
+```sh
+# Linux (Debian/Ubuntu)
+sudo apt-get install pandoc
+
+# OS X / Linux (with Homebrew)
+brew install pandoc
+
+# Windows (with Chocolatey)
+choco install pandoc
+```
+
 ### Release Process
 
 The release consists of multiple steps which can be all done via the GitHub website:

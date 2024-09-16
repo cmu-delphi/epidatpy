@@ -35,7 +35,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     # 'matplotlib.sphinxext.plot_directive'
-    "sphinx_exec_directive"
+    "nbsphinx"
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -85,3 +85,8 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 # https://pypi.org/project/sphinx-autodoc-typehints/
 always_document_param_types = True
+
+# https://nbsphinx.readthedocs.io/
+nbsphinx_prompt_width = 0
+nbsphinx_input_prompt = "%.0s"
+nbsphinx_output_prompt = "%.0s"

@@ -66,7 +66,7 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   getting_started_with_epidatpy
+   getting_started
 
    signal_discovery
 

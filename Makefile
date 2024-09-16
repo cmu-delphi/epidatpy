@@ -25,7 +25,7 @@ test:
 	env/bin/pytest .
 
 doc:
-	env/bin/python docs/preprocess.py
+	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)
 	env/bin/sphinx-build -b html docs docs/_build
 	env/bin/python -m webbrowser -t "docs/_build/index.html"
 
@@ -42,7 +42,7 @@ clean_python:
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
-clean: clean_docs clean_build clean_python
+clean: clean_doc clean_build clean_python
 
 release: clean lint test
 	env/bin/python -m build --sdist --wheel
