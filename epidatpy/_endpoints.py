@@ -36,8 +36,7 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
 
 
 class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
-    """epidata endpoint list and fetcher
-    """
+    """epidata endpoint list and fetcher"""
 
     @abstractmethod
     def _create_call(

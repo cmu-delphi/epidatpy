@@ -1,3 +1,4 @@
+import inspect
 from os import environ
 from typing import (
     Any,
@@ -291,3 +292,10 @@ def CovidcastEpidata(
         )
 
     return CovidcastDataSources.create(meta_data, create_call)
+
+
+def available_endpoints() -> DataFrame:
+    """Get a DataFrame of available endpoints and their descriptions."""
+    endpoints = [x for x in inspect.getmembers(AEpiDataEndpoints) if x[0].startswith("pvt_") or x[0].startswith("pub_")]
+    data = {e[0]: e[1].__doc__.split("\n")[0] if e[1].__doc__ else "None" for e in endpoints}
+    return DataFrame(data.items(), columns=["Endpoint", "Description"])
