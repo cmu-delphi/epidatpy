@@ -31,11 +31,7 @@ release = "1.0.0"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx_autodoc_typehints",
-    # 'matplotlib.sphinxext.plot_directive'
-]
+extensions = ["sphinx.ext.autodoc", "sphinx_autodoc_typehints", "nbsphinx"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -84,3 +80,8 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 # https://pypi.org/project/sphinx-autodoc-typehints/
 always_document_param_types = True
+
+# https://nbsphinx.readthedocs.io/
+nbsphinx_prompt_width = 0
+nbsphinx_input_prompt = "%.0s"
+nbsphinx_output_prompt = "%.0s"

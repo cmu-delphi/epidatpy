@@ -33,8 +33,7 @@ from ._model import (
 
 @dataclass
 class WebLink:
-    """represents a web link
-    """
+    """represents a web link"""
 
     alt: str
     href: str
@@ -42,8 +41,7 @@ class WebLink:
 
 @dataclass
 class DataSignalGeoStatistics:
-    """COVIDcast signal statistics
-    """
+    """COVIDcast signal statistics"""
 
     min: float
     max: float
@@ -72,7 +70,7 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
         EpidataFieldInfo("lag", EpidataFieldType.int),
         EpidataFieldInfo("value", EpidataFieldType.float),
         EpidataFieldInfo("stderr", EpidataFieldType.float),
-        EpidataFieldInfo("sample_size", EpidataFieldType.int),
+        EpidataFieldInfo("sample_size", EpidataFieldType.float),
         EpidataFieldInfo("direction", EpidataFieldType.float),
         EpidataFieldInfo("missing_value", EpidataFieldType.int),
         EpidataFieldInfo("missing_stderr", EpidataFieldType.int),
@@ -82,8 +80,7 @@ def define_covidcast_fields() -> List[EpidataFieldInfo]:
 
 @dataclass
 class DataSignal(Generic[CALL_TYPE]):
-    """represents a COVIDcast data signal
-    """
+    """represents a COVIDcast data signal"""
 
     _create_call: Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]
 
@@ -195,8 +192,7 @@ class DataSignal(Generic[CALL_TYPE]):
 
 @dataclass
 class DataSource(Generic[CALL_TYPE]):
-    """represents a COVIDcast data source
-    """
+    """represents a COVIDcast data source"""
 
     _create_call: InitVar[Callable[[Mapping[str, Optional[EpiRangeParam]]], CALL_TYPE]]
 
@@ -247,8 +243,7 @@ class DataSource(Generic[CALL_TYPE]):
 
 @dataclass
 class CovidcastDataSources(Generic[CALL_TYPE]):
-    """COVIDcast data source helper.
-    """
+    """COVIDcast data source helper."""
 
     sources: Sequence[DataSource[CALL_TYPE]]
     _source_by_name: Dict[str, DataSource[CALL_TYPE]] = field(init=False, default_factory=dict)

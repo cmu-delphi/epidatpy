@@ -2,7 +2,7 @@
 
 [![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Read the Docs][docs-image]][docs-url]
 
-A Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/). Still in development.
+The Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
 
 ## Install
 
@@ -18,7 +18,23 @@ pip install epidatpy
 
 ## Usage
 
-TODO
+```py
+from epidatpy import CovidcastEpidata, EpiDataContext, EpiRange
+
+# All calls using the `epidata` object will now be cached for 7 days
+epidata = EpiDataContext(use_cache=True, cache_max_age_days=7)
+
+# Obtain a DataFrame of the most up-to-date version of the smoothed covid-like illness (CLI)
+# signal from the COVID-19 Trends and Impact survey for the US
+epidata.pub_covidcast(
+    data_source="jhu-csse",
+    signals="confirmed_cumulative_num",
+    geo_type="nation",
+    time_type="day",
+    geo_values="us",
+    time_values=EpiRange(20210405, 20210410),
+).df()
+```
 
 ## Development
 
@@ -33,6 +49,21 @@ make docs     # build docs
 make dist     # build distribution packages
 make release  # upload the current version to pypi
 make clean    # clean build and docs artifacts
+```
+
+Building the documentation additionally requires the Pandoc package. These
+commands can be used to install the package on common platforms (see the
+[official documentation](https://pandoc.org/installing.html) for more options):
+
+```sh
+# Linux (Debian/Ubuntu)
+sudo apt-get install pandoc
+
+# OS X / Linux (with Homebrew)
+brew install pandoc
+
+# Windows (with Chocolatey)
+choco install pandoc
 ```
 
 ### Release Process

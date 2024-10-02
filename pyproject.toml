@@ -40,7 +40,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "ipykernel",
+    "matplotlib",
     "mypy",
+    "nbsphinx",
     "pylint",
     "pytest",
     "recommonmark",

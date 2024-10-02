@@ -4,17 +4,6 @@ epidatpy Reference
 .. toctree::
    :maxdepth: 4
 
-Submodules
-----------
-
-Module contents
----------------
-
-.. automodule:: epidatpy
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 epidatpy.request module
 -----------------------
 
@@ -23,11 +12,11 @@ epidatpy.request module
    :undoc-members:
    :show-inheritance:
 
-epidatpy.async\_request module
-------------------------------
+epidatpy._endpoints module
+-----------------------
 
-.. automodule:: epidatpy.async_request
+.. automodule:: epidatpy._endpoints
    :members:
    :undoc-members:
    :show-inheritance:
-
+   :exclude-members: get_wildcard_equivalent_dates
