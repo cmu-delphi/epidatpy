@@ -30,12 +30,12 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "appdirs",
-    "diskcache",
+    "appdirs>=1.4.4",
+    "diskcache>=5.6.3",
     "epiweeks>=2.1",
-    "pandas>=1",
+    "pandas>=2",
     "requests>=2.25",
-    "tenacity",
+    "tenacity>=9.0.0",
 ]
 
 [project.optional-dependencies]
