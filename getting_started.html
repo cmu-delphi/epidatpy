@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Getting started &#8212; epidatpy 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=a35ea3b2" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Finding data of interest" href="signal_discovery.html" />
+    <link rel="prev" title="epidatpy" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Getting-started">
+<h1>Getting started<a class="headerlink" href="#Getting-started" title="Permalink to this heading">¶</a></h1>
+<p>The epidatpy package provides access to all the endpoints of the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/">Delphi Epidata API</a>, and can be used to make requests for specific signals on specific dates and in select geographic regions.</p>
+<section id="Basic-usage">
+<h2>Basic usage<a class="headerlink" href="#Basic-usage" title="Permalink to this heading">¶</a></h2>
+<p>Fetching data from the Delphi Epidata API is simple. Suppose we are interested in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast.html">covidcast endpoint</a>, which provides access to a <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">wide range of data</a> on COVID-19. Reviewing the endpoint documentation, we see that we <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast.html#constructing-api-queries">need to specify</a> a data source name, a
+signal name, a geographic level, a time resolution, and the location and times of interest.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code> function lets us access the <code class="docutils literal notranslate"><span class="pre">covidcast</span></code> endpoint. Here we demonstrate how to fetch the most up-to-date version of the confirmed cumulative COVID cases from the JHU CSSE data source at the national level.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">epidatpy</span> <span class="kn">import</span> <span class="n">CovidcastEpidata</span><span class="p">,</span> <span class="n">EpiDataContext</span><span class="p">,</span> <span class="n">EpiRange</span>
+
+<span class="c1"># Create the client object. Note that due to the arguments below all results</span>
+<span class="c1"># will be cached to your disk for 7 days, which helps avoid making repeated</span>
+<span class="c1"># downloads.</span>
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">EpiDataContext</span><span class="p">(</span><span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache_max_age_days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+<span class="c1"># `pub_covidcast` returns an `EpiDataCall`, which is a not-yet-executed query</span>
+<span class="c1"># that can be inspected.</span>
+<span class="n">apicall</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="o">=</span><span class="s2">&quot;jhu-csse&quot;</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">&quot;confirmed_cumulative_num&quot;</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">&quot;nation&quot;</span><span class="p">,</span>
+    <span class="n">time_type</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">&quot;us&quot;</span><span class="p">,</span>
+    <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20210405</span><span class="p">,</span> <span class="mi">20210410</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">apicall</span><span class="p">)</span>
+<span class="c1"># The query can be executed and converted to a DataFrame by using the `.df()`</span>
+<span class="c1"># method:</span>
+<span class="n">apicall</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+EpiDataCall(endpoint=covidcast/, params={&#39;data_source&#39;: &#39;jhu-csse&#39;, &#39;signals&#39;: &#39;confirmed_cumulative_num&#39;, &#39;geo_type&#39;: &#39;nation&#39;, &#39;time_type&#39;: &#39;day&#39;, &#39;geo_values&#39;: &#39;us&#39;, &#39;time_values&#39;: &#39;20210405-20210410&#39;})
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2023-03-10</td>
+      <td>704</td>
+      <td>30874278.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-06</td>
+      <td>2023-03-10</td>
+      <td>703</td>
+      <td>30937664.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-07</td>
+      <td>2023-03-10</td>
+      <td>702</td>
+      <td>31013399.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-08</td>
+      <td>2023-03-10</td>
+      <td>701</td>
+      <td>31093208.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-09</td>
+      <td>2023-03-10</td>
+      <td>700</td>
+      <td>31177602.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2023-03-10</td>
+      <td>699</td>
+      <td>31247947.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the pub_covidcast-specific client object. This you to find what sources</span>
+<span class="c1"># and signals are available without leaving your REPL.</span>
+<span class="n">covidcast</span> <span class="o">=</span> <span class="n">CovidcastEpidata</span><span class="p">(</span><span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cache_max_age_days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="c1"># Get a list of all the sources available in the pub_covidcast endpoint.</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">covidcast</span><span class="o">.</span><span class="n">source_names</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">covidcast</span><span class="o">.</span><span class="n">signal_names</span><span class="p">(</span><span class="s2">&quot;jhu-csse&quot;</span><span class="p">))</span>
+<span class="c1"># Obtain the same data as above with a different interface.</span>
+<span class="n">covidcast</span><span class="p">[</span><span class="s2">&quot;jhu-csse&quot;</span><span class="p">,</span> <span class="s2">&quot;confirmed_cumulative_num&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+    <span class="s2">&quot;nation&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;us&quot;</span><span class="p">,</span>
+    <span class="n">EpiRange</span><span class="p">(</span><span class="mi">20210405</span><span class="p">,</span> <span class="mi">20210410</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="c1"># See the &quot;Finding data of interest&quot; notebook for more features of this interface.</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;chng&#39;, &#39;covid-act-now&#39;, &#39;doctor-visits&#39;, &#39;fb-survey&#39;, &#39;google-symptoms&#39;, &#39;hhs&#39;, &#39;hospital-admissions&#39;, &#39;indicator-combination-cases-deaths&#39;, &#39;jhu-csse&#39;, &#39;safegraph-weekly&#39;, &#39;usa-facts&#39;, &#39;ght&#39;, &#39;google-survey&#39;, &#39;indicator-combination-nmf&#39;, &#39;safegraph-daily&#39;, &#39;nchs-mortality&#39;, &#39;dsew-cpr&#39;, &#39;nssp&#39;]
+[&#39;confirmed_cumulative_num&#39;, &#39;confirmed_7dav_incidence_num&#39;, &#39;confirmed_7dav_incidence_prop&#39;, &#39;confirmed_cumulative_prop&#39;, &#39;confirmed_incidence_num&#39;, &#39;confirmed_incidence_prop&#39;, &#39;deaths_cumulative_num&#39;, &#39;deaths_7dav_incidence_num&#39;, &#39;deaths_7dav_incidence_prop&#39;, &#39;deaths_cumulative_prop&#39;, &#39;deaths_incidence_num&#39;, &#39;deaths_incidence_prop&#39;]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2023-03-10</td>
+      <td>704</td>
+      <td>30874278.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-06</td>
+      <td>2023-03-10</td>
+      <td>703</td>
+      <td>30937664.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-07</td>
+      <td>2023-03-10</td>
+      <td>702</td>
+      <td>31013399.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-08</td>
+      <td>2023-03-10</td>
+      <td>701</td>
+      <td>31093208.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-09</td>
+      <td>2023-03-10</td>
+      <td>700</td>
+      <td>31177602.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>jhu-csse</td>
+      <td>confirmed_cumulative_num</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2023-03-10</td>
+      <td>699</td>
+      <td>31247947.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<p>Each row represents one observation in the US on one day. The geographical abbreviation is given in the <code class="docutils literal notranslate"><span class="pre">geo_value</span></code> column, the date in the <code class="docutils literal notranslate"><span class="pre">time_value</span></code> column. Here <code class="docutils literal notranslate"><span class="pre">value</span></code> is the requested signal – in this case, the smoothed estimate of the percentage of people with COVID-like illness, based on the symptom surveys, and <code class="docutils literal notranslate"><span class="pre">stderr</span></code> is its standard error.</p>
+<p>The Epidata API makes signals available at different geographic levels, depending on the endpoint. To request signals for all states instead of the entire US, we use the <code class="docutils literal notranslate"><span class="pre">geo_type</span></code> argument paired with <code class="docutils literal notranslate"><span class="pre">*</span></code> for the <code class="docutils literal notranslate"><span class="pre">geo_values</span></code> argument. (Only some endpoints allow for the use of <code class="docutils literal notranslate"><span class="pre">*</span></code> to access data at all locations. Check the help for a given endpoint to see if it supports <code class="docutils literal notranslate"><span class="pre">*</span></code>.)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="o">=</span><span class="s2">&quot;fb-survey&quot;</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">&quot;smoothed_cli&quot;</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">&quot;state&quot;</span><span class="p">,</span>
+    <span class="n">time_type</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+    <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20210405</span><span class="p">,</span> <span class="mi">20210410</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.736883</td>
+      <td>0.275805</td>
+      <td>720.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>al</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.796627</td>
+      <td>0.137734</td>
+      <td>3332.1117</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ar</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.561916</td>
+      <td>0.131108</td>
+      <td>2354.9911</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>az</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.62283</td>
+      <td>0.105354</td>
+      <td>4742.2778</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.444169</td>
+      <td>0.040576</td>
+      <td>21382.3806</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>301</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>vt</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>0.496408</td>
+      <td>0.237163</td>
+      <td>789.0011</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>302</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>wa</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>0.573955</td>
+      <td>0.082897</td>
+      <td>6378.9502</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>303</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>wi</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>0.552162</td>
+      <td>0.093652</td>
+      <td>4802.9953</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>304</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>wv</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>0.726741</td>
+      <td>0.173248</td>
+      <td>2034.1066</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>305</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>wy</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>1.205129</td>
+      <td>0.416785</td>
+      <td>573.7192</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>306 rows × 15 columns</p>
+</div></div>
+</div>
+<p>Alternatively, we can fetch the full time series for a subset of states by listing out the desired locations in the <code class="docutils literal notranslate"><span class="pre">geo_value</span></code> argument and using <code class="docutils literal notranslate"><span class="pre">*</span></code> in the <code class="docutils literal notranslate"><span class="pre">time_values</span></code> argument:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="o">=</span><span class="s2">&quot;fb-survey&quot;</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">&quot;smoothed_cli&quot;</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">&quot;state&quot;</span><span class="p">,</span>
+    <span class="n">time_type</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">&quot;pa,ca,fl&quot;</span><span class="p">,</span>
+    <span class="n">time_values</span><span class="o">=</span><span class="s2">&quot;*&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>day</td>
+      <td>2020-04-06</td>
+      <td>2020-09-03</td>
+      <td>150</td>
+      <td>0.727647</td>
+      <td>0.136668</td>
+      <td>3116.6652</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>fl</td>
+      <td>day</td>
+      <td>2020-04-06</td>
+      <td>2020-09-03</td>
+      <td>150</td>
+      <td>0.605006</td>
+      <td>0.126229</td>
+      <td>2657.0001</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2020-04-06</td>
+      <td>2020-09-03</td>
+      <td>150</td>
+      <td>0.852422</td>
+      <td>0.138715</td>
+      <td>3299.0016</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>day</td>
+      <td>2020-04-07</td>
+      <td>2020-09-03</td>
+      <td>149</td>
+      <td>0.672257</td>
+      <td>0.073444</td>
+      <td>9616.9951</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>fl</td>
+      <td>day</td>
+      <td>2020-04-07</td>
+      <td>2020-09-03</td>
+      <td>149</td>
+      <td>0.705451</td>
+      <td>0.070535</td>
+      <td>10420.0016</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>2434</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>fl</td>
+      <td>day</td>
+      <td>2022-06-26</td>
+      <td>2022-06-28</td>
+      <td>2</td>
+      <td>3.606007</td>
+      <td>0.197311</td>
+      <td>7184.0002</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2435</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2022-06-26</td>
+      <td>2022-06-28</td>
+      <td>2</td>
+      <td>2.046306</td>
+      <td>0.195172</td>
+      <td>4194.0018</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2436</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>day</td>
+      <td>2022-06-27</td>
+      <td>2022-06-28</td>
+      <td>1</td>
+      <td>3.368872</td>
+      <td>0.1838</td>
+      <td>7719.148</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2437</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>fl</td>
+      <td>day</td>
+      <td>2022-06-27</td>
+      <td>2022-06-28</td>
+      <td>1</td>
+      <td>3.740106</td>
+      <td>0.219306</td>
+      <td>5990.0001</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2438</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2022-06-27</td>
+      <td>2022-06-28</td>
+      <td>1</td>
+      <td>1.942765</td>
+      <td>0.209353</td>
+      <td>3460.0016</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>2439 rows × 15 columns</p>
+</div></div>
+</div>
+</section>
+<section id="Getting-versioned-data">
+<h2>Getting versioned data<a class="headerlink" href="#Getting-versioned-data" title="Permalink to this heading">¶</a></h2>
+<p>The Epidata API stores a historical record of all data, including corrections and updates, which is particularly useful for accurately backtesting forecasting models. To fetch versioned data, we can use the <code class="docutils literal notranslate"><span class="pre">as_of</span></code> argument:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="o">=</span><span class="s2">&quot;fb-survey&quot;</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">&quot;smoothed_cli&quot;</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">&quot;state&quot;</span><span class="p">,</span>
+    <span class="n">time_type</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">&quot;pa&quot;</span><span class="p">,</span>
+    <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20210405</span><span class="p">,</span> <span class="mi">20210410</span><span class="p">),</span>
+    <span class="n">as_of</span><span class="o">=</span><span class="s2">&quot;2021-06-01&quot;</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-05</td>
+      <td>2021-04-10</td>
+      <td>5</td>
+      <td>0.715758</td>
+      <td>0.072999</td>
+      <td>10894.0057</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-06</td>
+      <td>2021-04-11</td>
+      <td>5</td>
+      <td>0.69321</td>
+      <td>0.070869</td>
+      <td>10862.0055</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-07</td>
+      <td>2021-04-12</td>
+      <td>5</td>
+      <td>0.685934</td>
+      <td>0.070654</td>
+      <td>10790.0054</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-08</td>
+      <td>2021-04-13</td>
+      <td>5</td>
+      <td>0.681511</td>
+      <td>0.071394</td>
+      <td>10731.0044</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-09</td>
+      <td>2021-04-14</td>
+      <td>5</td>
+      <td>0.709416</td>
+      <td>0.072162</td>
+      <td>10590.0049</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>fb-survey</td>
+      <td>smoothed_cli</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>day</td>
+      <td>2021-04-10</td>
+      <td>2021-04-15</td>
+      <td>5</td>
+      <td>0.77624</td>
+      <td>0.076037</td>
+      <td>10492.0055</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Plotting">
+<h2>Plotting<a class="headerlink" href="#Plotting" title="Permalink to this heading">¶</a></h2>
+<p>Because the output data is a standard Pandas DataFrame, we can easily plot it using any of the available Python libraries:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;figure.dpi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">300</span>
+
+<span class="n">apicall</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+    <span class="n">data_source</span><span class="o">=</span><span class="s2">&quot;fb-survey&quot;</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">&quot;smoothed_cli&quot;</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">&quot;state&quot;</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">&quot;pa,ca,fl&quot;</span><span class="p">,</span>
+    <span class="n">time_type</span><span class="o">=</span><span class="s2">&quot;day&quot;</span><span class="p">,</span>
+    <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20210405</span><span class="p">,</span> <span class="mi">20210410</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;left&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s2">&quot;top&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="p">(</span>
+    <span class="n">apicall</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+    <span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">&quot;time_value&quot;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">&quot;geo_value&quot;</span><span class="p">)</span>
+    <span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">&quot;CLI&quot;</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Smoothed CLI from Facebook Survey&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">bottom</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="_images/getting_started_11_0.png" src="_images/getting_started_11_0.png" />
+</div>
+</div>
+</section>
+<section id="Finding-locations-of-interest">
+<h2>Finding locations of interest<a class="headerlink" href="#Finding-locations-of-interest" title="Permalink to this heading">¶</a></h2>
+<p>Most data is only available for the US. Select endpoints report other countries at the national and/or regional levels. Endpoint descriptions explicitly state when they cover non-US locations.</p>
+<p>For endpoints that report US data, see the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html">geographic coding documentation</a> for available geographic levels.</p>
+</section>
+<section id="International-data">
+<h2>International data<a class="headerlink" href="#International-data" title="Permalink to this heading">¶</a></h2>
+<p>International data is available via</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_dengue_nowcast</span></code> (North and South America)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_ecdc_ili</span></code> (Europe)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_kcdc_ili</span></code> (Korea)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_nidss_dengue</span></code> (Taiwan)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_nidss_flu</span></code> (Taiwan)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pub_paho_dengue</span></code> (North and South America)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pvt_dengue_sensors</span></code> (North and South America)</p></li>
+</ul>
+</section>
+<section id="Finding-data-sources-and-signals-of-interest">
+<h2>Finding data sources and signals of interest<a class="headerlink" href="#Finding-data-sources-and-signals-of-interest" title="Permalink to this heading">¶</a></h2>
+<p>Above we used data from <a class="reference external" href="https://delphi.cmu.edu/covid19/ctis/">Delphi’s symptom surveys</a>, but the Epidata API includes numerous data streams: medical claims data, cases and deaths, mobility, and many others. This can make it a challenge to find the data stream that you are most interested in.</p>
+<p>The Epidata documentation lists all the data sources and signals available through the API for <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">COVID-19</a> and for <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/README.html#source-specific-parameters">other diseases</a>.</p>
+</section>
+<section id="Epiweeks-and-dates">
+<h2>Epiweeks and dates<a class="headerlink" href="#Epiweeks-and-dates" title="Permalink to this heading">¶</a></h2>
+<p>Formatting for epiweeks is YYYYWW and for dates is YYYYMMDD.</p>
+<p>Epiweeks use the U.S. CDC definition, which defines the first epiweek each year to be the first week containing January 4th and the start of the week is on Sunday. See <a class="reference external" href="https://www.cmmcp.org/mosquito-surveillance-data/pages/epi-week-calendars-2008-2021">this page</a> for a less terse explanation.</p>
+<p>When specifying the time_values argument, you can use individual values, comma-separated lists or, a hyphenated range of values to specify single or several dates (or epiweeks). An <code class="docutils literal notranslate"><span class="pre">EpiRange</span></code> object can be also used to construct a range of epiweeks or dates. Examples include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span> <span class="pre">=</span> <span class="pre">201530</span></code> (A single epiweek)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span> <span class="pre">=</span> <span class="pre">'201401,201501,201601'</span></code> (Several epiweeks)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span> <span class="pre">=</span> <span class="pre">'200501-200552'</span></code> (A range of epiweeks)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span> <span class="pre">=</span> <span class="pre">'201440,201501-201510'</span></code> (Several epiweeks, including a range)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">param</span> <span class="pre">=</span> <span class="pre">EpiRange(20070101,</span> <span class="pre">20071231)</span></code> (A range of dates)</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="signal_discovery.html">Finding data of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">epidatpy</a></li>
+      <li>Next: <a href="signal_discovery.html" title="next chapter">Finding data of interest</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/getting_started.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

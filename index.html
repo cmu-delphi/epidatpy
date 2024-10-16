@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>epidatpy &#8212; epidatpy 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="epidatpy">
+<h1>epidatpy<a class="headerlink" href="#epidatpy" title="Permalink to this heading">¶</a></h1>
+<p>This package provides Python access to the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/">Delphi Epidata API</a> published by the <a class="reference external" href="https://delphi.cmu.edu">Delphi
+research group</a> at <a class="reference external" href="https://www.cmu.edu">Carnegie Mellon University</a>. The package source code and bug tracker can be found
+<a class="reference external" href="https://github.com/cmu-delphi/epidatpy">on GitHub</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>You should consider subscribing</strong> to the <a class="reference external" href="https://lists.andrew.cmu.edu/mailman/listinfo/delphi-covidcast-api">API mailing list</a> to be
+notified of package updates, new data sources, corrections, and other
+updates.</p>
+</div>
+<p>See also the <a class="reference external" href="https://delphi.cmu.edu/epidemic-signals/terms-of-use/">CMU Delphi Terms of Use</a>, noting that the data
+is a research product and not warranted for a particular purpose.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<p>This package will soon be available on PyPI as <a class="reference external" href="https://pypi.org/project/epidatpy/">epidatpy</a>. Meanwhile, it can be installed from
+GitHub:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="api-keys">
+<h2>API Keys<a class="headerlink" href="#api-keys" title="Permalink to this heading">¶</a></h2>
+<p>The Delphi Epidata API requires a (free) API key for full functionality. To
+generate your key, register for a pseudo-anonymous account <a class="reference external" href="https://api.delphi.cmu.edu/epidata/admin/registration_form">here</a> and see more
+discussion on the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/api_keys.html">general API website</a>. The <code class="docutils literal notranslate"><span class="pre">epidatpy</span></code>
+client will automatically look for this key in the environment variable
+<code class="docutils literal notranslate"><span class="pre">DELPHI_EPIDATA_KEY</span></code>. We recommend storing your key in a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file, using
+<a class="reference external" href="https://github.com/theskumar/python-dotenv">python-dotenv</a> to load it into
+your environment, and adding <code class="docutils literal notranslate"><span class="pre">.env</span></code> to your <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code> file.</p>
+<p>Note that for the time being, the private endpoints (i.e. those prefixed with
+<code class="docutils literal notranslate"><span class="pre">pvt</span></code>) will require additional permissions (contact us for more information).</p>
+</section>
+<section id="documentation-contents">
+<h2>Documentation Contents<a class="headerlink" href="#documentation-contents" title="Permalink to this heading">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="signal_discovery.html">Finding data of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="signal_discovery.html">Finding data of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="getting_started.html" title="next chapter">Getting started</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

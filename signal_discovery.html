@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Finding data of interest &#8212; epidatpy 1.0.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=a35ea3b2" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=af2ce170"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Accessing versioned data" href="versioned_data.html" />
+    <link rel="prev" title="Getting started" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="Finding-data-of-interest">
+<h1>Finding data of interest<a class="headerlink" href="#Finding-data-of-interest" title="Permalink to this heading">¶</a></h1>
+<p>The Epidata API includes numerous data streams – medical claims data, cases and deaths, mobility, and many others – covering different geographic regions. This can make it a challenge to find the data stream that you are most interested in. This page will provide some advice on how to locate donate that may be useful to you.</p>
+<section id="Using-the-Delphi-Epidata-API-documentation">
+<h2>Using the Delphi Epidata API documentation<a class="headerlink" href="#Using-the-Delphi-Epidata-API-documentation" title="Permalink to this heading">¶</a></h2>
+<p>The Delphi Epidata API documentation lists all the available data sources and signals for <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">COVID-19</a> and for <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/README.html#source-specific-parameters">other diseases</a>. The site also includes a search tool if you have a keyword (e.g. “Taiwan”) in mind. Generally, any endpoint listed in the Delphi Epidata API has an associated function in this client where its API endpoint
+name is prefixed with either <code class="docutils literal notranslate"><span class="pre">pub_</span></code> or <code class="docutils literal notranslate"><span class="pre">pvt_</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code> or <code class="docutils literal notranslate"><span class="pre">pvt_twitter</span></code>.</p>
+</section>
+<section id="Epidata-data-sources">
+<h2>Epidata data sources<a class="headerlink" href="#Epidata-data-sources" title="Permalink to this heading">¶</a></h2>
+<p>The parameters available for each source data are documented in each linked source-specific API page. The epidatpy client will also expect certain fields, depending on the endpoint, though the Delphi Epidata API documentation will contain more information about the accepted ranges of values for each field.</p>
+<p>A dynamically generated list of all available data sources can be obtained by using the built-in <code class="docutils literal notranslate"><span class="pre">available_endpoints()</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">HTML</span>
+
+<span class="kn">from</span> <span class="nn">epidatpy</span> <span class="kn">import</span> <span class="n">available_endpoints</span>
+
+<span class="n">table</span> <span class="o">=</span> <span class="n">available_endpoints</span><span class="p">()</span>
+<span class="n">HTML</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">to_html</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Endpoint</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>pub_covid_hosp_facility</td>
+      <td>Fetch COVID hospitalization data for specific facilities.</td>
+    </tr>
+    <tr>
+      <td>pub_covid_hosp_facility_lookup</td>
+      <td>Lookup COVID hospitalization facility identifiers.</td>
+    </tr>
+    <tr>
+      <td>pub_covid_hosp_state_timeseries</td>
+      <td>Fetch COVID hospitalization data.</td>
+    </tr>
+    <tr>
+      <td>pub_covidcast</td>
+      <td>Fetch Delphi's COVID-19 Surveillance Streams</td>
+    </tr>
+    <tr>
+      <td>pub_covidcast_meta</td>
+      <td>Fetch COVIDcast surveillance stream metadata.</td>
+    </tr>
+    <tr>
+      <td>pub_delphi</td>
+      <td>Fetch Delphi's forecast.</td>
+    </tr>
+    <tr>
+      <td>pub_dengue_nowcast</td>
+      <td>Fetch Delphi's dengue nowcast.</td>
+    </tr>
+    <tr>
+      <td>pub_ecdc_ili</td>
+      <td>Fetch ECDC ILI data.</td>
+    </tr>
+    <tr>
+      <td>pub_flusurv</td>
+      <td>Fetch FluSurv data.</td>
+    </tr>
+    <tr>
+      <td>pub_fluview</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <td>pub_fluview_clinical</td>
+      <td>Fetch FluView clinical data.</td>
+    </tr>
+    <tr>
+      <td>pub_fluview_meta</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <td>pub_gft</td>
+      <td>Fetch Google Flu Trends data.</td>
+    </tr>
+    <tr>
+      <td>pub_kcdc_ili</td>
+      <td>Fetch KCDC ILI data.</td>
+    </tr>
+    <tr>
+      <td>pub_meta</td>
+      <td>Fetch API metadata.</td>
+    </tr>
+    <tr>
+      <td>pub_nidss_dengue</td>
+      <td>Fetch NIDSS dengue data.</td>
+    </tr>
+    <tr>
+      <td>pub_nidss_flu</td>
+      <td>Fetch NIDSS flu data.</td>
+    </tr>
+    <tr>
+      <td>pub_nowcast</td>
+      <td>Fetch Delphi's wILI nowcast.</td>
+    </tr>
+    <tr>
+      <td>pub_paho_dengue</td>
+      <td>Fetch PAHO Dengue data.</td>
+    </tr>
+    <tr>
+      <td>pub_wiki</td>
+      <td>Fetch Wikipedia access data.</td>
+    </tr>
+    <tr>
+      <td>pvt_cdc</td>
+      <td>Fetch CDC page hits.</td>
+    </tr>
+    <tr>
+      <td>pvt_dengue_sensors</td>
+      <td>Fetch Delphi's digital surveillance sensors.</td>
+    </tr>
+    <tr>
+      <td>pvt_ght</td>
+      <td>Fetch Google Health Trends data.</td>
+    </tr>
+    <tr>
+      <td>pvt_meta_norostat</td>
+      <td>Fetch NoroSTAT metadata.</td>
+    </tr>
+    <tr>
+      <td>pvt_norostat</td>
+      <td>Fetch NoroSTAT data (point data, no min/max).</td>
+    </tr>
+    <tr>
+      <td>pvt_quidel</td>
+      <td>Fetch Quidel data.</td>
+    </tr>
+    <tr>
+      <td>pvt_sensors</td>
+      <td>Fetch Delphi's digital surveillance sensors.</td>
+    </tr>
+    <tr>
+      <td>pvt_twitter</td>
+      <td>Fetch HealthTweets data.</td>
+    </tr>
+  </tbody>
+</table></div>
+</div>
+</section>
+<section id="Covidcast-source-and-signal-metadata">
+<h2>Covidcast source and signal metadata<a class="headerlink" href="#Covidcast-source-and-signal-metadata" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">CovidcastEpidata</span></code> class provides a way to access information about the data in the <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code> endpoint directly from within the client. The cell below demonstrates how to access this metadata by using <code class="docutils literal notranslate"><span class="pre">source_df</span></code> property, which returns a Pandas DataFrame of metadata describing all data streams publically accessible from the COVIDcast endpoint of the Delphi Epidata API. This mirrors the information found in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">COVIDcast signals
+endpoint</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">epidatpy</span> <span class="kn">import</span> <span class="n">CovidcastEpidata</span>
+
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">CovidcastEpidata</span><span class="p">()</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">source_df</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>name</th>
+      <th>description</th>
+      <th>reference_signal</th>
+      <th>license</th>
+      <th>dua</th>
+      <th>signals</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>chng</td>
+      <td>Change Healthcare</td>
+      <td>Change Healthcare is a healthcare technology c...</td>
+      <td>smoothed_outpatient_cli</td>
+      <td>CC BY-NC</td>
+      <td>https://cmu.box.com/s/cto4to822zecr3oyq1kkk9xm...</td>
+      <td>smoothed_outpatient_cli,smoothed_adj_outpatien...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>covid-act-now</td>
+      <td>Covid Act Now (CAN)</td>
+      <td>COVID Act Now (CAN) tracks COVID-19 testing st...</td>
+      <td>pcr_specimen_total_tests</td>
+      <td>CC BY-NC</td>
+      <td>None</td>
+      <td>pcr_specimen_positivity_rate,pcr_specimen_tota...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>doctor-visits</td>
+      <td>Doctor Visits From Claims</td>
+      <td>Information about outpatient visits, provided ...</td>
+      <td>smoothed_cli</td>
+      <td>CC BY</td>
+      <td>https://cmu.box.com/s/l2tz6kmiws6jyty2azwb43po...</td>
+      <td>smoothed_cli,smoothed_adj_cli</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>Delphi US COVID-19 Trends and Impact Survey</td>
+      <td>We conduct the Delphi US COVID-19 Trends and I...</td>
+      <td>smoothed_cli</td>
+      <td>CC BY</td>
+      <td>https://cmu.box.com/s/qfxplcdrcn9retfzx4zniyug...</td>
+      <td>raw_wcli,raw_cli,smoothed_cli,smoothed_wcli,ra...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>google-symptoms</td>
+      <td>Google Symptoms Search Trends</td>
+      <td>Google's [COVID-19 Search Trends symptoms data...</td>
+      <td>s05_smoothed_search</td>
+      <td>To download or use the data, you must agree to...</td>
+      <td>None</td>
+      <td>ageusia_raw_search,ageusia_smoothed_search,ano...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>indicator-combination-nmf</td>
+      <td>Statistical Combination (NMF)</td>
+      <td>This source provides signals which are statist...</td>
+      <td>nmf_day_doc_fbs_ght</td>
+      <td>CC BY</td>
+      <td>None</td>
+      <td>nmf_day_doc_fbc_fbs_ght,nmf_day_doc_fbs_ght</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>safegraph-daily</td>
+      <td>SafeGraph (Daily)</td>
+      <td>[SafeGraph](https://docs.safegraph.com/docs/so...</td>
+      <td>completely_home_prop</td>
+      <td>CC BY</td>
+      <td>https://cmu.box.com/s/m0p1wpet4vuvey7od83n70h0...</td>
+      <td>completely_home_prop,completely_home_prop_7dav...</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>nchs-mortality</td>
+      <td>NCHS Mortality Data</td>
+      <td>This data source of national provisional death...</td>
+      <td>deaths_allcause_incidence_num</td>
+      <td>[NCHS Data Use Agreement](https://www.cdc.gov/...</td>
+      <td>None</td>
+      <td>deaths_allcause_incidence_num,deaths_allcause_...</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>dsew-cpr</td>
+      <td>COVID-19 Community Profile Report</td>
+      <td>This data source is based on the daily report ...</td>
+      <td>confirmed_admissions_covid_1d_7dav</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>None</td>
+      <td>booster_doses_admin_7dav,confirmed_admissions_...</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>nssp</td>
+      <td>National Syndromic Surveillance Program</td>
+      <td>The National Syndromic Surveillance Program (N...</td>
+      <td>pct_ed_visits_covid</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>None</td>
+      <td>pct_ed_visits_covid,pct_ed_visits_influenza,pc...</td>
+    </tr>
+  </tbody>
+</table>
+<p>18 rows × 7 columns</p>
+</div></div>
+</div>
+<p>This DataFrame contains the following columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> - API-internal source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - Human-readable source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - Description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_signal</span></code> - Geographic level for which this signal is available, such as county, state, msa, hss, hrr, or nation. Most signals are available at multiple geographic levels and will hence be listed in multiple rows with their own metadata.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">license</span></code> - The license.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dua</span></code> - Link to the Data Use Agreement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signals</span></code> - List of signals available from this data source.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">signal_df</span></code> DataFrame can also be used to obtain information about the signals that are available - for example, what time range they are available for, and when they have been updated.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">signal_df</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>name</th>
+      <th>active</th>
+      <th>short_description</th>
+      <th>description</th>
+      <th>time_type</th>
+      <th>time_label</th>
+      <th>value_label</th>
+      <th>format</th>
+      <th>category</th>
+      <th>high_values_are</th>
+      <th>is_smoothed</th>
+      <th>is_weighted</th>
+      <th>is_cumulative</th>
+      <th>has_stderr</th>
+      <th>has_sample_size</th>
+      <th>geo_types</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_cli</td>
+      <td>COVID-Related Doctor Visits</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>chng</td>
+      <td>smoothed_adj_outpatient_cli</td>
+      <td>COVID-Related Doctor Visits (Day-adjusted)</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_covid</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>False</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>chng</td>
+      <td>smoothed_adj_outpatient_covid</td>
+      <td>COVID-Confirmed Doctor Visits (Day-adjusted)</td>
+      <td>False</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_flu</td>
+      <td>Influenza-Confirmed Doctor Visits</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Day</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>None</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>446</th>
+      <td>nssp</td>
+      <td>pct_ed_visits_combined</td>
+      <td>Emergency Department Visits for COVID, Influen...</td>
+      <td>True</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>447</th>
+      <td>nssp</td>
+      <td>smoothed_pct_ed_visits_covid</td>
+      <td>COVID Emergency Department Visits (Percent of ...</td>
+      <td>True</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>448</th>
+      <td>nssp</td>
+      <td>smoothed_pct_ed_visits_influenza</td>
+      <td>Influenza Emergency Department Visits (Percent...</td>
+      <td>True</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>449</th>
+      <td>nssp</td>
+      <td>smoothed_pct_ed_visits_rsv</td>
+      <td>RSV Emergency Department Visits (Percent of to...</td>
+      <td>True</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>450</th>
+      <td>nssp</td>
+      <td>smoothed_pct_ed_visits_combined</td>
+      <td>Emergency Department Visits for COVID, Influen...</td>
+      <td>True</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>3-week moving average of percent of ED visits ...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+  </tbody>
+</table>
+<p>451 rows × 18 columns</p>
+</div></div>
+</div>
+<p>This DataFrame contains one row each available signal, with the following columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> - Data source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signal</span></code> - API-internal signal name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - Human-readable signal name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">active</span></code> - Whether the signal is currently not updated or not. Signals may be inactive because the sources have become unavailable, other sources have replaced them, or additional work is required for us to continue updating them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short_description</span></code> - Brief description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - Full description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geo_types</span></code> - Spatial resolution of the signal (e.g., <code class="docutils literal notranslate"><span class="pre">county</span></code>, <code class="docutils literal notranslate"><span class="pre">hrr</span></code>, <code class="docutils literal notranslate"><span class="pre">msa</span></code>, <code class="docutils literal notranslate"><span class="pre">dma</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code>). More detail about all <code class="docutils literal notranslate"><span class="pre">geo_types</span></code> is given in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html">geographic coding documentation</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_type</span></code> - Temporal resolution of the signal (e.g., day, week; see <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html">date coding details</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_label</span></code> - The time label (“Date”, “Week”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value_label</span></code> - The value label (“Value”, “Percentage”, “Visits”, “Visits per 100,000 people”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code> - The value format (“per100k”, “percent”, “fraction”, “count”, “raw”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">category</span></code> - The signal category (“early”, “public”, “late”, “other”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">high_values_are</span></code>- What the higher value of signal indicates (“good”, “bad”, “neutral”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_smoothed</span></code> - Whether the signal is smoothed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_weighted</span></code> - Whether the signal is weighted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_cumulative</span></code> - Whether the signal is cumulative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">has_stderr</span></code> - Whether the signal has <code class="docutils literal notranslate"><span class="pre">stderr</span></code> statistic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">has_sample_size</span></code> - Whether the signal has <code class="docutils literal notranslate"><span class="pre">sample_size</span></code> statistic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geo_types</span></code> - Geographical levels for which this signal is available.</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Finding data of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="getting_started.html" title="previous chapter">Getting started</a></li>
+      <li>Next: <a href="versioned_data.html" title="next chapter">Accessing versioned data</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/signal_discovery.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
