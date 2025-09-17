@@ -368,6 +368,7 @@ class TestEpidataCalls:
         assert str(data["value"].dtype) == "Float64"
 
     def test_pub_rvdss(self) -> None:
+        # pylint: disable=too-many-statements
         apicall = EpiDataContext().pub_rvdss(
             geo_type="province",
             geo_values=["yu", "on"],
@@ -377,7 +378,7 @@ class TestEpidataCalls:
 
         assert len(data) > 0
 
-        apicall = EpiDataContext().pub_covidcast(
+        apicall = EpiDataContext().pub_rvdss(
             geo_type="region",
             geo_values="*",
             time_values=EpiRange(20200601, 20200801),
