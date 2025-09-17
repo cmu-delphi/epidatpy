@@ -870,6 +870,80 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
+    def pub_rvdss(
+        self,
+        geo_type: GeoType,
+        geo_values: Union[str, Sequence[str]] = "*",
+        time_values: EpiRangeParam = "*",
+        as_of: Union[None, str, int] = None,
+        issues: Optional[EpiRangeParam] = None,
+    ) -> CALL_TYPE:
+        """Fetch Canadian respiratory data"""
+        if sum([issues is not None, as_of is not None]) > 1:
+            raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive.")
+
+        return self._create_call(
+            "rvdss/",
+            {
+                "geo_type": geo_type,
+                "geo_values": geo_values,
+                "time_values": time_values,
+                "as_of": as_of,
+                "issues": issues,
+            },
+            # descriptive fields
+            EpidataFieldInfo("geo_type", EpidataFieldType.categorical, categories=list("nation", "region", "province", "lab")),
+            EpidataFieldInfo("geo_value", EpidataFieldInfo.text),
+            EpidataFieldInfo("region", EpidataFieldInfo.text),
+            EpidataFieldInfo("time_type", EpidataFieldType.categorical, categories=list("week")),
+            EpidataFieldInfo("epiweek", EpidataFieldInfo.epiweek), # Stored as an int in YYYYWW format
+            EpidataFieldInfo("time_value", EpidataFieldInfo.epiweek), # Stored as a date
+            EpidataFieldInfo("issue", EpidataFieldInfo.epiweek), # Stored as a date
+            EpidataFieldInfo("week", EpidataFieldInfo.int),
+            EpidataFieldInfo("weekorder", EpidataFieldInfo.int),
+            EpidataFieldInfo("year", EpidataFieldInfo.int),
+
+            # value fields
+            EpidataFieldInfo("adv_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("adv_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("adv_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("evrv_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("evrv_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("evrv_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flu_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("flu_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flu_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flua_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("flua_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flua_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("fluah1n1pdm09_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("fluah3_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("fluauns_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flub_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("flub_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("flub_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hcov_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("hcov_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hcov_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hmpv_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("hmpv_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hmpv_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv1_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv2_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv3_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv4_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpiv_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("hpivother_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("rsv_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("rsv_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("rsv_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("sarscov2_pct_positive", EpidataFieldInfo.float),
+            EpidataFieldInfo("sarscov2_positive_tests", EpidataFieldInfo.float),
+            EpidataFieldInfo("sarscov2_tests", EpidataFieldInfo.float)
+        )
+
     def pvt_sensors(
         self,
         auth: str,
