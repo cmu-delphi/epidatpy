@@ -10,7 +10,7 @@ Install with the following commands:
 
 ```sh
 # Latest dev version
-pip install -e "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
+pip install "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
 
 # PyPI version (not yet available)
 pip install epidatpy
