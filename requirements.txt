@@ -1,5 +1,0 @@
-pandas>=1
-requests>=2.25
-tenacity
-aiohttp
-epiweeks>=2.1

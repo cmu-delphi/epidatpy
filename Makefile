@@ -1,26 +1,51 @@
-.DEFAULT_GOAL:=start
+.PHONY = venv, lint, test, clean, release
 
-build:
-	docker build -t streamlit-template -f devops/Dockerfile .
+venv:
+	python3.8 -m venv .venv
 
-# Starts a docker image with a full preconfigured R environment
-start_dev: build
-	docker run -it --rm \
-		-p 8090:8090 \
-		-e STREAMLIT_FILE_WATCHER_TYPE=auto \
-		-e STREAMLIT_SERVER_PORT=8090 \
-		-v ${PWD}/app:/app/
+install: venv
+	.venv/bin/python -m pip install --upgrade pip
+	.venv/bin/pip install -e ".[dev]"
 
-run: build
-	docker run --rm -p 80:80 streamlit-template
+lint_ruff:
+	.venv/bin/ruff check epidatpy tests
 
-start:
-	streamlit run app/__main__.py
+lint_mypy:
+	.venv/bin/mypy epidatpy tests
 
-lint:
-	pylint app
-	mypy --ignore-missing-imports app
-	black --config pyproject.toml --check app
+lint_pylint:
+	.venv/bin/pylint epidatpy tests
+
+lint: lint_ruff lint_mypy lint_pylint
 
 format:
-	black --config pyproject.toml app
+	.venv/bin/ruff format epidatpy tests
+
+test:
+	.venv/bin/pytest .
+
+doc:
+	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)
+	.venv/bin/sphinx-build -b html docs docs/_build
+	.venv/bin/python -m webbrowser -t "docs/_build/index.html"
+
+clean_doc:
+	rm -rf docs/_build
+
+clean_build:
+	rm -rf build dist .eggs
+	find . -name '*.egg-info' -exec rm -rf {} +
+	find . -name '*.egg' -exec rm -f {} +
+
+clean_python:
+	find . -name '*.pyc' -exec rm -f {} +
+	find . -name '*.pyo' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -fr {} +
+
+clean: clean_doc clean_build clean_python
+
+release: clean lint test
+	.venv/bin/python -m build --sdist --wheel
+
+upload: release
+	.venv/bin/twine upload dist/*
