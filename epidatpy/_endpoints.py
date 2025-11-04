@@ -632,6 +632,9 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("rate_age_12t17", EpidataFieldType.float),
                 EpidataFieldInfo("rate_age_lt18", EpidataFieldType.float),
                 EpidataFieldInfo("rate_age_gte18", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_0tlt1", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_1t4", EpidataFieldType.float),
+                EpidataFieldInfo("rate_age_gte75", EpidataFieldType.float),
                 EpidataFieldInfo("rate_race_white", EpidataFieldType.float),
                 EpidataFieldInfo("rate_race_black", EpidataFieldType.float),
                 EpidataFieldInfo("rate_race_hisp", EpidataFieldType.float),
@@ -639,6 +642,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("rate_race_natamer", EpidataFieldType.float),
                 EpidataFieldInfo("rate_sex_male", EpidataFieldType.float),
                 EpidataFieldInfo("rate_sex_female", EpidataFieldType.float),
+                EpidataFieldInfo("rate_flu_a", EpidataFieldType.float),
+                EpidataFieldInfo("rate_flu_b", EpidataFieldType.float),
                 EpidataFieldInfo("season", EpidataFieldType.text),
             ],
         )
