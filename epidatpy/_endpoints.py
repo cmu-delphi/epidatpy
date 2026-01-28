@@ -321,7 +321,28 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         as_of: Union[None, int, str] = None,
     ) -> CALL_TYPE:
-        """Fetch COVID hospitalization data."""
+        """Fetch COVID hospitalizations by state.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html>
+
+        Obtains the COVID-19 reported patient impact and hospital capacity data by
+        state. This dataset is provided by the US Department of Health & Human
+        Services.
+
+        Starting October 1, 2022, some facilities are only required to report
+        annually.
+
+        Parameters
+        ----------
+        states : StringParam
+            List of state abbreviations.
+        dates : EpiRangeParam, default "*"
+            Range or list of dates.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        as_of : Union[int, str], optional
+            Fetch data as of this date.
+        """
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
 
