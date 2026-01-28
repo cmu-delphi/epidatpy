@@ -96,7 +96,30 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         zip: Optional[str] = None,  # pylint: disable=redefined-builtin
         fips_code: Optional[str] = None,
     ) -> CALL_TYPE:
-        """Lookup COVID hospitalization facility identifiers."""
+        """Helper for finding COVID hospitalization facilities.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility_lookup.html>
+
+        Obtains unique identifiers and other metadata for COVID hospitalization
+        facilities of interest. This is a companion endpoint to the
+        `pub_covid_hosp_facility` endpoint.
+
+        Only one location argument needs to be specified. Combinations of the
+        arguments are not currently supported.
+
+        Parameters
+        ----------
+        state : str, optional
+            State abbreviation.
+        ccn : str, optional
+            CMS Certification Number.
+        city : str, optional
+            City name.
+        zip : str, optional
+            Zip code.
+        fips_code : str, optional
+            FIPS code.
+        """
         if all(v is None for v in (state, ccn, city, zip, fips_code)):
             raise InvalidArgumentException("one of `state`, `ccn`, `city`, `zip`, or `fips_code` is required")
 
@@ -129,7 +152,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         collection_weeks: EpiRangeParam = "*",
         publication_dates: Optional[EpiRangeParam] = None,
     ) -> CALL_TYPE:
-        """Fetch COVID hospitalization data for specific facilities."""
+        """Fetch COVID hospitalizations by facility.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html>
+
+        Obtains the COVID-19 reported patient impact and hospital capacity data by
+        facility. This dataset is provided by the US Department of Health & Human
+        Services. The companion function `pub_covid_hosp_facility_lookup` can be
+        used to look up facility identifiers in a variety of ways.
+
+        Starting October 1, 2022, some facilities are only required to report
+        annually.
+
+        Parameters
+        ----------
+        hospital_pks : StringParam
+            List of hospital identifiers.
+        collection_weeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        publication_dates : EpiRangeParam, optional
+            Range or list of publication dates.
+        """
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
