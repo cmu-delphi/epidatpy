@@ -54,7 +54,19 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch CDC page hits."""
+        """Fetch CDC total and by topic webpage visits.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/cdc.html>
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "day")
 
         return self._create_call(
