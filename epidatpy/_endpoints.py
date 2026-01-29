@@ -984,7 +984,23 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         query: str = "",
     ) -> CALL_TYPE:
-        """Fetch Google Health Trends data."""
+        """Fetch Google Health Trends data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ght.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        query : str, default ""
+            GHT search query.
+        """
         if auth is None or locations is None or query == "":
             raise InvalidArgumentException("`auth`, `locations`, `epiweeks`, and `query` are all required")
 
