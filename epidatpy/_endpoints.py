@@ -949,7 +949,22 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_gft(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Google Flu Trends data."""
+        """Fetch Google Flu Trends flu search volume.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/gft.html>
+
+        Obtains estimates of inluenza activity based on volume of certain search
+        queries from Google.
+
+        Google has discontinued Flu Trends and this is now a static endpoint.
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
