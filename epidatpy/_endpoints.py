@@ -1125,7 +1125,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch NIDSS flu data."""
+        """Fetch NIDSS flu data (Taiwan).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html>
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1146,7 +1160,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_norostat(self, auth: str, location: str, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch NoroSTAT data (point data, no min/max)."""
+        """Fetch NoroSTAT data (point data, no min/max).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        location : str
+            Location.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
