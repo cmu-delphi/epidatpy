@@ -1066,7 +1066,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_meta_norostat(self, auth: str) -> CALL_TYPE:
-        """Fetch NoroSTAT metadata."""
+        """Fetch NoroSTAT metadata.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat_meta.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        """
         return self._create_call(
             "meta_norostat/",
             {"auth": auth},
