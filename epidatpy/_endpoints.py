@@ -553,7 +553,35 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch Delphi's COVID-19 Surveillance Streams"""
+        """Fetch Delphi's COVID-19 Surveillance Streams.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>
+
+        The primary endpoint for fetching COVID-19 data, providing access to a wide
+        variety of signals from a wide variety of sources. Delphi's `COVIDcast public
+        dashboard <https://delphi.cmu.edu/covidcast/>`_ is powered by this endpoint.
+
+        Parameters
+        ----------
+        data_source : str
+            Data source name.
+        signals : StringParam
+            Signal name.
+        geo_type : GeoType
+            Geographic level.
+        time_type : TimeType
+            Temporal resolution.
+        geo_values : Union[str, Sequence[str]], default "*"
+            Which locations to return.
+        time_values : EpiRangeParam, default "*"
+            Which time points to return.
+        as_of : Union[str, int], optional
+            Fetch data as of this date.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
