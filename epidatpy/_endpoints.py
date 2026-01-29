@@ -1219,7 +1219,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch PAHO Dengue data."""
+        """Fetch PAHO Dengue data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html>
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
