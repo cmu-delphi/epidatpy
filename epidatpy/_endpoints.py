@@ -1084,7 +1084,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_meta(self) -> CALL_TYPE:
-        """Fetch API metadata."""
+        """Fetch API metadata.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>
+        """
         return self._create_call(
             "meta/",
             {},
