@@ -1292,7 +1292,23 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch Delphi's digital surveillance sensors."""
+        """Fetch Delphi's digital surveillance sensors.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/digital_surveillance_sensors.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        names : StringParam
+            List of sensor names.
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
