@@ -1188,7 +1188,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Delphi's wILI nowcast."""
+        """Fetch Delphi's wILI nowcast.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ili_nearby_nowcast.html>
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
