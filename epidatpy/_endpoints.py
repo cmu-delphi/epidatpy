@@ -699,7 +699,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch ECDC ILI data."""
+        """Fetch ECDC ILI incidence (Europe).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html>
+
+        Obtain information on influenza-like-illness from the European Centre for
+        Disease Prevention and Control.
+
+        The list of location argument can be found in
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/ecdc_regions.txt>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
