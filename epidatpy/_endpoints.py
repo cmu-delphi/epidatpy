@@ -659,7 +659,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch Delphi's digital surveillance sensors."""
+        """Fetch PAHO dengue digital surveillance sensors (North and South America).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html>
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        names : StringParam
+            List of sensor names.
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
