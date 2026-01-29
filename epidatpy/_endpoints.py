@@ -429,13 +429,39 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_covidcast_meta(self) -> CALL_TYPE:
         """Fetch COVIDcast surveillance stream metadata.
 
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>
+
         Obtains a data frame of metadata describing all publicly available data
         streams from the COVIDcast API. See the `data source and signals
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
 
-        :returns: A `EpiDataCall` object containing the following information:
+        Parameters
+        ----------
+        data_source : str
+            Data source name.
+        signals : StringParam
+            Signal name.
+        geo_type : GeoType
+            Geographic level.
+        time_type : TimeType
+            Temporal resolution.
+        geo_values : Union[str, Sequence[str]], default "*"
+            Which locations to return.
+        time_values : EpiRangeParam, default "*"
+            Which time points to return.
+        as_of : Union[str, int], optional
+            Fetch data as of this date.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+
+        Returns
+        -------
+        CALL_TYPE
+            A `EpiDataCall` object containing the following information:
 
             ``data_source``
                 Data source name.
