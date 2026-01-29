@@ -628,7 +628,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_dengue_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Delphi's dengue nowcast."""
+        """Fetch Delphi's PAHO dengue nowcasts (North and South America).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html>
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
