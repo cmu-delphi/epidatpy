@@ -1334,7 +1334,23 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         time_type: Literal["day", "week"],
         time_values: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch HealthTweets data."""
+        """Fetch HealthTweets data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/twitter.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations.
+        time_type : Literal["day", "week"]
+            Literal used to set which temporal resolution to use.
+        time_values : EpiRangeParam, default "*"
+            Range or list of dates or epiweeks (depending on time_type).
+        """
         if time_type == "day":
             dates = time_values
             epiweeks = None
@@ -1375,7 +1391,23 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         hours: Optional[IntParam] = None,
         language: str = "en",
     ) -> CALL_TYPE:
-        """Fetch Wikipedia access data."""
+        """Fetch Wikipedia access data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html>
+
+        Parameters
+        ----------
+        articles : StringParam
+            List of Wikipedia articles.
+        time_type : Literal["day", "week"]
+            Literal used to set which temporal resolution to use.
+        time_values : EpiRangeParam, default "*"
+            Range or list of dates or epiweeks (depending on time_type).
+        hours : IntParam, optional
+            List of hours (optional).
+        language : str, default "en"
+            Language code.
+        """
         if time_type == "day":
             dates = time_values
             epiweeks = None
