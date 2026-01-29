@@ -1258,7 +1258,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Quidel data."""
+        """Fetch Quidel data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
