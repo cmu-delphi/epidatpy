@@ -745,7 +745,29 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch FluSurv data."""
+        """Fetch CDC FluSurv flu hospitalizations.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>
+
+        Obtain information on influenza hospitalization rates from the Center of Disease
+        Control.
+
+        See also <https://gis.cdc.gov/GRASP/Fluview/FluHospRates.html>.
+
+        The list of location argument can be found in
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/flusurv_locations.txt>.
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
