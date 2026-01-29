@@ -826,7 +826,24 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch FluView clinical data."""
+        """Fetch CDC FluView flu tests from clinical labs.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>
+
+        The list of location argument can be found in
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/regions.txt>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -851,6 +868,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_fluview_meta(self) -> CALL_TYPE:
+        """Fetch Metadata for the FluView endpoint.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>
+        """
         return self._create_call(
             "fluview_meta",
             {},
@@ -869,6 +890,31 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         lag: Optional[int] = None,
         auth: Optional[str] = None,
     ) -> CALL_TYPE:
+        """Fetch CDC FluView ILINet outpatient doctor visits.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>
+
+        Obtains information on outpatient inluenza-like-illness (ILI) from U.S.
+        Outpatient Influenza-like Illness Surveillance Network (ILINet).
+
+        See also <https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html>.
+
+        The full list of location inputs can be accessed at
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/src/acquisition/fluview/fluview_locations.py>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        auth : str, optional
+            Private API key.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
