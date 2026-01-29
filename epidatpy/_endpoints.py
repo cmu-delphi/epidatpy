@@ -1026,7 +1026,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch KCDC ILI data."""
+        """Fetch KCDC ILI incidence (Korea).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html>
+
+        Obtain information on influenza-like-illness from the Korea Centers for
+        Disease Control and Prevention (KCDC).
+
+        The list of location argument can be found in
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/kcdc_regions.txt>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions.
+        epiweeks : EpiRangeParam, default "*"
+            Range or list of epiweeks.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates.
+        lag : int, optional
+            Lag days.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
