@@ -605,7 +605,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_delphi(self, system: str, epiweek: Union[int, str]) -> CALL_TYPE:
-        """Fetch Delphi's forecast."""
+        """Fetch Delphi's ILINet outpatient doctor visits forecasts.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>
+
+        Parameters
+        ----------
+        system : str
+            System name.
+        epiweek : Union[int, str]
+            Epiweek.
+        """
         return self._create_call(
             "delphi/",
             {"system": system, "epiweek": epiweek},
