@@ -63,9 +63,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Geographic locations to return. Supports a single string or a sequence of strings.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "day")
 
@@ -110,15 +112,15 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         state : str, optional
-            State abbreviation.
+            Two-letter state abbreviation.
         ccn : str, optional
             CMS Certification Number.
         city : str, optional
             City name.
         zip : str, optional
-            Zip code.
+            5-digit zip code.
         fips_code : str, optional
-            FIPS code.
+            A 5-digit FIPS county code, zero-padded.
         """
         if all(v is None for v in (state, ccn, city, zip, fips_code)):
             raise InvalidArgumentException("one of `state`, `ccn`, `city`, `zip`, or `fips_code` is required")
@@ -167,11 +169,13 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         hospital_pks : StringParam
-            List of hospital identifiers.
-        collection_weeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Unique identifiers for hospitals of interest. Supports a single string or a sequence of strings.
+        collection_weeks : EpiRangeParam
+            Weekly data collection periods to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Note: This parameter expects dates in YYYY-MM-DD or YYYYMMDD format.
+            If provided as `Week` objects, they will be converted to the starting day of the week.
         publication_dates : EpiRangeParam, optional
-            Range or list of publication dates.
+            Publication dates to fetch. Supports `epirange()`. Format as YYYY-MM-DD (string or numeric).
         """
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
@@ -335,13 +339,18 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         states : StringParam
-            List of state abbreviations.
-        dates : EpiRangeParam, default "*"
-            Range or list of dates.
+            Geographic locations to return, formatted as two-letter state abbreviations.
+            Supports a single string or a sequence of strings.
+        dates : EpiRangeParam
+            Dates to fetch. Supports `epirange()` and defaults to all ("*") dates.
+            Format as `epirange(start, end)`, where start and end are of the form YYYYMMDD
+            (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`. Format as YYYYMMDD.
+            Mutually exclusive with `as_of`.
         as_of : Union[int, str], optional
-            Fetch data as of this date.
+            Fetch data as it was known as of this date. Format as YYYYMMDD.
+            Mutually exclusive with `issues`.
         """
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
@@ -436,27 +445,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
-
-        Parameters
-        ----------
-        data_source : str
-            Data source name.
-        signals : StringParam
-            Signal name.
-        geo_type : GeoType
-            Geographic level.
-        time_type : TimeType
-            Temporal resolution.
-        geo_values : Union[str, Sequence[str]], default "*"
-            Which locations to return.
-        time_values : EpiRangeParam, default "*"
-            Which time points to return.
-        as_of : Union[str, int], optional
-            Fetch data as of this date.
-        issues : EpiRangeParam, optional
-            Range or list of issue dates.
-        lag : int, optional
-            Lag days.
 
         Returns
         -------
@@ -564,23 +552,33 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         data_source : str
-            Data source name.
+            The name of the data source to query (see:
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>).
         signals : StringParam
-            Signal name.
+            The signals to query from a specific source (see:
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>).
         geo_type : GeoType
-            Geographic level.
+            The geographic resolution of the data (see:
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>).
         time_type : TimeType
-            Temporal resolution.
-        geo_values : Union[str, Sequence[str]], default "*"
-            Which locations to return.
-        time_values : EpiRangeParam, default "*"
-            Which time points to return.
+            The temporal resolution.
+        geo_values : Union[str, Sequence[str]]
+            The geographic locations to return. Supports a single string, a sequence of strings,
+            or defaults to all locations ("*"). (see:
+            <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>).
+        time_values : EpiRangeParam
+            Temporal points to fetch. Supports `epirange()` and defaults to all ("*") dates/weeks.
+            Format as `epirange(start, end)`, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the `time_type`.
         as_of : Union[str, int], optional
-            Fetch data as of this date.
+            Fetch data as it was known as of this date.
+            Mutually exclusive with `issues` and `lag`.
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch.
+            Mutually exclusive with `as_of` and `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `as_of` and `issues`.
         """
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
@@ -612,9 +610,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         system : str
-            System name.
+            The name of the forecast system.
         epiweek : Union[int, str]
-            Epiweek.
+            Epiweek to fetch. Does not support multiple dates.
+            Make separate calls to fetch data for multiple epiweeks.
         """
         return self._create_call(
             "delphi/",
@@ -635,9 +634,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Geographic locations to return. Supports a single string or a sequence of strings.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -668,11 +669,13 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         names : StringParam
-            List of sensor names.
+            Sensor names to fetch.
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Geographic locations to fetch. Supports a single string or a sequence of strings.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -712,13 +715,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of regions to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -760,13 +767,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`. 
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -836,13 +847,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
+            List of regions to fetch.
         epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`. 
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -905,13 +920,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of regions to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         auth : str, optional
             Private API key.
         """
@@ -961,9 +980,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -995,9 +1016,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         locations : StringParam
-            List of locations.
+            List of locations to fetch.
         epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks. 
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         query : str, default ""
             GHT search query.
         """
@@ -1039,13 +1062,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of regions to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1102,9 +1129,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1132,13 +1161,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of regions to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1171,9 +1204,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         location : str
-            Location.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            Location to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1195,9 +1230,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1226,13 +1263,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         regions : StringParam
-            List of regions.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of regions to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates.
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with `lag`.
         lag : int, optional
-            Lag days.
+            Number of days between the observation and its publication.
+            Mutually exclusive with `issues`.
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1269,9 +1310,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1303,11 +1346,13 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         names : StringParam
-            List of sensor names.
+            Sensor names to fetch.
         locations : StringParam
-            List of locations.
-        epiweeks : EpiRangeParam, default "*"
-            Range or list of epiweeks.
+            List of locations to fetch.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports `epirange()` and defaults to all ("*") weeks.
+            Format as `epirange(startweek, endweek)`, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
         """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
@@ -1345,11 +1390,13 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth : str
             Private API key.
         locations : StringParam
-            List of locations.
+            List of locations to fetch.
         time_type : Literal["day", "week"]
-            Literal used to set which temporal resolution to use.
+            The temporal resolution to use ("day" or "week").
         time_values : EpiRangeParam, default "*"
-            Range or list of dates or epiweeks (depending on time_type).
+            Temporal points to fetch. Supports `epirange()` and defaults to all ("*") dates/weeks.
+            Format as `epirange(start, end)`, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the `time_type`.
         """
         if time_type == "day":
             dates = time_values
@@ -1398,15 +1445,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         Parameters
         ----------
         articles : StringParam
-            List of Wikipedia articles.
+            The Wikipedia article(s) to fetch. Supports a single string or a sequence of strings.
         time_type : Literal["day", "week"]
-            Literal used to set which temporal resolution to use.
+            The temporal resolution to use ("day" or "week").
         time_values : EpiRangeParam, default "*"
-            Range or list of dates or epiweeks (depending on time_type).
+            Temporal points to fetch. Supports `epirange()` and defaults to all ("*") dates/weeks.
+            Format as `epirange(start, end)`, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the `time_type`.
         hours : IntParam, optional
-            List of hours (optional).
+            A list of hours to include.
         language : str, default "en"
-            Language code.
+            Two-letter language code.
         """
         if time_type == "day":
             dates = time_values
