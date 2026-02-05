@@ -913,9 +913,6 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         See also <https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html>.
 
-        The full list of location inputs can be accessed at
-        <https://github.com/cmu-delphi/delphi-epidata/blob/main/src/acquisition/fluview/fluview_locations.py>.
-
         Parameters
         ----------
         regions : StringParam
