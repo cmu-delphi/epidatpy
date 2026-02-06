@@ -45,7 +45,7 @@ Note that for the time being, the private endpoints (i.e. those prefixed with
 ``pvt``) will require additional permissions (contact us for more information).
 
 Documentation Contents
-===============
+======================
 
 .. toctree::
    :maxdepth: 1

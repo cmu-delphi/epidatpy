@@ -172,7 +172,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         hospital_pks : StringParam
             Unique identifiers for hospitals of interest. Supports a single string or a sequence of strings.
         collection_weeks : EpiRangeParam
-            Weekly data collection periods to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Weekly data collection periods to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all 
+            ("*") weeks.
             Note: This parameter expects dates in YYYY-MM-DD or YYYYMMDD format.
             If provided as ``Week``, they will be converted to the starting day of the week.
         publication_dates : EpiRangeParam, optional
@@ -612,7 +613,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         system : str
             The name of the forecast system.
-            See `Forecasting Systems <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html#forecasting-systems>`_.
+            See `Forecasting Systems 
+            <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html#forecasting-systems>`_.
         epiweek : Union[int, str]
             Epiweek to fetch. Does not support multiple dates.
             Make separate calls to fetch data for multiple epiweeks.
@@ -637,7 +639,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             Geographic locations to return. Supports a single string or a sequence of strings.
-            See `Countries and Territories in the Americas <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
+            See `Countries and Territories in the Americas 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -673,10 +676,12 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         names : StringParam
             Sensor names to fetch.
-            See `Dengue Sensors Indicators <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html#indicators>`__.
+            See `Dengue Sensors Indicators 
+            <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html#indicators>`__.
         locations : StringParam
             List of countries in the Americas to fetch.
-            See `Countries and Territories in the Americas <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-teritories-in-the-americas>`_.
+            See `Countries and Territories in the Americas 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-teritories-in-the-americas>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -718,7 +723,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of European countries to fetch.
-            See `European Countries <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#european-countries>`_.
+            See `European Countries 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#european-countries>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -768,7 +774,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `FluSurv Locations <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#flusurv-locations>`_.
+            See `FluSurv Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#flusurv-locations>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -846,7 +853,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of regions to fetch.
-            See `US Regions and States <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__.
+            See `US Regions and States 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__.
         epiweeks : EpiRangeParam, default "*"
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -917,8 +925,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of regions to fetch.
-            See `US Regions and States <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__
-            and `FluView Cities <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#fluview-cities>`__.
+            See `US Regions and States 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__
+            and `FluView Cities 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#fluview-cities>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -979,7 +989,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1016,7 +1027,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam, default "*"
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks. 
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1064,7 +1076,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of regions to fetch.
-            See `Republic of Korea <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#republic-of-korea>`_.
+            See `Republic of Korea
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#republic-of-korea>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1132,7 +1145,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of Taiwan locations to fetch.
-            See `Taiwan Locations <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
+            See `Taiwan Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1165,7 +1179,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of Taiwan locations to fetch.
-            See `Taiwan Locations <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
+            See `Taiwan Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1237,7 +1252,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1271,7 +1287,9 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of American countries and territories to fetch.
-            See `Countries and Territories in the Americas <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
+            See `Countries and Territories in the Americas
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
+
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1319,7 +1337,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
@@ -1458,7 +1477,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         articles : StringParam
             The Wikipedia article(s) to fetch. Supports a single string or a sequence of strings.
-            See `Available Articles <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html#available-articles>`_.
+            See `Available Articles 
+            <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html#available-articles>`_.
         time_type : Literal["day", "week"]
             The temporal resolution to use ("day" or "week").
         time_values : EpiRangeParam, default "*"

@@ -1,5 +1,5 @@
 epidatpy Reference
-================
+==================
 
 .. toctree::
    :maxdepth: 4
@@ -13,7 +13,7 @@ epidatpy.request module
    :show-inheritance:
 
 epidatpy._endpoints module
------------------------
+--------------------------
 
 .. automodule:: epidatpy._endpoints
    :members:
