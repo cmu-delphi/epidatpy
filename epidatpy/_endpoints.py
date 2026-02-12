@@ -54,7 +54,22 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch CDC page hits."""
+        """Fetch CDC total and by topic webpage visits.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/cdc.html>
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            Geographic locations to return. Supports a single string or a sequence of strings.
+            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "day")
 
         return self._create_call(
@@ -84,7 +99,30 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         zip: Optional[str] = None,  # pylint: disable=redefined-builtin
         fips_code: Optional[str] = None,
     ) -> CALL_TYPE:
-        """Lookup COVID hospitalization facility identifiers."""
+        """Helper for finding COVID hospitalization facilities.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility_lookup.html>
+
+        Obtains unique identifiers and other metadata for COVID hospitalization
+        facilities of interest. This is a companion endpoint to the
+        :meth:`pub_covid_hosp_facility` endpoint.
+
+        Only one location argument needs to be specified. Combinations of the
+        arguments are not currently supported.
+
+        Parameters
+        ----------
+        state : str, optional
+            Two-letter state abbreviation.
+        ccn : str, optional
+            CMS Certification Number.
+        city : str, optional
+            City name.
+        zip : str, optional
+            5-digit zip code.
+        fips_code : str, optional
+            A 5-digit FIPS county code, zero-padded.
+        """
         if all(v is None for v in (state, ccn, city, zip, fips_code)):
             raise InvalidArgumentException("one of `state`, `ccn`, `city`, `zip`, or `fips_code` is required")
 
@@ -117,7 +155,30 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         collection_weeks: EpiRangeParam = "*",
         publication_dates: Optional[EpiRangeParam] = None,
     ) -> CALL_TYPE:
-        """Fetch COVID hospitalization data for specific facilities."""
+        """Fetch COVID hospitalizations by facility.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html>
+
+        Obtains the COVID-19 reported patient impact and hospital capacity data by
+        facility. This dataset is provided by the US Department of Health & Human
+        Services. The companion function :meth:`pub_covid_hosp_facility_lookup` can be
+        used to look up facility identifiers in a variety of ways.
+
+        Starting October 1, 2022, some facilities are only required to report
+        annually.
+
+        Parameters
+        ----------
+        hospital_pks : StringParam
+            Unique identifiers for hospitals of interest. Supports a single string or a sequence of strings.
+        collection_weeks : EpiRangeParam
+            Weekly data collection periods to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all 
+            ("*") weeks.
+            Note: This parameter expects dates in YYYY-MM-DD or YYYYMMDD format.
+            If provided as ``Week``, they will be converted to the starting day of the week.
+        publication_dates : EpiRangeParam, optional
+            Publication dates to fetch. Supports :class:`~epidatpy.EpiRange`. Format as YYYY-MM-DD (string or numeric).
+        """
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
@@ -266,7 +327,33 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         as_of: Union[None, int, str] = None,
     ) -> CALL_TYPE:
-        """Fetch COVID hospitalization data."""
+        """Fetch COVID hospitalizations by state.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html>
+
+        Obtains the COVID-19 reported patient impact and hospital capacity data by
+        state. This dataset is provided by the US Department of Health & Human
+        Services.
+
+        Starting October 1, 2022, some facilities are only required to report
+        annually.
+
+        Parameters
+        ----------
+        states : StringParam
+            Geographic locations to return, formatted as two-letter state abbreviations.
+            Supports a single string or a sequence of strings.
+        dates : EpiRangeParam
+            Dates to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") dates.
+            Format as ``epirange(start, end)``, where start and end are of the form YYYYMMDD
+            (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`. Format as YYYYMMDD.
+            Mutually exclusive with `as_of`.
+        as_of : Union[int, str], optional
+            Fetch data as it was known as of this date. Format as YYYYMMDD.
+            Mutually exclusive with `issues`.
+        """
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
 
@@ -353,13 +440,18 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def pub_covidcast_meta(self) -> CALL_TYPE:
         """Fetch COVIDcast surveillance stream metadata.
 
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>
+
         Obtains a data frame of metadata describing all publicly available data
         streams from the COVIDcast API. See the `data source and signals
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
 
-        :returns: A `EpiDataCall` object containing the following information:
+        Returns
+        -------
+        CALL_TYPE
+            A ``EpiDataCall`` object containing the following information:
 
             ``data_source``
                 Data source name.
@@ -387,7 +479,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
             ``num_locations``
                 Number of distinct geographic locations available for this signal. For
-                example, if `geo_type` is county, the number of counties for which this
+                example, if ``geo_type`` is county, the number of counties for which this
                 signal has ever been reported.
 
             ``min_value``
@@ -451,7 +543,45 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch Delphi's COVID-19 Surveillance Streams"""
+        """Fetch Delphi's COVID-19 Surveillance Streams.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>
+
+        The primary endpoint for fetching COVID-19 data, providing access to a wide
+        variety of signals from a wide variety of sources. Delphi's `COVIDcast public
+        dashboard <https://delphi.cmu.edu/covidcast/>`_ is powered by this endpoint.
+
+        Parameters
+        ----------
+        data_source : str
+            The name of the data source to query.
+            See `Covidcast Signals <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`__.
+        signals : StringParam
+            The signals to query from a specific source.
+            See `Covidcast Signals <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`__.
+        geo_type : GeoType
+            The geographic resolution of the data.
+            See `Covidcast Geography <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>`__.
+        time_type : TimeType
+            The temporal resolution of the data (either "day" or "week").
+        geo_values : Union[str, Sequence[str]]
+            The geographic locations to return. Supports a single string, a sequence of strings,
+            or defaults to all locations ("*").
+            See `Covidcast Geography <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html>`__.
+        time_values : EpiRangeParam
+            Temporal points to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") dates/weeks.
+            Format as ``epirange(start, end)``, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the ``time_type``.
+        as_of : Union[str, int], optional
+            Fetch data as it was known as of this date.
+            Mutually exclusive with ``issues`` and ``lag``.
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch.
+            Mutually exclusive with ``as_of`` and ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``as_of`` and ``issues``.
+        """
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
@@ -475,7 +605,20 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_delphi(self, system: str, epiweek: Union[int, str]) -> CALL_TYPE:
-        """Fetch Delphi's forecast."""
+        """Fetch Delphi's ILINet outpatient doctor visits forecasts.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>
+
+        Parameters
+        ----------
+        system : str
+            The name of the forecast system.
+            See `Forecasting Systems 
+            <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html#forecasting-systems>`_.
+        epiweek : Union[int, str]
+            Epiweek to fetch. Does not support multiple dates.
+            Make separate calls to fetch data for multiple epiweeks.
+        """
         return self._create_call(
             "delphi/",
             {"system": system, "epiweek": epiweek},
@@ -488,7 +631,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_dengue_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Delphi's dengue nowcast."""
+        """Fetch Delphi's PAHO dengue nowcasts (North and South America).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html>
+
+        Parameters
+        ----------
+        locations : StringParam
+            Geographic locations to return. Supports a single string or a sequence of strings.
+            See `Countries and Territories in the Americas 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -509,7 +666,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch Delphi's digital surveillance sensors."""
+        """Fetch PAHO dengue digital surveillance sensors (North and South America).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html>
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        names : StringParam
+            Sensor names to fetch.
+            See `Dengue Sensors Indicators 
+            <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html#indicators>`__.
+        locations : StringParam
+            List of countries in the Americas to fetch.
+            See `Countries and Territories in the Americas 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-teritories-in-the-americas>`_.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -535,7 +712,30 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch ECDC ILI data."""
+        """Fetch ECDC ILI incidence (Europe).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html>
+
+        Obtain information on influenza-like-illness from the European Centre for
+        Disease Prevention and Control.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of European countries to fetch.
+            See `European Countries 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#european-countries>`_.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`.
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -561,7 +761,32 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch FluSurv data."""
+        """Fetch CDC FluSurv flu hospitalizations.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>
+
+        Obtain information on influenza hospitalization rates from the Center of Disease
+        Control.
+
+        See also <https://gis.cdc.gov/GRASP/Fluview/FluHospRates.html>.
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations to fetch.
+            See `FluSurv Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#flusurv-locations>`_.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports `epirange()`. 
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -620,7 +845,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch FluView clinical data."""
+        """Fetch CDC FluView flu tests from clinical labs.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions to fetch.
+            See `US Regions and States 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__.
+        epiweeks : EpiRangeParam, default "*"
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`. 
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -645,6 +890,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_fluview_meta(self) -> CALL_TYPE:
+        """Fetch Metadata for the FluView endpoint.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>
+        """
         return self._create_call(
             "fluview_meta",
             {},
@@ -663,6 +912,36 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         lag: Optional[int] = None,
         auth: Optional[str] = None,
     ) -> CALL_TYPE:
+        """Fetch CDC FluView ILINet outpatient doctor visits.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>
+
+        Obtains information on outpatient inluenza-like-illness (ILI) from U.S.
+        Outpatient Influenza-like Illness Surveillance Network (ILINet).
+
+        See also <https://gis.cdc.gov/grasp/fluview/fluportaldashboard.html>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions to fetch.
+            See `US Regions and States 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__
+            and `FluView Cities 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#fluview-cities>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`.
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        auth : str, optional
+            Private API key.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -697,7 +976,26 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_gft(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Google Flu Trends data."""
+        """Fetch Google Flu Trends flu search volume.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/gft.html>
+
+        Obtains estimates of inluenza activity based on volume of certain search
+        queries from Google.
+
+        Google has discontinued Flu Trends and this is now a static endpoint.
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -717,7 +1015,28 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         query: str = "",
     ) -> CALL_TYPE:
-        """Fetch Google Health Trends data."""
+        """Fetch Google Health Trends data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ght.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam, default "*"
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks. 
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        query : str, default ""
+            GHT search query.
+            See `Valid Queries <https://cmu-delphi.github.io/delphi-epidata/api/ght.html#valid-queries>`__.
+        """
         if auth is None or locations is None or query == "":
             raise InvalidArgumentException("`auth`, `locations`, `epiweeks`, and `query` are all required")
 
@@ -743,7 +1062,33 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch KCDC ILI data."""
+        """Fetch KCDC ILI incidence (Korea).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html>
+
+        Obtain information on influenza-like-illness from the Korea Centers for
+        Disease Control and Prevention (KCDC).
+
+        The list of location argument can be found in
+        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/kcdc_regions.txt>.
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of regions to fetch.
+            See `Republic of Korea
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#republic-of-korea>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -763,7 +1108,17 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_meta_norostat(self, auth: str) -> CALL_TYPE:
-        """Fetch NoroSTAT metadata."""
+        """Fetch NoroSTAT metadata.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat_meta.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        """
         return self._create_call(
             "meta_norostat/",
             {"auth": auth},
@@ -771,7 +1126,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_meta(self) -> CALL_TYPE:
-        """Fetch API metadata."""
+        """Fetch API metadata.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>
+        """
         return self._create_call(
             "meta/",
             {},
@@ -779,7 +1137,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_nidss_dengue(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch NIDSS dengue data."""
+        """Fetch NIDSS dengue data (Taiwan).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html>
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of Taiwan locations to fetch.
+            See `Taiwan Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -799,7 +1171,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch NIDSS flu data."""
+        """Fetch NIDSS flu data (Taiwan).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html>
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of Taiwan locations to fetch.
+            See `Taiwan Locations 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -820,7 +1212,25 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_norostat(self, auth: str, location: str, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch NoroSTAT data (point data, no min/max)."""
+        """Fetch NoroSTAT data (point data, no min/max).
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        location : str
+            Locations to fetch. Only a specific list of
+            full state names are permitted. See the ``locations`` column in the
+            output of :meth:`pvt_meta_norostat` for the allowed values.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -834,7 +1244,21 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Delphi's wILI nowcast."""
+        """Fetch Delphi's wILI nowcast.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ili_nearby_nowcast.html>
+
+        Parameters
+        ----------
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -855,7 +1279,28 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: Optional[EpiRangeParam] = None,
         lag: Optional[int] = None,
     ) -> CALL_TYPE:
-        """Fetch PAHO Dengue data."""
+        """Fetch PAHO Dengue data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html>
+
+        Parameters
+        ----------
+        regions : StringParam
+            List of American countries and territories to fetch.
+            See `Countries and Territories in the Americas
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
+
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        issues : EpiRangeParam, optional
+            Range or list of issue dates to fetch. Supports `epirange()`.
+            Mutually exclusive with ``lag``.
+        lag : int, optional
+            Number of days between the observation and its publication.
+            Mutually exclusive with ``issues``.
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -880,7 +1325,25 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         )
 
     def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
-        """Fetch Quidel data."""
+        """Fetch Quidel data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes 
+            <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -900,7 +1363,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch Delphi's digital surveillance sensors."""
+        """Fetch Delphi's digital surveillance sensors.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/digital_surveillance_sensors.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        names : StringParam
+            Sensor names to fetch.
+            See `Data Sources <https://cmu-delphi.github.io/delphi-epidata/api/sensors.html#data-sources>`_.
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        epiweeks : EpiRangeParam
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
+            Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
+            YYYYWW (string or numeric).
+        """
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -926,7 +1409,26 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         time_type: Literal["day", "week"],
         time_values: EpiRangeParam = "*",
     ) -> CALL_TYPE:
-        """Fetch HealthTweets data."""
+        """Fetch HealthTweets data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/twitter.html>
+
+        Requires a private API key.
+
+        Parameters
+        ----------
+        auth : str
+            Private API key.
+        locations : StringParam
+            List of locations to fetch.
+            See `Geographic Codes <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
+        time_type : Literal["day", "week"]
+            The temporal resolution to use ("day" or "week").
+        time_values : EpiRangeParam, default "*"
+            Temporal points to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") dates/weeks.
+            Format as ``epirange(start, end)``, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the ``time_type``.
+        """
         if time_type == "day":
             dates = time_values
             epiweeks = None
@@ -967,7 +1469,27 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         hours: Optional[IntParam] = None,
         language: str = "en",
     ) -> CALL_TYPE:
-        """Fetch Wikipedia access data."""
+        """Fetch Wikipedia access data.
+
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html>
+
+        Parameters
+        ----------
+        articles : StringParam
+            The Wikipedia article(s) to fetch. Supports a single string or a sequence of strings.
+            See `Available Articles 
+            <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html#available-articles>`_.
+        time_type : Literal["day", "week"]
+            The temporal resolution to use ("day" or "week").
+        time_values : EpiRangeParam, default "*"
+            Temporal points to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") dates/weeks.
+            Format as ``epirange(start, end)``, where start and end are of the form YYYY-MM-DD
+            or YYYYWW depending on the ``time_type``.
+        hours : IntParam, optional
+            A list of hours to include.
+        language : str, default "en"
+            Two-letter language code.
+        """
         if time_type == "day":
             dates = time_values
             epiweeks = None
