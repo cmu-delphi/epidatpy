@@ -1,32 +1,23 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
-from os import environ
 from typing import (
     TYPE_CHECKING,
     Final,
     Literal,
     TypedDict,
-    TypeVar,
     Union,
-    cast,
 )
 
 if TYPE_CHECKING:
     from pandas import DataFrame
-from urllib.parse import urlencode
 
 from epiweeks import Week
 
-from ._parse import (
-    parse_api_date,
-    parse_api_date_or_week,
-    parse_api_week,
-    parse_user_date_or_week,
-)
+from ._parse import parse_user_date_or_week
 
 GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
 TimeType = Literal["day", "week"]
@@ -37,7 +28,6 @@ EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
 StringParam = Union[str, Sequence[str]]
 IntParam = Union[int, Sequence[int]]
 ParamType = Union[StringParam, IntParam, EpiRangeParam]
-CALL_TYPE = TypeVar("CALL_TYPE")
 
 
 class EpiDataResponse(TypedDict):
@@ -54,7 +44,7 @@ def format_date(d: EpiDateLike) -> str:
         return d.strftime("%Y%m%d")
     if isinstance(d, Week):
         # YYYYww
-        return cast(str, d.cdcformat())
+        return d.cdcformat()
     return str(d)
 
 
@@ -145,126 +135,6 @@ CastPostFilter = tuple[
 ]
 
 
-class AEpiDataCall:
-    """base epidata call class"""
-
-    _base_url: Final[str]
-    _endpoint: Final[str]
-    _params: Final[Mapping[str, EpiRangeParam | None]]
-    _api_version: Final[ApiVersion]
-    _post_filter: Final[CastPostFilter | None]
-    meta: Final[Sequence[EpidataFieldInfo]]
-    meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
-    only_supports_classic: Final[bool]
-    use_cache: Final[bool]
-
-    def __init__(
-        self,
-        base_url: str,
-        endpoint: str,
-        params: Mapping[str, EpiRangeParam | None],
-        meta: Sequence[EpidataFieldInfo] | None = None,
-        only_supports_classic: bool = False,
-        use_cache: bool | None = None,
-        cache_max_age_days: int | None = None,
-        api_version: ApiVersion = "classic",
-        post_filter: CastPostFilter | None = None,
-    ) -> None:
-        self._base_url = base_url
-        self._endpoint = endpoint
-        self._params = params
-        self._api_version = api_version
-        self._post_filter = post_filter
-        self.only_supports_classic = only_supports_classic
-        self.meta = meta or []
-        self.meta_by_name = {k.name: k for k in self.meta}
-        # Set the use_cache value from the constructor if present.
-        # Otherwise check the USE_EPIDATPY_CACHE variable, accepting various "truthy" values.
-        self.use_cache = (
-            use_cache
-            if use_cache is not None
-            else (environ.get("USE_EPIDATPY_CACHE", "").lower() in ["true", "t", "1"])
-        )
-        # Set cache_max_age_days from the constructor, fall back to environment variable.
-        if cache_max_age_days:
-            self.cache_max_age_days = cache_max_age_days
-        else:
-            env_days = environ.get("EPIDATPY_CACHE_MAX_AGE_DAYS", "7")
-            if env_days.isdigit():
-                self.cache_max_age_days = int(env_days)
-            else:  # handle string / negative / invalid enviromment variable
-                self.cache_max_age_days = 7
-
-    def _verify_parameters(self) -> None:
-        # hook for verifying parameters before sending
-        pass
-
-    def _formatted_parameters(
-        self,
-        fields: Sequence[str] | None = None,
-    ) -> Mapping[str, str]:
-        """Format this call into a [URL, Params] tuple"""
-        all_params = dict(self._params)
-        if fields:
-            all_params["fields"] = fields
-        return {k: format_list(v) for k, v in all_params.items() if v is not None}
-
-    def request_arguments(
-        self,
-        fields: Sequence[str] | None = None,
-    ) -> tuple[str, Mapping[str, str]]:
-        """Format this call into a [URL, Params] tuple"""
-        formatted_params = self._formatted_parameters(fields)
-        full_url = add_endpoint_to_url(self._base_url, self._endpoint)
-        return full_url, formatted_params
-
-    def request_url(
-        self,
-        fields: Sequence[str] | None = None,
-    ) -> str:
-        """Format this call into a full HTTP request url with encoded parameters"""
-        self._verify_parameters()
-        u, p = self.request_arguments(fields)
-        query = urlencode(p)
-        if query:
-            return f"{u}?{query}"
-        return u
-
-    def __repr__(self) -> str:
-        return str(self)
-
-    def __str__(self) -> str:
-        return f"EpiDataCall(endpoint={self._endpoint}, params={self._formatted_parameters()})"
-
-    def _parse_value(
-        self,
-        key: str,
-        value: str | float | int | None,
-        disable_date_parsing: bool | None = False,
-    ) -> str | float | int | date | None:
-        meta = self.meta_by_name.get(key)
-        if not meta or value is None:
-            return value
-        if meta.type == EpidataFieldType.date_or_epiweek and not disable_date_parsing:
-            return parse_api_date_or_week(value)
-        if meta.type == EpidataFieldType.date and not disable_date_parsing:
-            return parse_api_date(value)
-        if meta.type == EpidataFieldType.epiweek and not disable_date_parsing:
-            return parse_api_week(value)
-        if meta.type == EpidataFieldType.bool:
-            return bool(value)
-        return value
-
-    def _parse_row(
-        self,
-        row: Mapping[str, str | float | int | None],
-        disable_date_parsing: bool | None = False,
-    ) -> Mapping[str, str | float | int | date | None]:
-        if not self.meta:
-            return row
-        return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
-
-
 def cast_filter(
     df: DataFrame,
     geo_values: str | Sequence[str] = "*",
@@ -310,7 +180,7 @@ def _filter_by_timeset(
         return df[(values >= lo) & (values <= hi)]
 
     if isinstance(timeset, (str, int, date, Week)):
-        wanted = [to_datetime(format_item(timeset))]
+        wanted = to_datetime([format_item(timeset)])
     else:
-        wanted = [to_datetime(format_item(v)) for v in timeset]
+        wanted = to_datetime([format_item(v) for v in timeset])
     return df[values.isin(wanted)]
