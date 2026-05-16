@@ -8,8 +8,21 @@ import os
 
 import pandas as pd
 import pytest
+from pandas import DataFrame
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+
+# Stable sort keys for snapshot comparisons. Only columns actually present in
+# the frame are used; the remaining keys preserve order when ties occur.
+_SNAPSHOT_SORT_KEYS = ["geo_value", "time_value", "version", "signal", "source"]
+
+
+def _snapshot_top10(df: DataFrame) -> str:
+    """Deterministically reduce a response frame to the first 10 rows as CSV."""
+    sort_cols = [c for c in _SNAPSHOT_SORT_KEYS if c in df.columns]
+    if sort_cols:
+        df = df.sort_values(sort_cols, kind="stable").reset_index(drop=True)
+    return df.head(10).to_csv(index=False)
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
 
@@ -47,17 +60,19 @@ class TestCastEndpoints:
             assert len(source_meta.get("geo_types", [])) > 0
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
-    def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
+    def test_epidata_snapshot(self, source: str, signal: str, geo_type: str, snapshot) -> None:
         df = EpiDataContext().epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
         assert str(df["time_value"].dtype).startswith("datetime64")
         assert str(df["version"].dtype).startswith("datetime64")
+        assert _snapshot_top10(df) == snapshot
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
-    def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
+    def test_epidata_archive(self, source: str, signal: str, geo_type: str, snapshot) -> None:
         df = EpiDataContext().epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
         assert str(df["version"].dtype).startswith("datetime64")
+        assert _snapshot_top10(df) == snapshot
 
     def test_epidata_router_dispatch(self) -> None:
         # `version` set -> archive path; verify a version column comes back.
