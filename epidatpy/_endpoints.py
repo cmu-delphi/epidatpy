@@ -1,5 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
+from datetime import date
 from typing import (
     Generic,
     Literal,
@@ -14,6 +15,8 @@ from epiweeks import Week
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
     CALL_TYPE,
+    ApiVersion,
+    CastPostFilter,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRange,
@@ -23,7 +26,7 @@ from ._model import (
     ParamType,
     StringParam,
 )
-from ._parse import parse_user_date_or_week
+from ._parse import parse_api_date, parse_user_date_or_week, validate_version_query
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -45,6 +48,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         params: Mapping[str, Optional[ParamType]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
+        api_version: ApiVersion = "classic",
+        post_filter: Optional[CastPostFilter] = None,
     ) -> CALL_TYPE:
         raise NotImplementedError()
 
@@ -1521,3 +1526,136 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 EpidataFieldInfo("value", EpidataFieldType.float),
             ],
         )
+
+    def epidata_snapshot(
+        self,
+        source: str,
+        signals: StringParam,
+        geo_type: str,
+        geo_values: StringParam = "*",
+        time_values: EpiRangeParam = "*",
+        fill_method: Optional[str] = None,
+        as_of: Union[str, date, None] = None,
+    ) -> CALL_TYPE:
+        """Fetch a snapshot of CAST-API signals as they appeared at `as_of`.
+
+        `as_of=None` returns the latest available version. `geo_values` and
+        `time_values` are filtered locally after the API call.
+        """
+        if as_of is None:
+            snapshot_date: Optional[str] = None
+        elif isinstance(as_of, date):
+            snapshot_date = as_of.strftime("%Y-%m-%d")
+        else:
+            parsed = parse_api_date(as_of)
+            if parsed is None:
+                raise InvalidArgumentException(f"Invalid `as_of` value: {as_of!r}")
+            snapshot_date = parsed.strftime("%Y-%m-%d")
+        signal_str = signals if isinstance(signals, str) else ",".join(signals)
+
+        return self._create_call(
+            "snapshot/",
+            {
+                "source": source,
+                "signal": signal_str,
+                "geo_type": geo_type,
+                "fill_method": fill_method,
+                "snapshot_date": snapshot_date,
+            },
+            _cast_signal_fields(),
+            api_version="cast",
+            post_filter=(geo_values, time_values, None),
+        )
+
+    def epidata_archive(
+        self,
+        source: str,
+        signals: StringParam,
+        geo_type: str,
+        geo_values: StringParam = "*",
+        time_values: EpiRangeParam = "*",
+        fill_method: Optional[str] = None,
+        version: Union[str, date, EpiRange, None] = "*",
+    ) -> CALL_TYPE:
+        """Fetch the full version history of CAST-API signals.
+
+        `version` accepts an exact date, an operator-prefixed string
+        (e.g. ``"<2025-10-16"``), or an :class:`EpiRange`. ``"*"`` (default)
+        requests all versions. `geo_values`, `time_values`, and the EpiRange
+        lower bound are filtered locally after the API call.
+        """
+        version_query = validate_version_query(version)
+
+        signal_str = signals if isinstance(signals, str) else ",".join(signals)
+
+        return self._create_call(
+            "archive/",
+            {
+                "source": source,
+                "signal": signal_str,
+                "geo_type": geo_type,
+                "fill_method": fill_method,
+                "version_query": version_query,
+            },
+            _cast_signal_fields(),
+            api_version="cast",
+            post_filter=(geo_values, time_values, version if isinstance(version, EpiRange) else None),
+        )
+
+    def epidata(
+        self,
+        source: str,
+        signals: StringParam,
+        geo_type: str,
+        geo_values: StringParam = "*",
+        time_values: EpiRangeParam = "*",
+        fill_method: Optional[str] = None,
+        as_of: Union[str, date, None] = None,
+        version: Union[str, date, EpiRange, None] = None,
+    ) -> CALL_TYPE:
+        """Router for CAST-API queries.
+
+        Dispatches to :meth:`epidata_archive` when ``version`` is supplied or
+        ``as_of == "*"``; otherwise to :meth:`epidata_snapshot`. ``version`` and
+        ``as_of`` are mutually exclusive.
+        """
+        if version is not None and as_of is not None:
+            raise InvalidArgumentException("`version` and `as_of` are mutually exclusive")
+
+        if version is not None or as_of == "*":
+            return self.epidata_archive(
+                source=source,
+                signals=signals,
+                geo_type=geo_type,
+                geo_values=geo_values,
+                time_values=time_values,
+                fill_method=fill_method,
+                version=version if version is not None else "*",
+            )
+        return self.epidata_snapshot(
+            source=source,
+            signals=signals,
+            geo_type=geo_type,
+            geo_values=geo_values,
+            time_values=time_values,
+            fill_method=fill_method,
+            as_of=as_of,
+        )
+
+
+def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
+    """Fields for CAST snapshot/archive responses; extras are skipped if absent."""
+    return [
+        EpidataFieldInfo("signal", EpidataFieldType.text),
+        EpidataFieldInfo("version", EpidataFieldType.date),
+        EpidataFieldInfo("geo_type", EpidataFieldType.text),
+        EpidataFieldInfo("geo_value", EpidataFieldType.text),
+        EpidataFieldInfo("fill_method", EpidataFieldType.text),
+        EpidataFieldInfo("time_value", EpidataFieldType.date),
+        EpidataFieldInfo("value", EpidataFieldType.float),
+        # Source-specific extras (skipped per-response if not present):
+        EpidataFieldInfo("age_group", EpidataFieldType.text),  # pophive
+        EpidataFieldInfo("nwss_source", EpidataFieldType.text),  # nwss
+        EpidataFieldInfo("sample_index", EpidataFieldType.text),  # nwss
+        EpidataFieldInfo("pcr_target", EpidataFieldType.text),  # nwss
+    ]

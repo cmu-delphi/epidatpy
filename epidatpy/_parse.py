@@ -1,7 +1,10 @@
 from datetime import date, datetime
-from typing import Callable, Literal, Optional, Sequence, Set, Union
+from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Set, Union
 
 from epiweeks import Week
+
+if TYPE_CHECKING:
+    from ._model import EpiRange
 
 
 def parse_api_date(value: Union[str, int, float, None]) -> Optional[date]:
@@ -69,6 +72,38 @@ def parse_user_date_or_week(
             return datetime.strptime(value, "%Y-%m-%d").date()
 
     raise ValueError(f"Cannot parse date or week from {value}")
+
+
+def validate_version_query(version: Union[str, int, date, Week, "EpiRange", None]) -> Optional[str]:
+    """Format the `version` argument for the CAST API `version_query` parameter.
+
+    Accepts an exact date, an operator-prefixed string (e.g. ``"<2025-10-16"``),
+    or an :class:`EpiRange` (upper bound becomes ``"<to"``; the lower bound is
+    filtered locally). Returns ``None`` for ``None`` / ``"*"``.
+    """
+    from ._model import EpiRange  # avoid circular import
+
+    if version is None or version == "*":
+        return None
+
+    operator = "="
+    raw: Union[str, int, date, Week]
+    if isinstance(version, str) and version[:1] in ("<", ">", "="):
+        operator = version[0]
+        raw = version[1:]
+    elif isinstance(version, EpiRange):
+        operator = "<"
+        raw = version.end
+    else:
+        raw = version
+
+    parsed = parse_api_date(raw) if not isinstance(raw, date) else raw
+    if parsed is None:
+        raise ValueError(
+            "Invalid `version` format. Must be a single date, an `EpiRange`, "
+            "or a string with an operator (e.g., '<2025-10-16')."
+        )
+    return f"{operator}{parsed.strftime('%Y-%m-%d')}"
 
 
 def fields_to_predicate(

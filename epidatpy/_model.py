@@ -3,6 +3,8 @@ from datetime import date
 from enum import Enum
 from os import environ
 from typing import (
+    TYPE_CHECKING,
+    Callable,
     Final,
     List,
     Literal,
@@ -15,6 +17,9 @@ from typing import (
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 from urllib.parse import urlencode
 
 from epiweeks import Week
@@ -133,12 +138,24 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
     return url
 
 
+ApiVersion = Literal["classic", "cast"]
+
+# (geo_values, time_values, version) — passed straight to cast_filter.
+CastPostFilter = Tuple[
+    Union[str, Sequence[str]],
+    Union[str, "EpiRangeParam"],
+    Union[str, "EpiRange", None],
+]
+
+
 class AEpiDataCall:
     """base epidata call class"""
 
     _base_url: Final[str]
     _endpoint: Final[str]
     _params: Final[Mapping[str, Optional[EpiRangeParam]]]
+    _api_version: Final[ApiVersion]
+    _post_filter: Final[Optional[CastPostFilter]]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
     only_supports_classic: Final[bool]
@@ -153,10 +170,14 @@ class AEpiDataCall:
         only_supports_classic: bool = False,
         use_cache: Optional[bool] = None,
         cache_max_age_days: Optional[int] = None,
+        api_version: ApiVersion = "classic",
+        post_filter: Optional[CastPostFilter] = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
+        self._api_version = api_version
+        self._post_filter = post_filter
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
         self.meta_by_name = {k.name: k for k in self.meta}
@@ -245,3 +266,54 @@ class AEpiDataCall:
         if not self.meta:
             return row
         return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
+
+
+def cast_filter(
+    df: "DataFrame",
+    geo_values: Union[str, Sequence[str]] = "*",
+    time_values: Union[str, EpiRangeParam] = "*",
+    version: Union[str, "EpiRange", None] = None,
+) -> "DataFrame":
+    """Local post-filter for CAST-API responses.
+
+    The CAST endpoints return data that's only weakly filtered server-side.
+    Apply geo, time, and EpiRange version-lower-bound filters locally.
+    """
+    from pandas import to_datetime
+
+    if not hasattr(df, "columns"):
+        return df
+
+    if geo_values != "*" and "geo_value" in df.columns:
+        if isinstance(geo_values, str):
+            wanted = [g.strip().lower() for g in geo_values.split(",")]
+        else:
+            wanted = [str(g).strip().lower() for g in geo_values]
+        df = df[df["geo_value"].str.lower().isin(wanted)]
+
+    if time_values != "*" and "time_value" in df.columns:
+        df = _filter_by_timeset(df, "time_value", time_values, to_datetime)
+
+    if isinstance(version, EpiRange) and "version" in df.columns:
+        df = _filter_by_timeset(df, "version", version, to_datetime)
+
+    return df
+
+
+def _filter_by_timeset(
+    df: "DataFrame",
+    column: str,
+    timeset: Union[str, EpiRangeParam, "EpiRange"],
+    to_datetime: "Callable",
+) -> "DataFrame":
+    values = df[column]
+    if isinstance(timeset, EpiRange):
+        lo = to_datetime(format_date(timeset.start))
+        hi = to_datetime(format_date(timeset.end))
+        return df[(values >= lo) & (values <= hi)]
+
+    if isinstance(timeset, (str, int, date, Week)):
+        wanted = [to_datetime(format_item(timeset))]
+    else:
+        wanted = [to_datetime(format_item(v)) for v in timeset]
+    return df[values.isin(wanted)]

@@ -1,4 +1,5 @@
 import inspect
+from io import StringIO
 from os import environ
 from typing import (
     Any,
@@ -14,23 +15,26 @@ from typing import (
 
 from appdirs import user_cache_dir
 from diskcache import Cache
-from pandas import CategoricalDtype, DataFrame, Series, to_datetime
+from pandas import CategoricalDtype, DataFrame, Series, read_csv, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
 from ._auth import _get_api_key
-from ._constants import BASE_URL, HTTP_HEADERS
+from ._constants import BASE_URL, CAST_BASE_URL, HTTP_HEADERS
 from ._covidcast import CovidcastDataSources, define_covidcast_fields
 from ._endpoints import AEpiDataEndpoints
 from ._model import (
     AEpiDataCall,
+    ApiVersion,
+    CastPostFilter,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiDataResponse,
     EpiRangeParam,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
+    cast_filter,
 )
 from ._parse import fields_to_predicate
 
@@ -51,14 +55,22 @@ def _request_with_retry(
     params: Mapping[str, str],
     session: Optional[Session] = None,
     stream: bool = False,
+    api_version: ApiVersion = "classic",
 ) -> Response:
     """Make request with a retry if an exception is thrown."""
-    basic_auth = HTTPBasicAuth("epidata", _get_api_key())
+    key = _get_api_key()
+    if api_version == "cast":
+        # CAST API uses a token header instead of HTTP basic auth.
+        headers = {**HTTP_HEADERS, "token": key} if key else HTTP_HEADERS
+        auth = None
+    else:
+        headers = HTTP_HEADERS
+        auth = HTTPBasicAuth("epidata", key)
 
     def call_impl(s: Session) -> Response:
-        res = s.get(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
+        res = s.get(url, params=params, headers=headers, stream=stream, auth=auth)
         if res.status_code == 414:
-            return s.post(url, params=params, headers=HTTP_HEADERS, stream=stream, auth=basic_auth)
+            return s.post(url, params=params, headers=headers, stream=stream, auth=auth)
         return res
 
     if session:
@@ -83,26 +95,55 @@ class EpiDataCall(AEpiDataCall):
         only_supports_classic: bool = False,
         use_cache: Optional[bool] = None,
         cache_max_age_days: Optional[int] = None,
+        api_version: ApiVersion = "classic",
+        post_filter: Optional[CastPostFilter] = None,
     ) -> None:
-        super().__init__(base_url, endpoint, params, meta, only_supports_classic, use_cache, cache_max_age_days)
+        super().__init__(
+            base_url,
+            endpoint,
+            params,
+            meta,
+            only_supports_classic,
+            use_cache,
+            cache_max_age_days,
+            api_version=api_version,
+            post_filter=post_filter,
+        )
         self._session = session
 
     def with_base_url(self, base_url: str) -> "EpiDataCall":
-        return EpiDataCall(base_url, self._session, self._endpoint, self._params)
+        return EpiDataCall(
+            base_url,
+            self._session,
+            self._endpoint,
+            self._params,
+            api_version=self._api_version,
+            post_filter=self._post_filter,
+        )
 
     def with_session(self, session: Session) -> "EpiDataCall":
-        return EpiDataCall(self._base_url, session, self._endpoint, self._params)
+        return EpiDataCall(
+            self._base_url,
+            session,
+            self._endpoint,
+            self._params,
+            api_version=self._api_version,
+            post_filter=self._post_filter,
+        )
 
     def _call(
         self,
         fields: Optional[Sequence[str]] = None,
         stream: bool = False,
+        extra_params: Optional[Mapping[str, str]] = None,
     ) -> Response:
         url, params = self.request_arguments(fields)
-        return _request_with_retry(url, params, self._session, stream)
+        if extra_params:
+            params = {**params, **extra_params}
+        return _request_with_retry(url, params, self._session, stream, api_version=self._api_version)
 
     def _get_cache_key(self, method: str) -> str:
-        cache_key = f"{self._endpoint} | {method}"
+        cache_key = f"{self._endpoint} | {self._api_version} | {method}"
         if self._params:
             cache_key += f" | {str(dict(sorted(self._params.items())))}"
         return cache_key
@@ -166,16 +207,32 @@ class EpiDataCall(AEpiDataCall):
                 if cache_key in cache:
                     return cast(DataFrame, cache[cache_key])
 
-        json = self.classic(fields, disable_type_parsing=True)
-        rows = json.get("epidata", [])
         pred = fields_to_predicate(fields)
         columns: List[str] = [info.name for info in self.meta if pred(info.name)]
-        df = DataFrame(rows, columns=columns or None)
+        if self._api_version == "cast":
+            # CAST endpoints only speak CSV.
+            response = self._call(fields, extra_params={"format": "csv"})
+            response.raise_for_status()
+            body = response.text
+            if body.strip():
+                df = read_csv(StringIO(body), dtype=str)
+                # Keep only fields in meta that exist in the response, in meta order.
+                cols_in_df = [c for c in columns if c in df.columns]
+                df = df[cols_in_df] if cols_in_df else df
+            else:
+                df = DataFrame(columns=columns or None)
+        else:
+            json = self.classic(fields, disable_type_parsing=True)
+            rows = json.get("epidata", [])
+            df = DataFrame(rows, columns=columns or None)
 
         data_types: Dict[str, Any] = {}
         time_fields: List[EpidataFieldInfo] = []
         for info in self.meta:
             if not pred(info.name):
+                continue
+            if info.name not in df.columns:
+                # CAST responses may omit source-specific columns; skip them.
                 continue
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
@@ -203,17 +260,28 @@ class EpiDataCall(AEpiDataCall):
             for info in time_fields:
                 if info.type == EpidataFieldType.epiweek:
                     continue
-                # Try two date foramts, otherwise keep as string. The try except
-                # is needed because the time field might be date_or_epiweek.
-                try:
-                    df[info.name] = to_datetime(df[info.name], format="%Y-%m-%d")
-                    continue
-                except ValueError:
-                    pass
-                try:
-                    df[info.name] = to_datetime(df[info.name], format="%Y%m%d")
-                except ValueError:
-                    pass
+                # Try known date formats in priority order; keep as string if all
+                # fail. The try/except is needed because the time field might be
+                # date_or_epiweek, and the CAST CSV path returns timestamps
+                # (e.g. "2024-04-18 00:00:00").
+                parsed = False
+                for fmt in ("%Y-%m-%d", "%Y%m%d", "%Y-%m-%d %H:%M:%S"):
+                    try:
+                        df[info.name] = to_datetime(df[info.name], format=fmt)
+                        parsed = True
+                        break
+                    except ValueError:
+                        continue
+                if not parsed:
+                    # Last resort: let pandas infer (slower but flexible).
+                    try:
+                        df[info.name] = to_datetime(df[info.name])
+                    except (ValueError, TypeError):
+                        pass
+
+        if self._post_filter is not None:
+            geo_values, time_values, version = self._post_filter
+            df = cast_filter(df, geo_values=geo_values, time_values=time_values, version=version)
 
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:
@@ -227,6 +295,7 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
     """sync epidata call class"""
 
     _base_url: Final[str]
+    _cast_base_url: Final[str]
     _session: Final[Optional[Session]]
 
     def __init__(
@@ -235,18 +304,20 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
         session: Optional[Session] = None,
         use_cache: Optional[bool] = None,
         cache_max_age_days: Optional[int] = None,
+        cast_base_url: str = CAST_BASE_URL,
     ) -> None:
         super().__init__()
         self._base_url = base_url
+        self._cast_base_url = cast_base_url
         self._session = session
         self.use_cache = use_cache
         self.cache_max_age_days = cache_max_age_days
 
     def with_base_url(self, base_url: str) -> "EpiDataContext":
-        return EpiDataContext(base_url, self._session)
+        return EpiDataContext(base_url, self._session, cast_base_url=self._cast_base_url)
 
     def with_session(self, session: Session) -> "EpiDataContext":
-        return EpiDataContext(self._base_url, session)
+        return EpiDataContext(self._base_url, session, cast_base_url=self._cast_base_url)
 
     def _create_call(
         self,
@@ -254,9 +325,12 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
         params: Mapping[str, Optional[EpiRangeParam]],
         meta: Optional[Sequence[EpidataFieldInfo]] = None,
         only_supports_classic: bool = False,
+        api_version: ApiVersion = "classic",
+        post_filter: Optional[CastPostFilter] = None,
     ) -> EpiDataCall:
+        base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
-            self._base_url,
+            base_url,
             self._session,
             endpoint,
             params,
@@ -264,7 +338,25 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
             only_supports_classic,
             self.use_cache,
             self.cache_max_age_days,
+            api_version=api_version,
+            post_filter=post_filter,
         )
+
+    def epidata_meta(self, source: str) -> Any:
+        """Fetch source-level metadata from the CAST API.
+
+        Returns the parsed JSON (a list of signal/geo descriptors) for `source`.
+        """
+        url = add_endpoint_to_url(self._cast_base_url, "metadata/")
+        response = _request_with_retry(
+            url,
+            {"source": source},
+            self._session,
+            stream=False,
+            api_version="cast",
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def CovidcastEpidata(

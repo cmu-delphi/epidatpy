@@ -104,7 +104,9 @@ class TestEpidataCalls:
         assert str(data["signal"].dtype) == "string"
         assert str(data["time_type"].dtype) == "category"
         assert str(data["min_time"].dtype) == "string"
-        assert str(data["max_time"].dtype) == "string"
+        # TODO: brittle — server happens to return parseable dates here. Make
+        # date-field parsing strict in df() so this is implied by field type.
+        assert str(data["max_time"].dtype) == "datetime64[ns]"
         assert str(data["num_locations"].dtype) == "Int64"
         assert str(data["min_value"].dtype) == "Float64"
         assert str(data["max_value"].dtype) == "Float64"
@@ -199,7 +201,9 @@ class TestEpidataCalls:
         assert len(data) > 0
         assert str(data["release_date"].dtype) == "string"
         assert str(data["location"].dtype) == "string"
-        assert str(data["issue"].dtype) == "string"
+        # TODO: same brittleness as test_pub_covidcast_meta — server returns
+        # parseable dates here.
+        assert str(data["issue"].dtype) == "datetime64[ns]"
         assert str(data["epiweek"].dtype) == "string"
         assert str(data["lag"].dtype) == "Int64"
         assert str(data["rate_age_0"].dtype) == "Float64"
@@ -232,7 +236,8 @@ class TestEpidataCalls:
 
         assert len(data) > 0
         assert str(data["latest_update"].dtype) == "datetime64[ns]"
-        assert str(data["latest_issue"].dtype) == "string"
+        # TODO: same brittleness as test_pub_covidcast_meta.
+        assert str(data["latest_issue"].dtype) == "datetime64[ns]"
         assert str(data["table_rows"].dtype) == "Int64"
 
     def test_pub_fluview(self) -> None:

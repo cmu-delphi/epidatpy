@@ -21,6 +21,13 @@ format:
 test:
 	$(PY) pytest .
 
+# Live network tests gated on DELPHI_EPIDATA_KEY (skipped when unset).
+test_live:
+	$(PY) pytest tests/test_epidata_calls.py tests/test_cast_endpoints.py
+
+test_live_cast:
+	$(PY) pytest tests/test_cast_endpoints.py
+
 doc:
 	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)
 	$(PY) sphinx-build -b html docs docs/_build
