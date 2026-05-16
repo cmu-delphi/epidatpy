@@ -1,15 +1,12 @@
+from __future__ import annotations
+
 import inspect
+from collections.abc import Mapping, Sequence
 from io import StringIO
 from os import environ
 from typing import (
     Any,
-    Dict,
     Final,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
     cast,
 )
 
@@ -53,7 +50,7 @@ if environ.get("USE_EPIDATPY_CACHE", None):
 def _request_with_retry(
     url: str,
     params: Mapping[str, str],
-    session: Optional[Session] = None,
+    session: Session | None = None,
     stream: bool = False,
     api_version: ApiVersion = "classic",
 ) -> Response:
@@ -83,20 +80,20 @@ def _request_with_retry(
 class EpiDataCall(AEpiDataCall):
     """epidata call representation"""
 
-    _session: Final[Optional[Session]]
+    _session: Final[Session | None]
 
     def __init__(
         self,
         base_url: str,
-        session: Optional[Session],
+        session: Session | None,
         endpoint: str,
-        params: Mapping[str, Optional[EpiRangeParam]],
-        meta: Optional[Sequence[EpidataFieldInfo]] = None,
+        params: Mapping[str, EpiRangeParam | None],
+        meta: Sequence[EpidataFieldInfo] | None = None,
         only_supports_classic: bool = False,
-        use_cache: Optional[bool] = None,
-        cache_max_age_days: Optional[int] = None,
+        use_cache: bool | None = None,
+        cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
-        post_filter: Optional[CastPostFilter] = None,
+        post_filter: CastPostFilter | None = None,
     ) -> None:
         super().__init__(
             base_url,
@@ -111,7 +108,7 @@ class EpiDataCall(AEpiDataCall):
         )
         self._session = session
 
-    def with_base_url(self, base_url: str) -> "EpiDataCall":
+    def with_base_url(self, base_url: str) -> EpiDataCall:
         return EpiDataCall(
             base_url,
             self._session,
@@ -121,7 +118,7 @@ class EpiDataCall(AEpiDataCall):
             post_filter=self._post_filter,
         )
 
-    def with_session(self, session: Session) -> "EpiDataCall":
+    def with_session(self, session: Session) -> EpiDataCall:
         return EpiDataCall(
             self._base_url,
             session,
@@ -133,9 +130,9 @@ class EpiDataCall(AEpiDataCall):
 
     def _call(
         self,
-        fields: Optional[Sequence[str]] = None,
+        fields: Sequence[str] | None = None,
         stream: bool = False,
-        extra_params: Optional[Mapping[str, str]] = None,
+        extra_params: Mapping[str, str] | None = None,
     ) -> Response:
         url, params = self.request_arguments(fields)
         if extra_params:
@@ -150,9 +147,9 @@ class EpiDataCall(AEpiDataCall):
 
     def classic(
         self,
-        fields: Optional[Sequence[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
-        disable_type_parsing: Optional[bool] = False,
+        fields: Sequence[str] | None = None,
+        disable_date_parsing: bool | None = False,
+        disable_type_parsing: bool | None = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
         self._verify_parameters()
@@ -179,9 +176,9 @@ class EpiDataCall(AEpiDataCall):
 
     def __call__(
         self,
-        fields: Optional[Sequence[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Union[EpiDataResponse, DataFrame]:
+        fields: Sequence[str] | None = None,
+        disable_date_parsing: bool | None = False,
+    ) -> EpiDataResponse | DataFrame:
         """Request and parse epidata in df message format."""
         if self.only_supports_classic:
             return self.classic(
@@ -193,8 +190,8 @@ class EpiDataCall(AEpiDataCall):
 
     def df(
         self,
-        fields: Optional[Sequence[str]] = None,
-        disable_date_parsing: Optional[bool] = False,
+        fields: Sequence[str] | None = None,
+        disable_date_parsing: bool | None = False,
     ) -> DataFrame:
         """Request and parse epidata as a pandas data frame"""
         if self.only_supports_classic:
@@ -208,7 +205,7 @@ class EpiDataCall(AEpiDataCall):
                     return cast(DataFrame, cache[cache_key])
 
         pred = fields_to_predicate(fields)
-        columns: List[str] = [info.name for info in self.meta if pred(info.name)]
+        columns: list[str] = [info.name for info in self.meta if pred(info.name)]
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
             response = self._call(fields, extra_params={"format": "csv"})
@@ -226,8 +223,8 @@ class EpiDataCall(AEpiDataCall):
             rows = json.get("epidata", [])
             df = DataFrame(rows, columns=columns or None)
 
-        data_types: Dict[str, Any] = {}
-        time_fields: List[EpidataFieldInfo] = []
+        data_types: dict[str, Any] = {}
+        time_fields: list[EpidataFieldInfo] = []
         for info in self.meta:
             if not pred(info.name):
                 continue
@@ -296,14 +293,14 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
 
     _base_url: Final[str]
     _cast_base_url: Final[str]
-    _session: Final[Optional[Session]]
+    _session: Final[Session | None]
 
     def __init__(
         self,
         base_url: str = BASE_URL,
-        session: Optional[Session] = None,
-        use_cache: Optional[bool] = None,
-        cache_max_age_days: Optional[int] = None,
+        session: Session | None = None,
+        use_cache: bool | None = None,
+        cache_max_age_days: int | None = None,
         cast_base_url: str = CAST_BASE_URL,
     ) -> None:
         super().__init__()
@@ -313,20 +310,20 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
         self.use_cache = use_cache
         self.cache_max_age_days = cache_max_age_days
 
-    def with_base_url(self, base_url: str) -> "EpiDataContext":
+    def with_base_url(self, base_url: str) -> EpiDataContext:
         return EpiDataContext(base_url, self._session, cast_base_url=self._cast_base_url)
 
-    def with_session(self, session: Session) -> "EpiDataContext":
+    def with_session(self, session: Session) -> EpiDataContext:
         return EpiDataContext(self._base_url, session, cast_base_url=self._cast_base_url)
 
     def _create_call(
         self,
         endpoint: str,
-        params: Mapping[str, Optional[EpiRangeParam]],
-        meta: Optional[Sequence[EpidataFieldInfo]] = None,
+        params: Mapping[str, EpiRangeParam | None],
+        meta: Sequence[EpidataFieldInfo] | None = None,
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
-        post_filter: Optional[CastPostFilter] = None,
+        post_filter: CastPostFilter | None = None,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -361,9 +358,9 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
 
 def CovidcastEpidata(
     base_url: str = BASE_URL,
-    session: Optional[Session] = None,
-    use_cache: Optional[bool] = None,
-    cache_max_age_days: Optional[int] = None,
+    session: Session | None = None,
+    use_cache: bool | None = None,
+    cache_max_age_days: int | None = None,
 ) -> CovidcastDataSources[EpiDataCall]:
     url = add_endpoint_to_url(base_url, "covidcast/meta")
     meta_data_res = _request_with_retry(url, {}, session, False)
@@ -371,7 +368,7 @@ def CovidcastEpidata(
     meta_data = meta_data_res.json()
 
     def create_call(
-        params: Mapping[str, Optional[EpiRangeParam]],
+        params: Mapping[str, EpiRangeParam | None],
     ) -> EpiDataCall:
         return EpiDataCall(
             base_url,

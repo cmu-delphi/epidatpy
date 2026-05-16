@@ -1,5 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Callable, Literal, Optional, Sequence, Set, Union
+from typing import TYPE_CHECKING, Literal
 
 from epiweeks import Week
 
@@ -7,7 +10,7 @@ if TYPE_CHECKING:
     from ._model import EpiRange
 
 
-def parse_api_date(value: Union[str, int, float, None]) -> Optional[date]:
+def parse_api_date(value: str | int | float | None) -> date | None:
     if value is None:
         return value
     v = str(value)
@@ -18,13 +21,13 @@ def parse_api_date(value: Union[str, int, float, None]) -> Optional[date]:
     return d
 
 
-def parse_api_week(value: Union[str, int, float, None]) -> Optional[date]:
+def parse_api_week(value: str | int | float | None) -> date | None:
     if value is None:
         return None
     return Week.fromstring(str(value)).startdate()
 
 
-def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date]:
+def parse_api_date_or_week(value: str | int | float | None) -> date | None:
     if value is None:
         return None
     v = str(value)
@@ -38,8 +41,8 @@ def parse_api_date_or_week(value: Union[str, int, float, None]) -> Optional[date
 
 
 def parse_user_date_or_week(
-    value: Union[str, int, date, Week], out_type: Literal["day", "week", None] = None
-) -> Union[date, Week]:
+    value: str | int | date | Week, out_type: Literal["day", "week", None] = None
+) -> date | Week:
     if isinstance(value, Week):
         if out_type == "day":
             return value.startdate()
@@ -74,7 +77,7 @@ def parse_user_date_or_week(
     raise ValueError(f"Cannot parse date or week from {value}")
 
 
-def validate_version_query(version: Union[str, int, date, Week, "EpiRange", None]) -> Optional[str]:
+def validate_version_query(version: str | int | date | Week | EpiRange | None) -> str | None:
     """Format the `version` argument for the CAST API `version_query` parameter.
 
     Accepts an exact date, an operator-prefixed string (e.g. ``"<2025-10-16"``),
@@ -87,7 +90,7 @@ def validate_version_query(version: Union[str, int, date, Week, "EpiRange", None
         return None
 
     operator = "="
-    raw: Union[str, int, date, Week]
+    raw: str | int | date | Week
     if isinstance(version, str) and version[:1] in ("<", ">", "="):
         operator = version[0]
         raw = version[1:]
@@ -107,15 +110,15 @@ def validate_version_query(version: Union[str, int, date, Week, "EpiRange", None
 
 
 def fields_to_predicate(
-    fields: Optional[Sequence[str]] = None,
+    fields: Sequence[str] | None = None,
 ) -> Callable[[str], bool]:
     if not fields:
         return lambda _: True
-    to_include: Set[str] = set()
-    to_exclude: Set[str] = set()
+    to_include: set[str] = set()
+    to_exclude: set[str] = set()
     for f in fields:
         if f.startswith("-"):
             to_exclude.add(f[1:])
         else:
             to_include.add(f)
-    return lambda f: (f not in to_exclude and (not to_include or f in to_include))
+    return lambda f: f not in to_exclude and (not to_include or f in to_include)

@@ -1,13 +1,12 @@
+from __future__ import annotations
+
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import (
     Generic,
     Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
 )
 
 from epiweeks import Week
@@ -45,11 +44,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
     def _create_call(
         self,
         endpoint: str,
-        params: Mapping[str, Optional[ParamType]],
-        meta: Optional[Sequence[EpidataFieldInfo]] = None,
+        params: Mapping[str, ParamType | None],
+        meta: Sequence[EpidataFieldInfo] | None = None,
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
-        post_filter: Optional[CastPostFilter] = None,
+        post_filter: CastPostFilter | None = None,
     ) -> CALL_TYPE:
         raise NotImplementedError()
 
@@ -98,11 +97,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
     def pub_covid_hosp_facility_lookup(
         self,
-        state: Optional[str] = None,
-        ccn: Optional[str] = None,
-        city: Optional[str] = None,
-        zip: Optional[str] = None,  # pylint: disable=redefined-builtin
-        fips_code: Optional[str] = None,
+        state: str | None = None,
+        ccn: str | None = None,
+        city: str | None = None,
+        zip: str | None = None,  # pylint: disable=redefined-builtin
+        fips_code: str | None = None,
     ) -> CALL_TYPE:
         """Helper for finding COVID hospitalization facilities.
 
@@ -158,7 +157,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         hospital_pks: StringParam,
         collection_weeks: EpiRangeParam = "*",
-        publication_dates: Optional[EpiRangeParam] = None,
+        publication_dates: EpiRangeParam | None = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalizations by facility.
 
@@ -177,7 +176,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         hospital_pks : StringParam
             Unique identifiers for hospitals of interest. Supports a single string or a sequence of strings.
         collection_weeks : EpiRangeParam
-            Weekly data collection periods to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all 
+            Weekly data collection periods to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all
             ("*") weeks.
             Note: This parameter expects dates in YYYY-MM-DD or YYYYMMDD format.
             If provided as ``Week``, they will be converted to the starting day of the week.
@@ -329,8 +328,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         states: StringParam,
         dates: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        as_of: Union[None, int, str] = None,
+        issues: EpiRangeParam | None = None,
+        as_of: None | int | str = None,
     ) -> CALL_TYPE:
         """Fetch COVID hospitalizations by state.
 
@@ -542,11 +541,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         signals: StringParam,
         geo_type: GeoType,
         time_type: TimeType,
-        geo_values: Union[str, Sequence[str]] = "*",
+        geo_values: str | Sequence[str] = "*",
         time_values: EpiRangeParam = "*",
-        as_of: Union[None, str, int] = None,
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        as_of: None | str | int = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch Delphi's COVID-19 Surveillance Streams.
 
@@ -609,7 +608,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             define_covidcast_fields(),
         )
 
-    def pub_delphi(self, system: str, epiweek: Union[int, str]) -> CALL_TYPE:
+    def pub_delphi(self, system: str, epiweek: int | str) -> CALL_TYPE:
         """Fetch Delphi's ILINet outpatient doctor visits forecasts.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>
@@ -618,7 +617,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         system : str
             The name of the forecast system.
-            See `Forecasting Systems 
+            See `Forecasting Systems
             <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html#forecasting-systems>`_.
         epiweek : Union[int, str]
             Epiweek to fetch. Does not support multiple dates.
@@ -644,7 +643,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             Geographic locations to return. Supports a single string or a sequence of strings.
-            See `Countries and Territories in the Americas 
+            See `Countries and Territories in the Americas
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-territories-in-the-americas>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -681,11 +680,11 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         names : StringParam
             Sensor names to fetch.
-            See `Dengue Sensors Indicators 
+            See `Dengue Sensors Indicators
             <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html#indicators>`__.
         locations : StringParam
             List of countries in the Americas to fetch.
-            See `Countries and Territories in the Americas 
+            See `Countries and Territories in the Americas
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#countries-and-teritories-in-the-americas>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -714,8 +713,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch ECDC ILI incidence (Europe).
 
@@ -728,7 +727,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of European countries to fetch.
-            See `European Countries 
+            See `European Countries
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#european-countries>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -763,8 +762,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch CDC FluSurv flu hospitalizations.
 
@@ -779,14 +778,14 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `FluSurv Locations 
+            See `FluSurv Locations
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#flusurv-locations>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates to fetch. Supports `epirange()`. 
+            Range or list of issue dates to fetch. Supports `epirange()`.
             Mutually exclusive with ``lag``.
         lag : int, optional
             Number of days between the observation and its publication.
@@ -847,8 +846,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch CDC FluView flu tests from clinical labs.
 
@@ -858,14 +857,14 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of regions to fetch.
-            See `US Regions and States 
+            See `US Regions and States
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__.
         epiweeks : EpiRangeParam, default "*"
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         issues : EpiRangeParam, optional
-            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`. 
+            Range or list of issue dates to fetch. Supports :class:`~epidatpy.EpiRange`.
             Mutually exclusive with ``lag``.
         lag : int, optional
             Number of days between the observation and its publication.
@@ -913,9 +912,9 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
-        auth: Optional[str] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
+        auth: str | None = None,
     ) -> CALL_TYPE:
         """Fetch CDC FluView ILINet outpatient doctor visits.
 
@@ -930,9 +929,9 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of regions to fetch.
-            See `US Regions and States 
+            See `US Regions and States
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-regions-and-states>`__
-            and `FluView Cities 
+            and `FluView Cities
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#fluview-cities>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -994,7 +993,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes 
+            See `Geographic Codes
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -1032,10 +1031,10 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes 
+            See `Geographic Codes
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam, default "*"
-            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks. 
+            Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         query : str, default ""
@@ -1064,8 +1063,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch KCDC ILI incidence (Korea).
 
@@ -1150,7 +1149,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of Taiwan locations to fetch.
-            See `Taiwan Locations 
+            See `Taiwan Locations
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -1173,8 +1172,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch NIDSS flu data (Taiwan).
 
@@ -1184,7 +1183,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         regions : StringParam
             List of Taiwan locations to fetch.
-            See `Taiwan Locations 
+            See `Taiwan Locations
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#nidss>`_.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -1257,7 +1256,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes 
+            See `Geographic Codes
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -1281,8 +1280,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         self,
         regions: StringParam,
         epiweeks: EpiRangeParam = "*",
-        issues: Optional[EpiRangeParam] = None,
-        lag: Optional[int] = None,
+        issues: EpiRangeParam | None = None,
+        lag: int | None = None,
     ) -> CALL_TYPE:
         """Fetch PAHO Dengue data.
 
@@ -1342,7 +1341,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             Private API key.
         locations : StringParam
             List of locations to fetch.
-            See `Geographic Codes 
+            See `Geographic Codes
             <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#us-states>`__.
         epiweeks : EpiRangeParam
             Epiweeks to fetch. Supports :class:`~epidatpy.EpiRange` and defaults to all ("*") weeks.
@@ -1471,7 +1470,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         articles: StringParam,
         time_type: Literal["day", "week"],
         time_values: EpiRangeParam = "*",
-        hours: Optional[IntParam] = None,
+        hours: IntParam | None = None,
         language: str = "en",
     ) -> CALL_TYPE:
         """Fetch Wikipedia access data.
@@ -1482,7 +1481,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         ----------
         articles : StringParam
             The Wikipedia article(s) to fetch. Supports a single string or a sequence of strings.
-            See `Available Articles 
+            See `Available Articles
             <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html#available-articles>`_.
         time_type : Literal["day", "week"]
             The temporal resolution to use ("day" or "week").
@@ -1534,8 +1533,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_type: str,
         geo_values: StringParam = "*",
         time_values: EpiRangeParam = "*",
-        fill_method: Optional[str] = None,
-        as_of: Union[str, date, None] = None,
+        fill_method: str | None = None,
+        as_of: str | date | None = None,
     ) -> CALL_TYPE:
         """Fetch a snapshot of CAST-API signals as they appeared at `as_of`.
 
@@ -1543,7 +1542,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         `time_values` are filtered locally after the API call.
         """
         if as_of is None:
-            snapshot_date: Optional[str] = None
+            snapshot_date: str | None = None
         elif isinstance(as_of, date):
             snapshot_date = as_of.strftime("%Y-%m-%d")
         else:
@@ -1574,8 +1573,8 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_type: str,
         geo_values: StringParam = "*",
         time_values: EpiRangeParam = "*",
-        fill_method: Optional[str] = None,
-        version: Union[str, date, EpiRange, None] = "*",
+        fill_method: str | None = None,
+        version: str | date | EpiRange | None = "*",
     ) -> CALL_TYPE:
         """Fetch the full version history of CAST-API signals.
 
@@ -1609,9 +1608,9 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_type: str,
         geo_values: StringParam = "*",
         time_values: EpiRangeParam = "*",
-        fill_method: Optional[str] = None,
-        as_of: Union[str, date, None] = None,
-        version: Union[str, date, EpiRange, None] = None,
+        fill_method: str | None = None,
+        as_of: str | date | None = None,
+        version: str | date | EpiRange | None = None,
     ) -> CALL_TYPE:
         """Router for CAST-API queries.
 

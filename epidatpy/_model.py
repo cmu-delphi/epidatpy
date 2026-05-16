@@ -1,17 +1,14 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 from os import environ
 from typing import (
     TYPE_CHECKING,
-    Callable,
     Final,
-    List,
     Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     TypeVar,
     Union,
@@ -48,7 +45,7 @@ class EpiDataResponse(TypedDict):
 
     result: int
     message: str
-    epidata: List
+    epidata: list
 
 
 def format_date(d: EpiDateLike) -> str:
@@ -141,7 +138,7 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
 ApiVersion = Literal["classic", "cast"]
 
 # (geo_values, time_values, version) — passed straight to cast_filter.
-CastPostFilter = Tuple[
+CastPostFilter = tuple[
     Union[str, Sequence[str]],
     Union[str, "EpiRangeParam"],
     Union[str, "EpiRange", None],
@@ -153,9 +150,9 @@ class AEpiDataCall:
 
     _base_url: Final[str]
     _endpoint: Final[str]
-    _params: Final[Mapping[str, Optional[EpiRangeParam]]]
+    _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
-    _post_filter: Final[Optional[CastPostFilter]]
+    _post_filter: Final[CastPostFilter | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
     only_supports_classic: Final[bool]
@@ -165,13 +162,13 @@ class AEpiDataCall:
         self,
         base_url: str,
         endpoint: str,
-        params: Mapping[str, Optional[EpiRangeParam]],
-        meta: Optional[Sequence[EpidataFieldInfo]] = None,
+        params: Mapping[str, EpiRangeParam | None],
+        meta: Sequence[EpidataFieldInfo] | None = None,
         only_supports_classic: bool = False,
-        use_cache: Optional[bool] = None,
-        cache_max_age_days: Optional[int] = None,
+        use_cache: bool | None = None,
+        cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
-        post_filter: Optional[CastPostFilter] = None,
+        post_filter: CastPostFilter | None = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
@@ -204,7 +201,7 @@ class AEpiDataCall:
 
     def _formatted_parameters(
         self,
-        fields: Optional[Sequence[str]] = None,
+        fields: Sequence[str] | None = None,
     ) -> Mapping[str, str]:
         """Format this call into a [URL, Params] tuple"""
         all_params = dict(self._params)
@@ -214,8 +211,8 @@ class AEpiDataCall:
 
     def request_arguments(
         self,
-        fields: Optional[Sequence[str]] = None,
-    ) -> Tuple[str, Mapping[str, str]]:
+        fields: Sequence[str] | None = None,
+    ) -> tuple[str, Mapping[str, str]]:
         """Format this call into a [URL, Params] tuple"""
         formatted_params = self._formatted_parameters(fields)
         full_url = add_endpoint_to_url(self._base_url, self._endpoint)
@@ -223,7 +220,7 @@ class AEpiDataCall:
 
     def request_url(
         self,
-        fields: Optional[Sequence[str]] = None,
+        fields: Sequence[str] | None = None,
     ) -> str:
         """Format this call into a full HTTP request url with encoded parameters"""
         self._verify_parameters()
@@ -242,9 +239,9 @@ class AEpiDataCall:
     def _parse_value(
         self,
         key: str,
-        value: Union[str, float, int, None],
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Union[str, float, int, date, None]:
+        value: str | float | int | None,
+        disable_date_parsing: bool | None = False,
+    ) -> str | float | int | date | None:
         meta = self.meta_by_name.get(key)
         if not meta or value is None:
             return value
@@ -260,20 +257,20 @@ class AEpiDataCall:
 
     def _parse_row(
         self,
-        row: Mapping[str, Union[str, float, int, None]],
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Mapping[str, Union[str, float, int, date, None]]:
+        row: Mapping[str, str | float | int | None],
+        disable_date_parsing: bool | None = False,
+    ) -> Mapping[str, str | float | int | date | None]:
         if not self.meta:
             return row
         return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
 
 
 def cast_filter(
-    df: "DataFrame",
-    geo_values: Union[str, Sequence[str]] = "*",
-    time_values: Union[str, EpiRangeParam] = "*",
-    version: Union[str, "EpiRange", None] = None,
-) -> "DataFrame":
+    df: DataFrame,
+    geo_values: str | Sequence[str] = "*",
+    time_values: str | EpiRangeParam = "*",
+    version: str | EpiRange | None = None,
+) -> DataFrame:
     """Local post-filter for CAST-API responses.
 
     The CAST endpoints return data that's only weakly filtered server-side.
@@ -301,11 +298,11 @@ def cast_filter(
 
 
 def _filter_by_timeset(
-    df: "DataFrame",
+    df: DataFrame,
     column: str,
-    timeset: Union[str, EpiRangeParam, "EpiRange"],
-    to_datetime: "Callable",
-) -> "DataFrame":
+    timeset: str | EpiRangeParam | EpiRange,
+    to_datetime: Callable,
+) -> DataFrame:
     values = df[column]
     if isinstance(timeset, EpiRange):
         lo = to_datetime(format_date(timeset.start))
