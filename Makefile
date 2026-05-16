@@ -1,33 +1,30 @@
-.PHONY = venv, lint, test, clean, release
+.PHONY = lint, test, clean, release
 
-venv:
-	python3.8 -m venv .venv
+# Runner for python tooling. Override with `make PY="poetry run" ...` etc.
+PY = uv run
 
-install: venv
-	.venv/bin/python -m pip install --upgrade pip
-	.venv/bin/pip install -e ".[dev]"
+install:
+	uv sync --extra dev
 
 lint_ruff:
-	.venv/bin/ruff check epidatpy tests
+	$(PY) ruff check epidatpy tests
 
 lint_mypy:
-	.venv/bin/mypy epidatpy tests
+	$(PY) mypy epidatpy tests
 
-lint_pylint:
-	.venv/bin/pylint epidatpy tests
-
-lint: lint_ruff lint_mypy lint_pylint
+lint: lint_ruff lint_mypy
 
 format:
-	.venv/bin/ruff format epidatpy tests
+	$(PY) ruff format epidatpy tests
+	$(PY) ruff check --fix epidatpy tests
 
 test:
-	.venv/bin/pytest .
+	$(PY) pytest .
 
 doc:
 	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)
-	.venv/bin/sphinx-build -b html docs docs/_build
-	.venv/bin/python -m webbrowser -t "docs/_build/index.html"
+	$(PY) sphinx-build -b html docs docs/_build
+	$(PY) python -m webbrowser -t "docs/_build/index.html"
 
 clean_doc:
 	rm -rf docs/_build
@@ -45,7 +42,7 @@ clean_python:
 clean: clean_doc clean_build clean_python
 
 release: clean lint test
-	.venv/bin/python -m build --sdist --wheel
+	$(PY) python -m build --sdist --wheel
 
 upload: release
-	.venv/bin/twine upload dist/*
+	$(PY) twine upload dist/*
