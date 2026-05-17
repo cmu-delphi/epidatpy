@@ -171,7 +171,7 @@ class EpiDataCall(AEpiDataCall):
                     cache_key = self._get_cache_key("classic")
                     cache.set(cache_key, r, expire=self.cache_max_age_days * 24 * 60 * 60)
             return r
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             return {"result": 0, "message": f"error: {e}", "epidata": []}
 
     def __call__(

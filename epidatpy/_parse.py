@@ -100,7 +100,13 @@ def validate_version_query(version: str | int | date | Week | EpiRange | None) -
     else:
         raw = version
 
-    parsed = parse_api_date(raw) if not isinstance(raw, date) else raw
+    parsed: date | None
+    if isinstance(raw, date):
+        parsed = raw
+    elif isinstance(raw, Week):
+        parsed = raw.startdate()
+    else:
+        parsed = parse_api_date(raw)
     if parsed is None:
         raise ValueError(
             "Invalid `version` format. Must be a single date, an `EpiRange`, "

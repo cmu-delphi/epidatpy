@@ -1,4 +1,4 @@
-.PHONY = lint, test, clean, release
+.PHONY = lint, test, ci, clean, release
 
 # Runner for python tooling. Override with `make PY="poetry run" ...` etc.
 PY = uv run
@@ -13,6 +13,8 @@ lint_mypy:
 	$(PY) mypy epidatpy tests
 
 lint: lint_ruff lint_mypy
+
+ci: lint test
 
 format:
 	$(PY) ruff format epidatpy tests

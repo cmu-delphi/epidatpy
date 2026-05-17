@@ -100,7 +100,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         state: str | None = None,
         ccn: str | None = None,
         city: str | None = None,
-        zip: str | None = None,  # pylint: disable=redefined-builtin
+        zip: str | None = None,
         fips_code: str | None = None,
     ) -> CALL_TYPE:
         """Helper for finding COVID hospitalization facilities.

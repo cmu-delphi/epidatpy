@@ -17,18 +17,7 @@ jobs:
           enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
-      - name: Install Dependencies
-        run: |
-          make install
-      - name: Check Formatting
-        run: |
-          make lint_ruff
-      - name: Check Linting
-        run: |
-          make lint_pylint
-      - name: Check Types
-        run: |
-          make lint_mypy
-      - name: Test
-        run: |
-          make test
+      - name: Install
+        run: make install
+      - name: CI
+        run: make ci
