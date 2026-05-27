@@ -77,8 +77,8 @@ def parse_user_date_or_week(
     raise ValueError(f"Cannot parse date or week from {value}")
 
 
-def validate_version_query(version: str | int | date | Week | EpiRange | None) -> str | None:
-    """Format the `version` argument for the CAST API `version_query` parameter.
+def validate_report_time_query(report_time_query: str | int | date | Week | EpiRange | None) -> str | None:
+    """Format the `report_time_query` argument for the CAST API `report_time_query` parameter.
 
     Accepts an exact date, an operator-prefixed string (e.g. ``"<2025-10-16"``),
     or an :class:`EpiRange` (upper bound becomes ``"<to"``; the lower bound is
@@ -86,19 +86,19 @@ def validate_version_query(version: str | int | date | Week | EpiRange | None) -
     """
     from ._model import EpiRange  # avoid circular import
 
-    if version is None or version == "*":
+    if report_time_query is None or report_time_query == "*":
         return None
 
     operator = "="
     raw: str | int | date | Week
-    if isinstance(version, str) and version[:1] in ("<", ">", "="):
-        operator = version[0]
-        raw = version[1:]
-    elif isinstance(version, EpiRange):
+    if isinstance(report_time_query, str) and report_time_query[:1] in ("<", ">", "="):
+        operator = report_time_query[0]
+        raw = report_time_query[1:]
+    elif isinstance(report_time_query, EpiRange):
         operator = "<"
-        raw = version.end
+        raw = report_time_query.end
     else:
-        raw = version
+        raw = report_time_query
 
     parsed: date | None
     if isinstance(raw, date):
@@ -109,7 +109,7 @@ def validate_version_query(version: str | int | date | Week | EpiRange | None) -
         parsed = parse_api_date(raw)
     if parsed is None:
         raise ValueError(
-            "Invalid `version` format. Must be a single date, an `EpiRange`, "
+            "Invalid `report_time_query` format. Must be a single date, an `EpiRange`, "
             "or a string with an operator (e.g., '<2025-10-16')."
         )
     return f"{operator}{parsed.strftime('%Y-%m-%d')}"

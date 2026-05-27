@@ -21,6 +21,7 @@ secret_sensors = os.environ.get("SECRET_API_AUTH_SENSORS", "")
 secret_twitter = os.environ.get("SECRET_API_AUTH_TWITTER", "")
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not auth, reason="DELPHI_EPIDATA_KEY not available.")
 class TestEpidataCalls:
     """Make network call tests for Epidata."""

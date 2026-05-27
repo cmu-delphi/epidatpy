@@ -40,7 +40,7 @@ epidata.pub_covidcast(
 
 The CAST API exposes versioned signals (NSSP, pophive, NWSS, ...). Use
 `epidata_snapshot` for a single as-of view, `epidata_archive` for the full
-version history, or `epidata` to dispatch between them.
+report-time history, or `epidata` to dispatch between them.
 
 ```py
 from epidatpy import EpiDataContext, EpiRange
@@ -50,34 +50,34 @@ epidata = EpiDataContext()
 # Source-level metadata (signals, geo_types, available date ranges).
 epidata.epidata_meta(source="nssp")
 
-# Latest snapshot of a signal (omit `as_of` to fetch the newest version).
+# Latest snapshot of a signal (omit `snapshot_date` to fetch the newest version).
 epidata.epidata_snapshot(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
     geo_values="ca,ny",
-    time_values=EpiRange("2025-01-01", "2025-06-01"),
+    reference_time=EpiRange("2025-01-01", "2025-06-01"),
 ).df()
 
-# Full version history, filtered to versions on or before 2025-10-16.
+# Full report-time history, filtered to report_times on or before 2025-10-16.
 epidata.epidata_archive(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
-    version="<2025-10-16",
+    report_time_query="<2025-10-16",
 ).df()
 
-# Router: pass `version` (or `as_of="*"`) for archive, `as_of` for snapshot.
+# Router: pass `report_time_query` (or `snapshot_date="*"`) for archive, `snapshot_date` for snapshot.
 epidata.epidata(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
-    version=EpiRange("2025-01-01", "2025-10-16"),
+    report_time_query=EpiRange("2025-01-01", "2025-10-16"),
 ).df()
 ```
 
-`geo_values`, `time_values`, and an `EpiRange` `version` lower bound are
-filtered locally after the request.
+`geo_values`, `reference_time`, and an `EpiRange` `report_time_query` lower
+bound are filtered locally after the request.
 
 ## Development
 

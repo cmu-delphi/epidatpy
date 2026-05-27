@@ -21,14 +21,11 @@ format:
 	$(PY) ruff check --fix epidatpy tests
 
 test:
-	$(PY) pytest .
+	$(PY) pytest -m "not live" .
 
-# Live network tests gated on DELPHI_EPIDATA_KEY (skipped when unset).
+# Live network tests gated on DELPHI_EPIDATA_KEY (skipped per-test when unset).
 test_live:
-	$(PY) pytest tests/test_epidata_calls.py tests/test_cast_endpoints.py
-
-test_live_cast:
-	$(PY) pytest tests/test_cast_endpoints.py
+	$(PY) pytest -m live .
 
 doc:
 	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)

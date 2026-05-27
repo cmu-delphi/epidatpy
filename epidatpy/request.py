@@ -277,8 +277,8 @@ class EpiDataCall(AEpiDataCall):
                         pass
 
         if self._post_filter is not None:
-            geo_values, time_values, version = self._post_filter
-            df = cast_filter(df, geo_values=geo_values, time_values=time_values, version=version)
+            geo_values, reference_time, report_time = self._post_filter
+            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
 
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:

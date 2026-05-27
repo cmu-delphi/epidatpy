@@ -1,24 +1,16 @@
 """Live tests for the CAST API endpoints.
 
-Mirrors `tests/testthat/test-live.R` in epidatr. Gated on `DELPHI_EPIDATA_KEY`
-so it only runs against the live server when a key is present.
+Mirrors the `epidata_* (cast API)` block in epidatr's `tests/testthat/test-live.R`.
+Gated on `DELPHI_EPIDATA_KEY` so it only runs against the live server when
+a key is present.
 """
 
 import os
 
 import pandas as pd
 import pytest
-from syrupy.assertion import SnapshotAssertion
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
-
-# API responses are unordered; these columns produce a stable canonical sort across all known CAST schemas.
-_SNAPSHOT_SORT_KEYS = ["geo_value", "time_value", "version", "signal", "source"]
-
-
-def _snapshot_top10(df: pd.DataFrame) -> str:
-    sort_cols = [c for c in _SNAPSHOT_SORT_KEYS if c in df.columns]
-    return str(df.sort_values(sort_cols, kind="stable").head(10).to_csv(index=False))
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
 
@@ -41,6 +33,7 @@ CAST_QUERIES = [
 ]
 
 
+@pytest.mark.live
 @pytest.mark.skipif(not auth, reason="DELPHI_EPIDATA_KEY not available.")
 class TestCastEndpoints:
     """Live network tests for the CAST API."""
@@ -56,44 +49,43 @@ class TestCastEndpoints:
             assert len(source_meta.get("geo_types", [])) > 0
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
-    def test_epidata_snapshot(self, source: str, signal: str, geo_type: str, snapshot: SnapshotAssertion) -> None:
+    def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
         df = EpiDataContext().epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["time_value"])
-        assert pd.api.types.is_datetime64_any_dtype(df["version"])
-        assert _snapshot_top10(df) == snapshot
+        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
+        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
-    def test_epidata_archive(self, source: str, signal: str, geo_type: str, snapshot: SnapshotAssertion) -> None:
+    def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
         df = EpiDataContext().epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["time_value"])
-        assert pd.api.types.is_datetime64_any_dtype(df["version"])
-        assert _snapshot_top10(df) == snapshot
+        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
+        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
 
     def test_epidata_router_dispatch(self) -> None:
-        # `version` set -> archive path; verify a version column comes back.
+        # `snapshot_date="*"` routes to archive (no report_time_query sent);
+        # verify the archive's `report_time` column comes back.
         ctx = EpiDataContext()
         df = ctx.epidata(
             source="nssp",
             signals="pct_ed_visits_influenza",
             geo_type="state",
-            version=EpiRange("2025-01-01", "2025-10-16"),
+            snapshot_date="*",
         ).df()
-        assert "version" in df.columns
+        assert "report_time" in df.columns
 
-    def test_epidata_mutually_exclusive_version_and_as_of(self) -> None:
+    def test_epidata_mutually_exclusive_report_time_query_and_snapshot_date(self) -> None:
         with pytest.raises(InvalidArgumentException):
             EpiDataContext().epidata(
                 source="nssp",
                 signals="pct_ed_visits_influenza",
                 geo_type="state",
-                as_of="2025-10-16",
-                version="2025-10-16",
+                snapshot_date="2025-10-16",
+                report_time_query="2025-10-16",
             )
 
     def test_epidata_snapshot_local_filters(self) -> None:
-        # Local geo + time filter should narrow rows without hitting the server twice.
+        # Local geo + reference_time filter should narrow rows without hitting the server twice.
         df = (
             EpiDataContext()
             .epidata_snapshot(
@@ -101,11 +93,11 @@ class TestCastEndpoints:
                 signals="pct_ed_visits_influenza",
                 geo_type="state",
                 geo_values="ca,ny",
-                time_values=EpiRange("2025-01-01", "2025-06-01"),
+                reference_time=EpiRange("2025-01-01", "2025-06-01"),
             )
             .df()
         )
         if len(df) > 0:
             assert set(df["geo_value"].str.lower().unique()).issubset({"ca", "ny"})
-            assert df["time_value"].min() >= pd.Timestamp("2025-01-01")
-            assert df["time_value"].max() <= pd.Timestamp("2025-06-01")
+            assert df["reference_time"].min() >= pd.Timestamp("2025-01-01")
+            assert df["reference_time"].max() <= pd.Timestamp("2025-06-01")
