@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from importlib.metadata import version
 
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("../epidatpy"))
@@ -19,11 +20,11 @@ sys.path.insert(0, os.path.abspath("../epidatpy"))
 # -- Project information -----------------------------------------------------
 
 project = "epidatpy"
-copyright = "2024, Delphi Research Group"  # pylint: disable=redefined-builtin
+copyright = "2024, Delphi Research Group"
 author = "Delphi Research Group"
 
 # The full version, including alpha/beta/rc tags
-release = "1.0.0"
+release = version("epidatpy")
 
 
 # -- General configuration ---------------------------------------------------

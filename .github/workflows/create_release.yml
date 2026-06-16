@@ -20,29 +20,25 @@ jobs:
         run: |
           git fetch origin dev:dev
           git reset --hard dev
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
         with:
-          python-version: 3.8
+          enable-cache: true
       - name: Change version number
         id: version
-        # See this issue for explanation and testing:
-        # https://github.com/cmu-delphi/delphi-epidata/pull/1473
         run: |
-          python -m pip install bump2version
-          if [[ ${{ github.event.inputs.versionName }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # use given version number
-            NEXT_TAG="${{ github.event.inputs.versionName }}"
-          elif [[ ${{ github.event.inputs.versionName }} =~ ^(major|minor|patch)$ ]]; then
-            # calculate new version number based on given tag
-            NEXT_TAG=$(bump2version --dry-run --list ${{ github.event.inputs.versionName }} | grep ^new_version | sed -r s,"^.*=",,)
+          INPUT="${{ github.event.inputs.versionName }}"
+          if [[ $INPUT =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # apply explicit version
+            uv version --frozen "$INPUT"
+          elif [[ $INPUT =~ ^(major|minor|patch)$ ]]; then
+            # bump current version
+            uv version --frozen --bump "$INPUT"
           else
-            echo "\nInvalid version name: ${{ github.event.inputs.versionName }}"
+            echo "Invalid version name: $INPUT"
             exit 1
           fi
-          # apply given or calculated version number
-          bump2version --new-version $NEXT_TAG _ignored_arg_
-          # save version number for later
+          NEXT_TAG=$(uv version --short)
           echo "next_tag=$NEXT_TAG" >> $GITHUB_OUTPUT
       - name: Create pull request into main
         uses: peter-evans/create-pull-request@v6

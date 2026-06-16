@@ -7,27 +7,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - name: Check out code
         uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-      - name: Install Dependencies
-        run: |
-          make install
-      - name: Check Formatting
-        run: |
-          make lint_ruff
-      - name: Check Linting
-        run: |
-          make lint_pylint
-      - name: Check Types
-        run: |
-          make lint_mypy
-      - name: Test
-        run: |
-          make test
+          enable-cache: true
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Install
+        run: make install
+      - name: CI
+        run: make ci

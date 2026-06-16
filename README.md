@@ -36,6 +36,49 @@ epidata.pub_covidcast(
 ).df()
 ```
 
+### CAST API (snapshot / archive)
+
+The CAST API exposes versioned signals (NSSP, pophive, NWSS, ...). Use
+`epidata_snapshot` for a single as-of view, `epidata_archive` for the full
+report-time history, or `epidata` to dispatch between them.
+
+```py
+from epidatpy import EpiDataContext, EpiRange
+
+epidata = EpiDataContext()
+
+# Source-level metadata (signals, geo_types, available date ranges).
+epidata.epidata_meta(source="nssp")
+
+# Latest snapshot of a signal (omit `snapshot_date` to fetch the newest version).
+epidata.epidata_snapshot(
+    source="nssp",
+    signals="pct_ed_visits_influenza",
+    geo_type="state",
+    geo_values="ca,ny",
+    reference_time=EpiRange("2025-01-01", "2025-06-01"),
+).df()
+
+# Full report-time history, filtered to report_times on or before 2025-10-16.
+epidata.epidata_archive(
+    source="nssp",
+    signals="pct_ed_visits_influenza",
+    geo_type="state",
+    report_time="<2025-10-16",
+).df()
+
+# Router: pass `report_time` (or `snapshot_date="*"`) for archive, `snapshot_date` for snapshot.
+epidata.epidata(
+    source="nssp",
+    signals="pct_ed_visits_influenza",
+    geo_type="state",
+    report_time=EpiRange("2025-01-01", "2025-10-16"),
+).df()
+```
+
+`geo_values`, `reference_time`, and an `EpiRange` `report_time` lower
+bound are filtered locally after the request.
+
 ## Development
 
 The following commands are available for developers:

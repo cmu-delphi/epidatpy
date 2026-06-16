@@ -1,20 +1,22 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 from os import environ
 from typing import (
+    TYPE_CHECKING,
     Final,
-    List,
     Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     TypeVar,
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 from urllib.parse import urlencode
 
 from epiweeks import Week
@@ -43,7 +45,7 @@ class EpiDataResponse(TypedDict):
 
     result: int
     message: str
-    epidata: List
+    epidata: list
 
 
 def format_date(d: EpiDateLike) -> str:
@@ -133,12 +135,24 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
     return url
 
 
+ApiVersion = Literal["classic", "cast"]
+
+# (geo_values, reference_time, report_time) — passed straight to cast_filter.
+CastPostFilter = tuple[
+    Union[str, Sequence[str]],
+    Union[str, "EpiRangeParam"],
+    Union[str, "EpiRange", None],
+]
+
+
 class AEpiDataCall:
     """base epidata call class"""
 
     _base_url: Final[str]
     _endpoint: Final[str]
-    _params: Final[Mapping[str, Optional[EpiRangeParam]]]
+    _params: Final[Mapping[str, EpiRangeParam | None]]
+    _api_version: Final[ApiVersion]
+    _post_filter: Final[CastPostFilter | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
     only_supports_classic: Final[bool]
@@ -148,15 +162,19 @@ class AEpiDataCall:
         self,
         base_url: str,
         endpoint: str,
-        params: Mapping[str, Optional[EpiRangeParam]],
-        meta: Optional[Sequence[EpidataFieldInfo]] = None,
+        params: Mapping[str, EpiRangeParam | None],
+        meta: Sequence[EpidataFieldInfo] | None = None,
         only_supports_classic: bool = False,
-        use_cache: Optional[bool] = None,
-        cache_max_age_days: Optional[int] = None,
+        use_cache: bool | None = None,
+        cache_max_age_days: int | None = None,
+        api_version: ApiVersion = "classic",
+        post_filter: CastPostFilter | None = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
+        self._api_version = api_version
+        self._post_filter = post_filter
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
         self.meta_by_name = {k.name: k for k in self.meta}
@@ -183,7 +201,7 @@ class AEpiDataCall:
 
     def _formatted_parameters(
         self,
-        fields: Optional[Sequence[str]] = None,
+        fields: Sequence[str] | None = None,
     ) -> Mapping[str, str]:
         """Format this call into a [URL, Params] tuple"""
         all_params = dict(self._params)
@@ -193,8 +211,8 @@ class AEpiDataCall:
 
     def request_arguments(
         self,
-        fields: Optional[Sequence[str]] = None,
-    ) -> Tuple[str, Mapping[str, str]]:
+        fields: Sequence[str] | None = None,
+    ) -> tuple[str, Mapping[str, str]]:
         """Format this call into a [URL, Params] tuple"""
         formatted_params = self._formatted_parameters(fields)
         full_url = add_endpoint_to_url(self._base_url, self._endpoint)
@@ -202,7 +220,7 @@ class AEpiDataCall:
 
     def request_url(
         self,
-        fields: Optional[Sequence[str]] = None,
+        fields: Sequence[str] | None = None,
     ) -> str:
         """Format this call into a full HTTP request url with encoded parameters"""
         self._verify_parameters()
@@ -221,9 +239,9 @@ class AEpiDataCall:
     def _parse_value(
         self,
         key: str,
-        value: Union[str, float, int, None],
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Union[str, float, int, date, None]:
+        value: str | float | int | None,
+        disable_date_parsing: bool | None = False,
+    ) -> str | float | int | date | None:
         meta = self.meta_by_name.get(key)
         if not meta or value is None:
             return value
@@ -239,9 +257,60 @@ class AEpiDataCall:
 
     def _parse_row(
         self,
-        row: Mapping[str, Union[str, float, int, None]],
-        disable_date_parsing: Optional[bool] = False,
-    ) -> Mapping[str, Union[str, float, int, date, None]]:
+        row: Mapping[str, str | float | int | None],
+        disable_date_parsing: bool | None = False,
+    ) -> Mapping[str, str | float | int | date | None]:
         if not self.meta:
             return row
         return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
+
+
+def cast_filter(
+    df: DataFrame,
+    geo_values: str | Sequence[str] = "*",
+    reference_time: str | EpiRangeParam = "*",
+    report_time: str | EpiRange | None = None,
+) -> DataFrame:
+    """Local post-filter for CAST-API responses.
+
+    The CAST endpoints return data that's only weakly filtered server-side.
+    Apply geo, reference_time, and EpiRange report_time-lower-bound filters locally.
+    """
+    from pandas import to_datetime
+
+    if not hasattr(df, "columns"):
+        return df
+
+    if geo_values != "*" and "geo_value" in df.columns:
+        if isinstance(geo_values, str):
+            wanted = [g.strip().lower() for g in geo_values.split(",")]
+        else:
+            wanted = [str(g).strip().lower() for g in geo_values]
+        df = df[df["geo_value"].str.lower().isin(wanted)]
+
+    if reference_time != "*" and "reference_time" in df.columns:
+        df = _filter_by_timeset(df, "reference_time", reference_time, to_datetime)
+
+    if isinstance(report_time, EpiRange) and "report_time" in df.columns:
+        df = _filter_by_timeset(df, "report_time", report_time, to_datetime)
+
+    return df
+
+
+def _filter_by_timeset(
+    df: DataFrame,
+    column: str,
+    timeset: str | EpiRangeParam | EpiRange,
+    to_datetime: Callable,
+) -> DataFrame:
+    values = df[column]
+    if isinstance(timeset, EpiRange):
+        lo = to_datetime(format_date(timeset.start))
+        hi = to_datetime(format_date(timeset.end))
+        return df[(values >= lo) & (values <= hi)]
+
+    if isinstance(timeset, (str, int, date, Week)):
+        wanted = [to_datetime(format_item(timeset))]
+    else:
+        wanted = [to_datetime(format_item(v)) for v in timeset]
+    return df[values.isin(wanted)]
