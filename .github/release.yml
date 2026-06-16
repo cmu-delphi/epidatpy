@@ -1,0 +1,21 @@
+# Configures GitHub's native release-notes generator (gh release create
+# --generate-notes), used by .github/workflows/create_release.yml.
+changelog:
+  categories:
+    - title: 🚀 Features
+      labels:
+        - enhancement
+        - feature
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+    - title: 📕 Documentation
+      labels:
+        - documentation
+    - title: 🧰 Maintenance
+      labels:
+        - chore
+        - dependencies
+    - title: Other Changes
+      labels:
+        - "*"
