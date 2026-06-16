@@ -1,54 +1,137 @@
 name: Create Release
+
+# Cuts a release: bumps the version, manages the rel-X.Y branch, tags vX.Y.Z, and
+# creates a GitHub Release. Pushing the tag triggers pypi_publish.yml (build +
+# upload to PyPI) and documentation.yml — publishing is intentionally a separate,
+# independently re-runnable workflow.
+#
+# bump = major/minor: bumps the version on the dev trunk (commit pushed to dev),
+# creates a rel-X.Y branch at that commit, tags vX.Y.0. Each rel-X.Y branch is the
+# maintenance line for that release.
+#
+# bump = patch (hotfix): finds the existing rel-X.Y branch (from the
+# release_branch input, or derived from dev's current version), bumps the patch
+# version there, tags vX.Y.Z from that branch. Fails loudly if the rel branch
+# doesn't exist — hotfix commits must already be on it (cherry-picked from dev or
+# committed directly).
 on:
   workflow_dispatch:
     inputs:
-      versionName:
-        description: "Semantic Version Number (i.e., 5.5.0 or patch, minor, major, prepatch, preminor, premajor, prerelease)"
+      bump:
+        description: "Version bump: major/minor cut a new rel-X.Y branch from dev; patch hotfixes an existing rel-X.Y branch"
         required: true
-        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      release_branch:
+        description: "Patch releases only: the rel-X.Y branch to release from (default: derived from the version on dev)"
+        required: false
+
+concurrency:
+  group: create-release
+  cancel-in-progress: false
 
 jobs:
-  create_release:
+  release:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'cmu-delphi'
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit_sha: ${{ steps.version.outputs.commit_sha }}
+      release_branch: ${{ steps.version.outputs.release_branch }}
     steps:
-      - name: Check out code
+      - name: Checkout dev
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: dev
+          fetch-depth: 0
           ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
-      - name: Reset main branch
-        run: |
-          git fetch origin dev:dev
-          git reset --hard dev
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
-      - name: Change version number
+      - name: Bump version and update branches
         id: version
         run: |
-          INPUT="${{ github.event.inputs.versionName }}"
-          if [[ $INPUT =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # apply explicit version
-            uv version --frozen "$INPUT"
-          elif [[ $INPUT =~ ^(major|minor|patch)$ ]]; then
-            # bump current version
-            uv version --frozen --bump "$INPUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BUMP="${{ inputs.bump }}"
+
+          if [ "$BUMP" = "patch" ]; then
+            REL_BRANCH="${{ inputs.release_branch }}"
+            if [ -z "$REL_BRANCH" ]; then
+              # Default to the release line matching dev's current version.
+              CURRENT=$(uv version --short)
+              REL_BRANCH="rel-${CURRENT%.*}"
+              echo "No release_branch given; derived $REL_BRANCH from dev version $CURRENT"
+            fi
+
+            if ! echo "$REL_BRANCH" | grep -Eq '^rel-[0-9]+\.[0-9]+$'; then
+              echo "ERROR: release_branch '$REL_BRANCH' does not match rel-X.Y"
+              exit 1
+            fi
+            if ! git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
+              echo "ERROR: release branch $REL_BRANCH does not exist on origin." \
+                "Hotfixes require an existing rel-X.Y branch — cut one with a" \
+                "major/minor release first."
+              exit 1
+            fi
+
+            git checkout "$REL_BRANCH"
+            uv version --bump patch
+            VERSION=$(uv version --short)
+            if [ "rel-${VERSION%.*}" != "$REL_BRANCH" ]; then
+              echo "ERROR: bumped version $VERSION does not belong to $REL_BRANCH" \
+                "(pyproject.toml on the branch is inconsistent with the branch name)"
+              exit 1
+            fi
+            git commit -am "chore: release $VERSION"
+            git push origin "HEAD:$REL_BRANCH"
           else
-            echo "Invalid version name: $INPUT"
+            # Bump on the trunk first, then branch the release line off the bump
+            # commit so rel-X.Y starts at exactly vX.Y.0.
+            uv version --bump "$BUMP"
+            VERSION=$(uv version --short)
+            REL_BRANCH="rel-${VERSION%.*}"
+
+            if git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
+              echo "ERROR: release branch $REL_BRANCH already exists — was this" \
+                "version already released? Use bump=patch to hotfix it."
+              exit 1
+            fi
+
+            git commit -am "chore: release $VERSION"
+            git push origin HEAD:dev
+            git push origin "HEAD:refs/heads/$REL_BRANCH"
+          fi
+
+          echo "Releasing version: $VERSION from $REL_BRANCH"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
+            echo "ERROR: tag v$VERSION already exists."
             exit 1
           fi
-          NEXT_TAG=$(uv version --short)
-          echo "next_tag=$NEXT_TAG" >> $GITHUB_OUTPUT
-      - name: Create pull request into main
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: release/${{ steps.version.outputs.next_tag }}
-          commit-message: "chore: release ${{ steps.version.outputs.next_tag }}"
-          base: main
-          title: Release ${{ steps.version.outputs.next_tag }}
-          labels: chore
-          # reviewers:
-          assignees: dshemetov
-          body: |
-            Releasing ${{ steps.version.outputs.next_tag }}.
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_branch=$REL_BRANCH" >> $GITHUB_OUTPUT
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+      - name: Tag and create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+          gh release create "v$VERSION" \
+            --target ${{ steps.version.outputs.commit_sha }} \
+            --title "v$VERSION" \
+            --generate-notes
+
+          # Pushing the vX.Y.Z tag above triggers pypi_publish.yml (build +
+          # publish) and documentation.yml. Publishing is decoupled so a failed
+          # upload can be re-run against the tag without unwinding this release.

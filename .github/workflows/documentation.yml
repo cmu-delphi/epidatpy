@@ -2,8 +2,8 @@ name: documentation
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*"
 
 permissions:
   contents: write

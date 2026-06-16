@@ -1,0 +1,45 @@
+name: Publish to PyPI
+
+# Builds and publishes a release to PyPI via trusted publishing (OIDC).
+#
+# Normally triggered by the vX.Y.Z tag that create_release.yml pushes. Decoupled
+# from create_release so that a failed upload can be retried independently —
+# re-run this workflow run, or dispatch it against the existing tag — without
+# having to unwind an already-created tag/branch/Release.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing vX.Y.Z tag to (re)publish"
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'cmu-delphi'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/epidatpy
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+      - name: Build distribution
+        run: uv build
+      - name: Publish a Python distribution to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          # PEP 740 provenance attestations: ties each upload to this workflow at
+          # the published commit. Default-on with id-token, pinned here explicitly.
+          attestations: true
