@@ -111,16 +111,25 @@ choco install pandoc
 
 ### Release Process
 
-The release consists of multiple steps which can be all done via the GitHub website:
+`dev` is the only long-lived branch. Each release cuts a `rel-X.Y` maintenance
+branch, which is where patch (hotfix) releases for that line are made. Releases are
+driven entirely by the [create_release GitHub Action](https://github.com/cmu-delphi/epidatpy/actions/workflows/create_release.yml):
 
-1. Go to [create_release GitHub Action](https://github.com/cmu-delphi/epidatpy/actions/workflows/create_release.yml) and click the `Run workflow` button. Enter the next version number or one of the magic keywords (patch, minor, major) and hit the green `Run workflow` button.
-2. The action will prepare a new release and will end up with a new [Pull Request](https://github.com/cmu-delphi/epidatpy/pulls)
-3. Let the code owner review the PR and its changes and let the CI check whether everything builds successfully
-4. Once approved and merged, another GitHub action job starts which automatically will
-    1. create a git tag
-    2. create another [Pull Request](https://github.com/cmu-delphi/epidatpy/pulls) to merge the changes back to the `dev` branch
-    3. create a [GitHub release](https://github.com/cmu-delphi/epidatpy/releases) with automatically derived release notes
-5. Done
+- **New release (`major` / `minor`):** Run the workflow with the `bump` set to
+  `major` or `minor`. It bumps the version on `dev`, cuts a new `rel-X.Y` branch at
+  that commit, tags `vX.Y.0`, and creates a [GitHub release](https://github.com/cmu-delphi/epidatpy/releases)
+  with auto-generated notes.
+- **Hotfix (`patch`):** First land the fix on the relevant `rel-X.Y` branch (commit
+  directly or cherry-pick from `dev`). Then run the workflow with `bump` = `patch`,
+  optionally setting `release_branch` (defaults to the line matching `dev`'s current
+  version). It bumps the patch version on that branch and tags `vX.Y.Z`. It fails if
+  the `rel-X.Y` branch doesn't exist.
+
+Pushing the `vX.Y.Z` tag then triggers two workflows: `pypi_publish` builds and
+uploads the release to [PyPI](https://pypi.python.org/pypi/epidatpy/), and
+`documentation` rebuilds the docs. Publishing is decoupled from the release cut, so
+a failed PyPI upload can be re-run (via the `pypi_publish` workflow's `Run workflow`
+button, against the existing tag) without redoing the release.
 
 [mit-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit-url]: https://opensource.org/licenses/MIT
