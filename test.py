@@ -13,7 +13,7 @@ def _():
         source="nssp",
         signals="pct_ed_visits_influenza",
         geo_type="state",
-        report_time_query=EpiRange("2025-01-01", "2025-10-16"),
+        report_time=EpiRange("2025-01-01", "2025-10-16"),
     ).df()
     return (df,)
 

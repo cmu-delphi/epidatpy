@@ -63,7 +63,7 @@ class TestCastEndpoints:
         assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
 
     def test_epidata_router_dispatch(self) -> None:
-        # `snapshot_date="*"` routes to archive (no report_time_query sent);
+        # `snapshot_date="*"` routes to archive (no report_time sent);
         # verify the archive's `report_time` column comes back.
         ctx = EpiDataContext()
         df = ctx.epidata(
@@ -74,14 +74,14 @@ class TestCastEndpoints:
         ).df()
         assert "report_time" in df.columns
 
-    def test_epidata_mutually_exclusive_report_time_query_and_snapshot_date(self) -> None:
+    def test_epidata_mutually_exclusive_report_time_and_snapshot_date(self) -> None:
         with pytest.raises(InvalidArgumentException):
             EpiDataContext().epidata(
                 source="nssp",
                 signals="pct_ed_visits_influenza",
                 geo_type="state",
                 snapshot_date="2025-10-16",
-                report_time_query="2025-10-16",
+                report_time="2025-10-16",
             )
 
     def test_epidata_snapshot_local_filters(self) -> None:

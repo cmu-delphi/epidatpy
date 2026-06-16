@@ -64,19 +64,19 @@ epidata.epidata_archive(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
-    report_time_query="<2025-10-16",
+    report_time="<2025-10-16",
 ).df()
 
-# Router: pass `report_time_query` (or `snapshot_date="*"`) for archive, `snapshot_date` for snapshot.
+# Router: pass `report_time` (or `snapshot_date="*"`) for archive, `snapshot_date` for snapshot.
 epidata.epidata(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
-    report_time_query=EpiRange("2025-01-01", "2025-10-16"),
+    report_time=EpiRange("2025-01-01", "2025-10-16"),
 ).df()
 ```
 
-`geo_values`, `reference_time`, and an `EpiRange` `report_time_query` lower
+`geo_values`, `reference_time`, and an `EpiRange` `report_time` lower
 bound are filtered locally after the request.
 
 ## Development

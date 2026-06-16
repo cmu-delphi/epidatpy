@@ -114,6 +114,10 @@ class EpiDataCall(AEpiDataCall):
             self._session,
             self._endpoint,
             self._params,
+            self.meta,
+            self.only_supports_classic,
+            self.use_cache,
+            self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
         )
@@ -124,6 +128,10 @@ class EpiDataCall(AEpiDataCall):
             session,
             self._endpoint,
             self._params,
+            self.meta,
+            self.only_supports_classic,
+            self.use_cache,
+            self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
         )
@@ -276,14 +284,14 @@ class EpiDataCall(AEpiDataCall):
                     except (ValueError, TypeError):
                         pass
 
-        if self._post_filter is not None:
-            geo_values, reference_time, report_time = self._post_filter
-            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
-
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:
                 cache_key = self._get_cache_key("df")
                 cache.set(cache_key, df, expire=self.cache_max_age_days * 24 * 60 * 60)
+
+        if self._post_filter is not None:
+            geo_values, reference_time, report_time = self._post_filter
+            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
 
         return df
 
@@ -311,10 +319,22 @@ class EpiDataContext(AEpiDataEndpoints[EpiDataCall]):
         self.cache_max_age_days = cache_max_age_days
 
     def with_base_url(self, base_url: str) -> EpiDataContext:
-        return EpiDataContext(base_url, self._session, cast_base_url=self._cast_base_url)
+        return EpiDataContext(
+            base_url,
+            self._session,
+            self.use_cache,
+            self.cache_max_age_days,
+            cast_base_url=self._cast_base_url,
+        )
 
     def with_session(self, session: Session) -> EpiDataContext:
-        return EpiDataContext(self._base_url, session, cast_base_url=self._cast_base_url)
+        return EpiDataContext(
+            self._base_url,
+            session,
+            self.use_cache,
+            self.cache_max_age_days,
+            cast_base_url=self._cast_base_url,
+        )
 
     def _create_call(
         self,

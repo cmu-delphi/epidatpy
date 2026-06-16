@@ -1534,7 +1534,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        snapshot_date: str | date | None = None,
+        snapshot_date: str | date | int | None = None,
     ) -> CALL_TYPE:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1574,16 +1574,16 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        report_time_query: str | date | EpiRange | None = "*",
+        report_time: str | date | EpiRange | None = "*",
     ) -> CALL_TYPE:
         """Fetch the full report-time history of CAST-API signals.
 
-        `report_time_query` accepts an exact date, an operator-prefixed string
+        `report_time` accepts an exact date, an operator-prefixed string
         (e.g. ``"<2025-10-16"``), or an :class:`EpiRange`. ``"*"`` (default)
         requests all report times. `geo_values`, `reference_time`, and the
         EpiRange lower bound are filtered locally after the API call.
         """
-        report_time_query_str = validate_report_time_query(report_time_query)
+        report_time_str = validate_report_time_query(report_time)
 
         signal_str = signals if isinstance(signals, str) else ",".join(signals)
 
@@ -1594,14 +1594,14 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 "signal": signal_str,
                 "geo_type": geo_type,
                 "fill_method": fill_method,
-                "report_time_query": report_time_query_str,
+                "report_time": report_time_str,
             },
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(
                 geo_values,
                 reference_time,
-                report_time_query if isinstance(report_time_query, EpiRange) else None,
+                report_time if isinstance(report_time, EpiRange) else None,
             ),
         )
 
@@ -1613,20 +1613,20 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        snapshot_date: str | date | None = None,
-        report_time_query: str | date | EpiRange | None = None,
+        snapshot_date: str | date | int | None = None,
+        report_time: str | date | EpiRange | None = None,
     ) -> CALL_TYPE:
         """Router for CAST-API queries.
 
-        Dispatches to :meth:`epidata_archive` when ``report_time_query`` is
+        Dispatches to :meth:`epidata_archive` when ``report_time`` is
         supplied or ``snapshot_date == "*"``; otherwise to
-        :meth:`epidata_snapshot`. ``report_time_query`` and ``snapshot_date``
+        :meth:`epidata_snapshot`. ``report_time`` and ``snapshot_date``
         are mutually exclusive.
         """
-        if report_time_query is not None and snapshot_date is not None:
-            raise InvalidArgumentException("`report_time_query` and `snapshot_date` are mutually exclusive")
+        if report_time is not None and snapshot_date is not None:
+            raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
 
-        if report_time_query is not None or snapshot_date == "*":
+        if report_time is not None or snapshot_date == "*":
             return self.epidata_archive(
                 source=source,
                 signals=signals,
@@ -1634,7 +1634,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
                 geo_values=geo_values,
                 reference_time=reference_time,
                 fill_method=fill_method,
-                report_time_query=report_time_query if report_time_query is not None else "*",
+                report_time=report_time if report_time is not None else "*",
             )
         return self.epidata_snapshot(
             source=source,

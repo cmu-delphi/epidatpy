@@ -77,8 +77,8 @@ def parse_user_date_or_week(
     raise ValueError(f"Cannot parse date or week from {value}")
 
 
-def validate_report_time_query(report_time_query: str | int | date | Week | EpiRange | None) -> str | None:
-    """Format the `report_time_query` argument for the CAST API `report_time_query` parameter.
+def validate_report_time_query(report_time: str | int | date | Week | EpiRange | None) -> str | None:
+    """Format the `report_time` argument for the CAST API `report_time` parameter.
 
     Accepts an exact date, an operator-prefixed string (e.g. ``"<2025-10-16"``),
     or an :class:`EpiRange` (upper bound becomes ``"<to"``; the lower bound is
@@ -86,19 +86,22 @@ def validate_report_time_query(report_time_query: str | int | date | Week | EpiR
     """
     from ._model import EpiRange  # avoid circular import
 
-    if report_time_query is None or report_time_query == "*":
+    if report_time is None or report_time == "*":
         return None
 
     operator = "="
     raw: str | int | date | Week
-    if isinstance(report_time_query, str) and report_time_query[:1] in ("<", ">", "="):
-        operator = report_time_query[0]
-        raw = report_time_query[1:]
-    elif isinstance(report_time_query, EpiRange):
+    if isinstance(report_time, str) and report_time[:2] in ("<=", ">="):
+        operator = report_time[:2]
+        raw = report_time[2:]
+    elif isinstance(report_time, str) and report_time[:1] in ("<", ">", "="):
+        operator = report_time[0]
+        raw = report_time[1:]
+    elif isinstance(report_time, EpiRange):
         operator = "<"
-        raw = report_time_query.end
+        raw = report_time.end
     else:
-        raw = report_time_query
+        raw = report_time
 
     parsed: date | None
     if isinstance(raw, date):
@@ -109,7 +112,7 @@ def validate_report_time_query(report_time_query: str | int | date | Week | EpiR
         parsed = parse_api_date(raw)
     if parsed is None:
         raise ValueError(
-            "Invalid `report_time_query` format. Must be a single date, an `EpiRange`, "
+            "Invalid `report_time` format. Must be a single date, an `EpiRange`, "
             "or a string with an operator (e.g., '<2025-10-16')."
         )
     return f"{operator}{parsed.strftime('%Y-%m-%d')}"
