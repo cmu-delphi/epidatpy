@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import warnings
-from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import (
-    Generic,
+    TYPE_CHECKING,
     Literal,
 )
 
@@ -13,7 +12,6 @@ from epiweeks import Week
 
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
-    CALL_TYPE,
     ApiVersion,
     CastPostFilter,
     EpidataFieldInfo,
@@ -24,8 +22,12 @@ from ._model import (
     InvalidArgumentException,
     ParamType,
     StringParam,
+    format_list,
 )
 from ._parse import parse_api_date, parse_user_date_or_week, validate_report_time_query
+
+if TYPE_CHECKING:
+    from .request import EpiDataCall
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -37,10 +39,9 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
     return time_value
 
 
-class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
+class AEpiDataEndpoints:
     """epidata endpoint list and fetcher"""
 
-    @abstractmethod
     def _create_call(
         self,
         endpoint: str,
@@ -49,7 +50,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         raise NotImplementedError()
 
     def pvt_cdc(
@@ -57,7 +58,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         auth: str,
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch CDC total and by topic webpage visits.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/cdc.html>
@@ -102,7 +103,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         city: str | None = None,
         zip: str | None = None,
         fips_code: str | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Helper for finding COVID hospitalization facilities.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility_lookup.html>
@@ -158,7 +159,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         hospital_pks: StringParam,
         collection_weeks: EpiRangeParam = "*",
         publication_dates: EpiRangeParam | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch COVID hospitalizations by facility.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html>
@@ -330,7 +331,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         dates: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         as_of: None | int | str = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch COVID hospitalizations by state.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html>
@@ -441,7 +442,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pub_covidcast_meta(self) -> CALL_TYPE:
+    def pub_covidcast_meta(self) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>
@@ -454,7 +455,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
 
         Returns
         -------
-        CALL_TYPE
+        EpiDataCall
             A ``EpiDataCall`` object containing the following information:
 
             ``data_source``
@@ -546,7 +547,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         as_of: None | str | int = None,
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Delphi's COVID-19 Surveillance Streams.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>
@@ -608,7 +609,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             define_covidcast_fields(),
         )
 
-    def pub_delphi(self, system: str, epiweek: int | str) -> CALL_TYPE:
+    def pub_delphi(self, system: str, epiweek: int | str) -> EpiDataCall:
         """Fetch Delphi's ILINet outpatient doctor visits forecasts.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/delphi.html>
@@ -634,7 +635,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             only_supports_classic=True,
         )
 
-    def pub_dengue_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pub_dengue_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Delphi's PAHO dengue nowcasts (North and South America).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html>
@@ -669,7 +670,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         names: StringParam,
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch PAHO dengue digital surveillance sensors (North and South America).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html>
@@ -715,7 +716,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch ECDC ILI incidence (Europe).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html>
@@ -764,7 +765,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch CDC FluSurv flu hospitalizations.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>
@@ -848,7 +849,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch CDC FluView flu tests from clinical labs.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>
@@ -893,7 +894,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pub_fluview_meta(self) -> CALL_TYPE:
+    def pub_fluview_meta(self) -> EpiDataCall:
         """Fetch Metadata for the FluView endpoint.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>
@@ -915,7 +916,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
         auth: str | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch CDC FluView ILINet outpatient doctor visits.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>
@@ -979,7 +980,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pub_gft(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pub_gft(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Google Flu Trends flu search volume.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/gft.html>
@@ -1018,7 +1019,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
         query: str = "",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Google Health Trends data.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ght.html>
@@ -1065,7 +1066,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch KCDC ILI incidence (Korea).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html>
@@ -1111,7 +1112,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pvt_meta_norostat(self, auth: str) -> CALL_TYPE:
+    def pvt_meta_norostat(self, auth: str) -> EpiDataCall:
         """Fetch NoroSTAT metadata.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat_meta.html>
@@ -1129,7 +1130,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             only_supports_classic=True,
         )
 
-    def pub_meta(self) -> CALL_TYPE:
+    def pub_meta(self) -> EpiDataCall:
         """Fetch API metadata.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>
@@ -1140,7 +1141,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             only_supports_classic=True,
         )
 
-    def pub_nidss_dengue(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pub_nidss_dengue(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch NIDSS dengue data (Taiwan).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html>
@@ -1174,7 +1175,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch NIDSS flu data (Taiwan).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html>
@@ -1215,7 +1216,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pvt_norostat(self, auth: str, location: str, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pvt_norostat(self, auth: str, location: str, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch NoroSTAT data (point data, no min/max).
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat.html>
@@ -1247,7 +1248,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Delphi's wILI nowcast.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ili_nearby_nowcast.html>
@@ -1282,7 +1283,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         epiweeks: EpiRangeParam = "*",
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch PAHO Dengue data.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html>
@@ -1328,7 +1329,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             ],
         )
 
-    def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> CALL_TYPE:
+    def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Quidel data.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>
@@ -1366,7 +1367,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         names: StringParam,
         locations: StringParam,
         epiweeks: EpiRangeParam = "*",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Delphi's digital surveillance sensors.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/digital_surveillance_sensors.html>
@@ -1412,7 +1413,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         locations: StringParam,
         time_type: Literal["day", "week"],
         time_values: EpiRangeParam = "*",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch HealthTweets data.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/twitter.html>
@@ -1472,7 +1473,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         time_values: EpiRangeParam = "*",
         hours: IntParam | None = None,
         language: str = "en",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Wikipedia access data.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/wiki.html>
@@ -1535,7 +1536,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         snapshot_date: str | date | int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
         `snapshot_date=None` returns the latest available version. `geo_values`
@@ -1550,7 +1551,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
             if parsed is None:
                 raise InvalidArgumentException(f"Invalid `snapshot_date` value: {snapshot_date!r}")
             snapshot_date_str = parsed.strftime("%Y-%m-%d")
-        signal_str = signals if isinstance(signals, str) else ",".join(signals)
+        signal_str = format_list(signals)
 
         return self._create_call(
             "snapshot/",
@@ -1575,7 +1576,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         report_time: str | date | EpiRange | None = "*",
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
         `report_time` accepts an exact date, an operator-prefixed string
@@ -1585,7 +1586,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         """
         report_time_str = validate_report_time_query(report_time)
 
-        signal_str = signals if isinstance(signals, str) else ",".join(signals)
+        signal_str = format_list(signals)
 
         return self._create_call(
             "archive/",
@@ -1615,7 +1616,7 @@ class AEpiDataEndpoints(ABC, Generic[CALL_TYPE]):
         fill_method: str | None = None,
         snapshot_date: str | date | int | None = None,
         report_time: str | date | EpiRange | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Router for CAST-API queries.
 
         Dispatches to :meth:`epidata_archive` when ``report_time`` is

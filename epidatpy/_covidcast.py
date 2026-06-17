@@ -5,8 +5,8 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import Field, InitVar, asdict, dataclass, field, fields
 from functools import cached_property
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     get_args,
     overload,
@@ -15,7 +15,6 @@ from typing import (
 from pandas import DataFrame
 
 from ._model import (
-    CALL_TYPE,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiRangeParam,
@@ -23,6 +22,9 @@ from ._model import (
     InvalidArgumentException,
     TimeType,
 )
+
+if TYPE_CHECKING:
+    from .request import EpiDataCall
 
 
 @dataclass
@@ -73,10 +75,10 @@ def define_covidcast_fields() -> list[EpidataFieldInfo]:
 
 
 @dataclass
-class DataSignal(Generic[CALL_TYPE]):
+class DataSignal:
     """represents a COVIDcast data signal"""
 
-    _create_call: Callable[[Mapping[str, EpiRangeParam | None]], CALL_TYPE]
+    _create_call: Callable[[Mapping[str, EpiRangeParam | None]], EpiDataCall]
 
     source: str
     signal: str
@@ -150,7 +152,7 @@ class DataSignal(Generic[CALL_TYPE]):
         as_of: None | str | int = None,
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Delphi's COVID-19 Surveillance Streams"""
         if any(v is None for v in (geo_type, geo_values, time_values)):
             raise InvalidArgumentException("`geo_type`, `time_values`, and `geo_values` are all required")
@@ -179,16 +181,16 @@ class DataSignal(Generic[CALL_TYPE]):
         as_of: None | str | int = None,
         issues: EpiRangeParam | None = None,
         lag: int | None = None,
-    ) -> CALL_TYPE:
+    ) -> EpiDataCall:
         """Fetch Delphi's COVID-19 Surveillance Streams"""
         return self.call(geo_type, geo_values, time_values, as_of, issues, lag)
 
 
 @dataclass
-class DataSource(Generic[CALL_TYPE]):
+class DataSource:
     """represents a COVIDcast data source"""
 
-    _create_call: InitVar[Callable[[Mapping[str, EpiRangeParam | None]], CALL_TYPE]]
+    _create_call: InitVar[Callable[[Mapping[str, EpiRangeParam | None]], EpiDataCall]]
 
     source: str
     db_source: str
@@ -201,7 +203,7 @@ class DataSource(Generic[CALL_TYPE]):
 
     signals: Sequence[DataSignal] = field(default_factory=list)
 
-    def __post_init__(self, _create_call: Callable[[Mapping[str, EpiRangeParam | None]], CALL_TYPE]) -> None:
+    def __post_init__(self, _create_call: Callable[[Mapping[str, EpiRangeParam | None]], EpiDataCall]) -> None:
         self.link = [
             WebLink(alt=link["alt"], href=link["href"]) if isinstance(link, dict) else link for link in self.link
         ]
@@ -236,16 +238,14 @@ class DataSource(Generic[CALL_TYPE]):
 
 
 @dataclass
-class CovidcastDataSources(Generic[CALL_TYPE]):
+class CovidcastDataSources:
     """COVIDcast data source helper."""
 
-    sources: Sequence[DataSource[CALL_TYPE]]
-    _source_by_name: dict[str, DataSource[CALL_TYPE]] = field(init=False, default_factory=dict)
-    _signals_by_key: OrderedDict[tuple[str, str], DataSignal[CALL_TYPE]] = field(
-        init=False, default_factory=OrderedDict
-    )
+    sources: Sequence[DataSource]
+    _source_by_name: dict[str, DataSource] = field(init=False, default_factory=dict)
+    _signals_by_key: OrderedDict[tuple[str, str], DataSignal] = field(init=False, default_factory=OrderedDict)
 
-    _create_call: Callable[[Mapping[str, EpiRangeParam | None]], CALL_TYPE]
+    _create_call: Callable[[Mapping[str, EpiRangeParam | None]], EpiDataCall]
 
     def __post_init__(self) -> None:
         self._source_by_name = {s.source: s for s in self.sources}
@@ -373,12 +373,12 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
         return DataSignal.to_df(self._signals_by_key.values())
 
     @overload
-    def __getitem__(self, source: str, /) -> DataSource[CALL_TYPE]: ...
+    def __getitem__(self, source: str, /) -> DataSource: ...
 
     @overload
-    def __getitem__(self, source_signal: tuple[str, str], /) -> DataSignal[CALL_TYPE]: ...
+    def __getitem__(self, source_signal: tuple[str, str], /) -> DataSignal: ...
 
-    def __getitem__(self, source_signal: str | tuple[str, str]) -> DataSource[CALL_TYPE] | DataSignal[CALL_TYPE]:
+    def __getitem__(self, source_signal: str | tuple[str, str]) -> DataSource | DataSignal:
         if isinstance(source_signal, str):
             r = self._source_by_name.get(source_signal)
             assert r is not None
@@ -390,7 +390,7 @@ class CovidcastDataSources(Generic[CALL_TYPE]):
     @staticmethod
     def create(
         meta: list[dict],
-        create_call: Callable[[Mapping[str, EpiRangeParam | None]], CALL_TYPE],
+        create_call: Callable[[Mapping[str, EpiRangeParam | None]], EpiDataCall],
     ) -> CovidcastDataSources:
         source_fields = fields(DataSource)
         sources = [DataSource(_create_call=create_call, **_limit_fields(k, source_fields)) for k in meta]
