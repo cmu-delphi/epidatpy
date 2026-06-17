@@ -8,6 +8,7 @@ __pycache__
 dist/
 build/
 docs/_build
+docs/jupyter_execute
 .venv/
 uv.lock
 __marimo__/
