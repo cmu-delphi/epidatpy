@@ -24,7 +24,7 @@ from ._model import (
 )
 
 if TYPE_CHECKING:
-    from .request import EpiDataCall
+    from ._call import EpiDataCall
 
 
 @dataclass
