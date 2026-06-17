@@ -12,7 +12,7 @@
 #
 import os
 import sys
-from importlib.metadata import version
+from importlib.metadata import version as _version
 
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("../epidatpy"))
@@ -24,7 +24,8 @@ copyright = "2024, Delphi Research Group"
 author = "Delphi Research Group"
 
 # The full version, including alpha/beta/rc tags
-release = version("epidatpy")
+release = _version("epidatpy")
+version = release
 
 
 # -- General configuration ---------------------------------------------------
@@ -32,7 +33,9 @@ release = version("epidatpy")
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_autodoc_typehints", "nbsphinx"]
+# myst_nb (Markdown + notebook support) implies myst_parser, so narrative pages
+# can be authored in either Markdown (.md) or reStructuredText (.rst).
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_autodoc_typehints", "myst_nb"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -42,6 +45,8 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     "_build",
+    # myst_nb writes executed notebook copies here; not standalone source docs.
+    "jupyter_execute",
     "Thumbs.db",
     ".DS_Store",
     "smoke_covid_test",
@@ -82,7 +87,7 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 # https://pypi.org/project/sphinx-autodoc-typehints/
 always_document_param_types = True
 
-# https://nbsphinx.readthedocs.io/
-nbsphinx_prompt_width = 0
-nbsphinx_input_prompt = "%.0s"
-nbsphinx_output_prompt = "%.0s"
+# https://myst-nb.readthedocs.io/
+# "auto" runs only notebooks that lack stored outputs (committed notebooks ship
+# with outputs, so they render as-is without hitting the live API).
+nb_execution_mode = "auto"

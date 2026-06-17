@@ -43,14 +43,12 @@ dev = [
     "ipykernel",
     "matplotlib",
     "mypy",
-    "nbsphinx",
+    "myst-nb",
     "pytest",
-    "recommonmark",
     "ruff",
     "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
     "sphinx",
-    "twine",
     "types-requests",
 ]
 

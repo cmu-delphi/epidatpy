@@ -28,12 +28,13 @@ test_live:
 	$(PY) pytest -m live .
 
 doc:
-	@pandoc --version >/dev/null 2>&1 || (echo "ERROR: pandoc is required (install via your platform's package manager)"; exit 1)
 	$(PY) sphinx-build -b html docs docs/_build
+
+doc-preview: doc
 	$(PY) python -m webbrowser -t "docs/_build/index.html"
 
 clean_doc:
-	rm -rf docs/_build
+	rm -rf docs/_build docs/jupyter_execute
 
 clean_build:
 	rm -rf build dist .eggs
@@ -47,8 +48,13 @@ clean_python:
 
 clean: clean_doc clean_build clean_python
 
+# Mirrors pypi_publish.yml, which builds with `uv build`. Releases normally go
+# through CI (tag push -> pypi_publish.yml via trusted publishing); these targets
+# are for local/manual fallback only.
 release: clean lint test
-	$(PY) python -m build --sdist --wheel
+	uv build
 
+# We don't have the tokens setup for this to work locally, but in theory it
+# could be provisioned.
 upload: release
-	$(PY) twine upload dist/*
+	uv publish
