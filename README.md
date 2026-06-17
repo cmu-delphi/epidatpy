@@ -84,29 +84,15 @@ bound are filtered locally after the request.
 The following commands are available for developers:
 
 ```sh
-make install  # setup venv, install dependencies and local package
-make test     # run unit tests
-make format   # format code
-make lint     # check linting
-make docs     # build docs
-make dist     # build distribution packages
-make release  # upload the current version to pypi
-make clean    # clean build and docs artifacts
-```
-
-Building the documentation additionally requires the Pandoc package. These
-commands can be used to install the package on common platforms (see the
-[official documentation](https://pandoc.org/installing.html) for more options):
-
-```sh
-# Linux (Debian/Ubuntu)
-sudo apt-get install pandoc
-
-# OS X / Linux (with Homebrew)
-brew install pandoc
-
-# Windows (with Chocolatey)
-choco install pandoc
+make install        # setup venv, install dependencies and local package
+make test           # run unit tests
+make format         # format code
+make lint           # check linting
+make doc            # build docs
+make doc-preview    # preview docs in browser
+make release        # build distribution packages
+make upload         # upload the current version to pypi
+make clean          # clean build and docs artifacts
 ```
 
 ### Release Process

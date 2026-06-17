@@ -24,10 +24,9 @@ jobs:
           enable-cache: true
       - name: Install dependencies
         run: uv sync --extra dev
-      - uses: siacodelabs/setup-pandoc@v1
       - name: Sphinx build
         run: |
-          uv run sphinx-build -b html docs docs/_build
+          make doc
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
