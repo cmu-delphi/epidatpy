@@ -1,33 +1,35 @@
 name: Create Release
 
-# Cuts a release: bumps the version, manages the rel-X.Y branch, tags vX.Y.Z, and
-# creates a GitHub Release. Pushing the tag triggers pypi_publish.yml (build +
+# Cuts a release from a branch whose version (pyproject.toml) is ALREADY bumped.
+# Bumping is done by a human in a normal, reviewed PR — this workflow never
+# commits to a protected branch. It only manages the rel-X.Y line, tags vX.Y.Z,
+# and creates a GitHub Release. Pushing the tag triggers pypi_publish.yml (build +
 # upload to PyPI) and documentation.yml — publishing is intentionally a separate,
 # independently re-runnable workflow.
 #
-# bump = major/minor: bumps the version on the dev trunk (commit pushed to dev),
-# creates a rel-X.Y branch at that commit, tags vX.Y.0. Each rel-X.Y branch is the
-# maintenance line for that release.
+# Behavior is driven by the target branch, not a bump type:
 #
-# bump = patch (hotfix): finds the existing rel-X.Y branch (from the
-# release_branch input, or derived from dev's current version), bumps the patch
-# version there, tags vX.Y.Z from that branch. Fails loudly if the rel branch
-# doesn't exist — hotfix commits must already be on it (cherry-picked from dev or
-# committed directly).
+#   target = dev (or any non-rel trunk): cuts a new release line. Reads dev's
+#   current version X.Y.Z, requires rel-X.Y to NOT exist yet, creates rel-X.Y at
+#   dev HEAD, tags vX.Y.Z. Convention: minor/major bumps land on dev, so X.Y.Z is
+#   normally X.Y.0 — but the patch number is not enforced (cutting at X.Y.2 is
+#   fine, v X.Y.0/.1 just never existed).
+#
+#   target = rel-X.Y (hotfix): the patch was already bumped on the branch. Reads
+#   the version, checks it belongs to this branch, tags vX.Y.Z. The branch must
+#   already exist — cut the line with a release from dev first.
 on:
   workflow_dispatch:
     inputs:
-      bump:
-        description: "Version bump: major/minor cut a new rel-X.Y branch from dev; patch hotfixes an existing rel-X.Y branch"
+      target_branch:
+        description: "Branch to release from: dev (or other trunk) cuts a new rel-X.Y line; a rel-X.Y branch cuts a hotfix"
         required: true
-        type: choice
-        options:
-          - major
-          - minor
-          - patch
-      release_branch:
-        description: "Patch releases only: the rel-X.Y branch to release from (default: derived from the version on dev)"
-        required: false
+        default: dev
+      version_bumped:
+        description: "Confirm the version in pyproject.toml was already bumped (in a merged PR) on the target branch"
+        required: true
+        type: boolean
+        default: false
 
 concurrency:
   group: create-release
@@ -44,77 +46,54 @@ jobs:
       commit_sha: ${{ steps.version.outputs.commit_sha }}
       release_branch: ${{ steps.version.outputs.release_branch }}
     steps:
-      - name: Checkout dev
+      - name: Check version bump was confirmed
+        if: ${{ !inputs.version_bumped }}
+        run: |
+          echo "ERROR: version_bumped is false. Bump the version in pyproject.toml"
+          echo "via a merged PR on '${{ inputs.target_branch }}' first, then re-run."
+          exit 1
+      - name: Checkout target branch
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: ${{ inputs.target_branch }}
           fetch-depth: 0
           ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
-      - name: Bump version and update branches
+      - name: Resolve version and manage release branch
         id: version
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          BUMP="${{ inputs.bump }}"
-
-          if [ "$BUMP" = "patch" ]; then
-            REL_BRANCH="${{ inputs.release_branch }}"
-            if [ -z "$REL_BRANCH" ]; then
-              # Default to the release line matching dev's current version.
-              CURRENT=$(uv version --short)
-              REL_BRANCH="rel-${CURRENT%.*}"
-              echo "No release_branch given; derived $REL_BRANCH from dev version $CURRENT"
-            fi
-
-            if ! echo "$REL_BRANCH" | grep -Eq '^rel-[0-9]+\.[0-9]+$'; then
-              echo "ERROR: release_branch '$REL_BRANCH' does not match rel-X.Y"
-              exit 1
-            fi
-            if ! git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
-              echo "ERROR: release branch $REL_BRANCH does not exist on origin." \
-                "Hotfixes require an existing rel-X.Y branch — cut one with a" \
-                "major/minor release first."
-              exit 1
-            fi
-
-            git checkout "$REL_BRANCH"
-            uv version --bump patch
-            VERSION=$(uv version --short)
-            if [ "rel-${VERSION%.*}" != "$REL_BRANCH" ]; then
-              echo "ERROR: bumped version $VERSION does not belong to $REL_BRANCH" \
-                "(pyproject.toml on the branch is inconsistent with the branch name)"
-              exit 1
-            fi
-            git commit -am "chore: release $VERSION"
-            git push origin "HEAD:$REL_BRANCH"
-          else
-            # Bump on the trunk first, then branch the release line off the bump
-            # commit so rel-X.Y starts at exactly vX.Y.0.
-            uv version --bump "$BUMP"
-            VERSION=$(uv version --short)
-            REL_BRANCH="rel-${VERSION%.*}"
-
-            if git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
-              echo "ERROR: release branch $REL_BRANCH already exists — was this" \
-                "version already released? Use bump=patch to hotfix it."
-              exit 1
-            fi
-
-            git commit -am "chore: release $VERSION"
-            git push origin HEAD:dev
-            git push origin "HEAD:refs/heads/$REL_BRANCH"
-          fi
-
-          echo "Releasing version: $VERSION from $REL_BRANCH"
+          TARGET="${{ inputs.target_branch }}"
+          VERSION=$(uv version --short)
+          REL_BRANCH="rel-${VERSION%.*}"
+          echo "Target branch: $TARGET, version: $VERSION, release line: $REL_BRANCH"
 
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
-            echo "ERROR: tag v$VERSION already exists."
+            echo "ERROR: tag v$VERSION already exists. Was this version already" \
+              "released? Bump the version before cutting a new release."
             exit 1
+          fi
+
+          if echo "$TARGET" | grep -Eq '^rel-[0-9]+\.[0-9]+$'; then
+            # Hotfix: releasing from an existing rel-X.Y branch. The patch was
+            # already bumped on it; just verify the version belongs here.
+            if [ "$REL_BRANCH" != "$TARGET" ]; then
+              echo "ERROR: version $VERSION (line $REL_BRANCH) does not belong to" \
+                "branch $TARGET — pyproject.toml is inconsistent with the branch name."
+              exit 1
+            fi
+          else
+            # New line: cut rel-X.Y from the trunk. It must not exist yet —
+            # if it does, the version on $TARGET was almost certainly not bumped.
+            if git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
+              echo "ERROR: release branch $REL_BRANCH already exists. Did you forget" \
+                "to bump the version on $TARGET? To hotfix the existing line, run" \
+                "this with target_branch=$REL_BRANCH instead."
+              exit 1
+            fi
+            git push origin "HEAD:refs/heads/$REL_BRANCH"
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT
