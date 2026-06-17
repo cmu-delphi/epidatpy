@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping, Sequence
 from datetime import date
 from io import StringIO
@@ -42,7 +43,7 @@ from ._parse import (
 CACHE_DIRECTORY = user_cache_dir(appname="epidatpy", appauthor="delphi")
 
 if environ.get("USE_EPIDATPY_CACHE", None):
-    print(
+    warnings.warn(
         f"diskcache is being used (unset USE_EPIDATPY_CACHE if not intended). "
         f"The cache directory is {CACHE_DIRECTORY}. "
         f"The TTL is set to {environ.get('EPIDATPY_CACHE_MAX_AGE_DAYS', '7')} days."
