@@ -28,7 +28,6 @@ EpiRangeLike = Union[int, str, "EpiRange", EpiRangeDict, date, Week]
 EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
 StringParam = Union[str, Sequence[str]]
 IntParam = Union[int, Sequence[int]]
-ParamType = Union[StringParam, IntParam, EpiRangeParam]
 
 
 class EpiDataResponse(TypedDict):
