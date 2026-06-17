@@ -127,15 +127,11 @@ class EpiDataCall:
             if use_cache is not None
             else (environ.get("USE_EPIDATPY_CACHE", "").lower() in ["true", "t", "1"])
         )
-        if cache_max_age_days:
+        if cache_max_age_days is not None:
             self.cache_max_age_days = cache_max_age_days
         else:
             env_days = environ.get("EPIDATPY_CACHE_MAX_AGE_DAYS", "7")
             self.cache_max_age_days = int(env_days) if env_days.isdigit() else 7
-
-    def _verify_parameters(self) -> None:
-        # hook for verifying parameters before sending
-        pass
 
     def _formatted_parameters(
         self,
@@ -160,7 +156,6 @@ class EpiDataCall:
         fields: Sequence[str] | None = None,
     ) -> str:
         """Format this call into a full HTTP request url with encoded parameters."""
-        self._verify_parameters()
         u, p = self.request_arguments(fields)
         query = urlencode(p)
         if query:
@@ -253,7 +248,6 @@ class EpiDataCall:
         disable_type_parsing: bool | None = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
-        self._verify_parameters()
         try:
             if self.use_cache:
                 with Cache(CACHE_DIRECTORY) as cache:
@@ -297,7 +291,6 @@ class EpiDataCall:
         """Request and parse epidata as a pandas data frame"""
         if self.only_supports_classic:
             raise OnlySupportsClassicFormatException()
-        self._verify_parameters()
 
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:

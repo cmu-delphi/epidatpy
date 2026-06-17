@@ -10,6 +10,7 @@ from typing import (
     Literal,
     TypedDict,
     Union,
+    cast,
 )
 
 if TYPE_CHECKING:
@@ -64,7 +65,10 @@ def format_item(value: EpiRangeLike) -> str:
 def format_list(values: EpiRangeParam) -> str:
     """Turn a list/tuple of values/ranges into a comma-separated string."""
     if isinstance(values, Sequence) and not isinstance(values, str):
-        return ",".join([format_item(value) for value in values])
+        # ty drops the element type when narrowing a Sequence via isinstance,
+        # widening it to `object`; cast restores what we already know here.
+        seq = cast("Sequence[EpiRangeLike]", values)
+        return ",".join([format_item(value) for value in seq])
     return format_item(values)
 
 
