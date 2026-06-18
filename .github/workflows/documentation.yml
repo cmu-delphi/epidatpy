@@ -4,6 +4,9 @@ on:
   push:
     tags:
       - "v*"
+  # Manual rebuild/redeploy of the docs from any ref picked in "Use workflow
+  # from" — handy if a tag-triggered run failed or docs need a refresh.
+  workflow_dispatch:
 
 permissions:
   contents: write
