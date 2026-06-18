@@ -19,14 +19,14 @@ name: Create Release
 #   the version, checks it belongs to this branch, tags vX.Y.Z. The branch must
 #   already exist — cut the line with a release from dev first.
 on:
+  # The branch to release from is the one picked in the native "Use workflow
+  # from" dropdown (github.ref_name): dev (or another trunk) cuts a new rel-X.Y
+  # line; a rel-X.Y branch cuts a hotfix. There is deliberately no separate
+  # branch input — it would duplicate that dropdown and could disagree with it.
   workflow_dispatch:
     inputs:
-      target_branch:
-        description: "Branch to release from: dev (or other trunk) cuts a new rel-X.Y line; a rel-X.Y branch cuts a hotfix"
-        required: true
-        default: dev
       version_bumped:
-        description: "Confirm the version in pyproject.toml was already bumped (in a merged PR) on the target branch"
+        description: "Confirm the version in pyproject.toml was already bumped (in a merged PR) on the selected branch"
         required: true
         type: boolean
         default: false
@@ -50,12 +50,12 @@ jobs:
         if: ${{ !inputs.version_bumped }}
         run: |
           echo "ERROR: version_bumped is false. Bump the version in pyproject.toml"
-          echo "via a merged PR on '${{ inputs.target_branch }}' first, then re-run."
+          echo "via a merged PR on '${{ github.ref_name }}' first, then re-run."
           exit 1
-      - name: Checkout target branch
+      - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_branch }}
+          # No ref: — defaults to the branch picked in "Use workflow from".
           fetch-depth: 0
           ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
       - name: Install uv
@@ -65,7 +65,7 @@ jobs:
       - name: Resolve version and manage release branch
         id: version
         run: |
-          TARGET="${{ inputs.target_branch }}"
+          TARGET="${{ github.ref_name }}"
           VERSION=$(uv version --short)
           REL_BRANCH="rel-${VERSION%.*}"
           echo "Target branch: $TARGET, version: $VERSION, release line: $REL_BRANCH"
@@ -89,8 +89,8 @@ jobs:
             # if it does, the version on $TARGET was almost certainly not bumped.
             if git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
               echo "ERROR: release branch $REL_BRANCH already exists. Did you forget" \
-                "to bump the version on $TARGET? To hotfix the existing line, run" \
-                "this with target_branch=$REL_BRANCH instead."
+                "to bump the version on $TARGET? To hotfix the existing line, re-run" \
+                "this workflow from $REL_BRANCH (select it in 'Use workflow from')."
               exit 1
             fi
             git push origin "HEAD:refs/heads/$REL_BRANCH"
