@@ -374,6 +374,75 @@ class TestEpidataCalls:
         assert str(data["epiweek"].dtype) == "string"
         assert str(data["value"].dtype) == "Float64"
 
+    def test_pub_rvdss(self) -> None:
+        # pylint: disable=too-many-statements
+        apicall = EpiDataContext().pub_rvdss(
+            geo_type="province",
+            geo_values=["yu", "on"],
+            time_values=EpiRange(20200601, 20200801),
+        )
+        data = apicall.df()
+
+        assert len(data) > 0
+
+        apicall = EpiDataContext().pub_rvdss(
+            geo_type="region",
+            geo_values="*",
+            time_values=EpiRange(20200601, 20200801),
+        )
+        data = apicall.df()
+
+        assert len(data) > 0
+
+        assert str(data["geo_type"].dtype) == "string"
+        assert str(data["geo_value"].dtype) == "string"
+        assert str(data["region"].dtype) == "string"
+        assert str(data["time_type"].dtype) == "string"
+        assert str(data["epiweek"].dtype) == "Int64"
+        assert str(data["time_value"].dtype) == "datetime64[ns]"
+        assert str(data["issue"].dtype) == "datetime64[ns]"
+        assert str(data["week"].dtype) == "Int64"
+        assert str(data["weekorder"].dtype) == "Int64"
+        assert str(data["year"].dtype) == "Int64"
+        assert str(data["adv_pct_positive"].dtype) == "Float64"
+        assert str(data["adv_positive_tests"].dtype) == "Float64"
+        assert str(data["adv_tests"].dtype) == "Float64"
+        assert str(data["evrv_pct_positive"].dtype) == "Float64"
+        assert str(data["evrv_positive_tests"].dtype) == "Float64"
+        assert str(data["evrv_tests"].dtype) == "Float64"
+        assert str(data["flu_pct_positive"].dtype) == "Float64"
+        assert str(data["flu_positive_tests"].dtype) == "Float64"
+        assert str(data["flu_tests"].dtype) == "Float64"
+        assert str(data["flua_pct_positive"].dtype) == "Float64"
+        assert str(data["flua_positive_tests"].dtype) == "Float64"
+        assert str(data["flua_tests"].dtype) == "Float64"
+        assert str(data["fluah1n1pdm09_positive_tests"].dtype) == "Float64"
+        assert str(data["fluah3_positive_tests"].dtype) == "Float64"
+        assert str(data["fluauns_positive_tests"].dtype) == "Float64"
+        assert str(data["flub_pct_positive"].dtype) == "Float64"
+        assert str(data["flub_positive_tests"].dtype) == "Float64"
+        assert str(data["flub_tests"].dtype) == "Float64"
+        assert str(data["hcov_pct_positive"].dtype) == "Float64"
+        assert str(data["hcov_positive_tests"].dtype) == "Float64"
+        assert str(data["hcov_tests"].dtype) == "Float64"
+        assert str(data["hmpv_pct_positive"].dtype) == "Float64"
+        assert str(data["hmpv_positive_tests"].dtype) == "Float64"
+        assert str(data["hmpv_tests"].dtype) == "Float64"
+        assert str(data["hpiv1_positive_tests"].dtype) == "Float64"
+        assert str(data["hpiv2_positive_tests"].dtype) == "Float64"
+        assert str(data["hpiv3_positive_tests"].dtype) == "Float64"
+        assert str(data["hpiv4_positive_tests"].dtype) == "Float64"
+        assert str(data["hpiv_pct_positive"].dtype) == "Float64"
+        assert str(data["hpiv_positive_tests"].dtype) == "Float64"
+        assert str(data["hpiv_tests"].dtype) == "Float64"
+        assert str(data["hpivother_positive_tests"].dtype) == "Float64"
+        assert str(data["rsv_pct_positive"].dtype) == "Float64"
+        assert str(data["rsv_positive_tests"].dtype) == "Float64"
+        assert str(data["rsv_tests"].dtype) == "Float64"
+        assert str(data["sarscov2_pct_positive"].dtype) == "Float64"
+        assert str(data["sarscov2_positive_tests"].dtype) == "Float64"
+        assert str(data["sarscov2_tests"].dtype) == "Float64"
+
     @pytest.mark.skipif(not secret_sensors, reason="Sensors key not available.")
     def test_pvt_sensors(self) -> None:
         apicall = EpiDataContext().pvt_sensors(
