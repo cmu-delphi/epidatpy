@@ -377,4 +377,10 @@ class EpiDataCall:
             geo_values, reference_time, report_time = self._post_filter
             df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
 
+        if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
+            # Lets `EpiDataContext.epidata_aux()` recover the source/kind from a
+            # materialized snapshot/archive result and merge aux data onto it.
+            df.attrs["cast_source"] = self._params.get("source")
+            df.attrs["cast_kind"] = "snapshot" if self._endpoint == "snapshot/" else "archive"
+
         return df

@@ -10,6 +10,7 @@ from typing import (
 )
 
 from epiweeks import Week
+from pandas import DataFrame, Timedelta, merge_asof
 from requests import Session
 
 from ._call import EpiDataCall, _request_with_retry
@@ -38,6 +39,44 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
         if time_type == "week":
             return EpiRange("100001", "300001")
     return time_value
+
+
+def _format_key_filter_value(value: Any) -> str:
+    """Format a single filter value for the cast-API `filtered_keys` term.
+
+    Dates serialize as `YYYY-MM-DD` (the raw DB column format), not the
+    `YYYYMMDD` used elsewhere for classic-API date params.
+    """
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+    return str(value)
+
+
+def _serialize_key_filters(key_filters: Mapping[str, Any], max_vals: int = 10) -> str | None:
+    """Serialize named key filters into the cast-API `key:value` term string.
+
+    The backend takes multiple filters per key as repeated `key:value` terms in a
+    single query param, so ``{"pcr_target": ["a", "b"], "geo_value": "ca"}``
+    becomes ``"pcr_target:a,pcr_target:b,geo_value:ca"``. Returns `None` for no
+    filters.
+    """
+    if not key_filters:
+        return None
+    terms: list[str] = []
+    over: list[str] = []
+    for key, vals in key_filters.items():
+        values = vals if isinstance(vals, Sequence) and not isinstance(vals, str) else [vals]
+        if len(values) > max_vals:
+            over.append(key)
+        terms.extend(f"{key}:{_format_key_filter_value(v)}" for v in values)
+    if over:
+        has = "has" if len(over) == 1 else "have"
+        names = ", ".join(f"`{k}`" for k in over)
+        warnings.warn(
+            f"{names} {has} more than {max_vals} values; the request URL may be too long.",
+            UserWarning,
+        )
+    return ",".join(terms)
 
 
 class EpiDataContext:
@@ -1712,6 +1751,178 @@ class EpiDataContext:
             snapshot_date=snapshot_date,
         )
 
+    def epidata_aux(
+        self,
+        source: str | DataFrame,
+        *,
+        reference_time: EpiRangeParam = "*",
+        report_time: str | date | EpiRange | None = "*",
+        columns: Sequence[str] | None = None,
+        **key_filters: str | date | Sequence[str | date],
+    ) -> EpiDataCall | DataFrame:
+        """Fetch V5 auxiliary data associated with a cast-API signal.
+
+        Auxiliary data is time-varying metadata attached to a cast source (e.g.
+        nwss sample-site descriptors). Pass a source string for a direct pull
+        from the ``/aux_data/`` endpoint, or a ``DataFrame`` already fetched via
+        :meth:`epidata_snapshot` or :meth:`epidata_archive` (i.e. its ``.df()``
+        result) to merge the matching auxiliary data onto it -- the source is
+        recovered automatically from the DataFrame.
+
+        For the auxiliary key columns and their allowed values, see the
+        source's API docs, e.g. `NWSS
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/nwss.html>`__.
+
+        Parameters
+        ----------
+        source : Union[str, DataFrame]
+            A source string to fetch auxiliary data directly, or a DataFrame
+            returned by :meth:`epidata_snapshot` or :meth:`epidata_archive` to
+            merge the data onto.
+        reference_time : EpiRangeParam
+            Reference time to return. Supports :class:`~epidatpy.EpiRange` and
+            defaults to all ("*"). Base-pull mode only (when `source` is a string).
+        report_time : Union[str, date, EpiRange, None]
+            Version of the auxiliary data to retrieve. Base-pull mode only
+            (when `source` is a string).
+        columns : Sequence[str], optional
+            Columns to return. By default, all columns are returned.
+        **key_filters : Union[str, date, Sequence[Union[str, date]]]
+            Named filters on the auxiliary key columns, such as
+            ``pcr_target="sars-cov-2"`` or ``geo_value=["ca", "ny"]``. Each key
+            accepts one or more values (matched as OR); they are serialized as
+            repeated `key:value` terms server-side to keep the aux pull small.
+            A date value serializes as ``YYYY-MM-DD``. Passing more than 10
+            values for a key warns, since the request URL may get too long. In
+            merge mode, when no filters are given, they are inferred from
+            `source`: each key it narrows to at most 10 distinct values is
+            filtered to those.
+
+        Returns
+        -------
+        Union[EpiDataCall, DataFrame]
+            A lazy :class:`EpiDataCall` for a base pull, or the merged
+            :class:`DataFrame` when `source` is a DataFrame.
+
+        See Also
+        --------
+        epidata_snapshot, epidata_archive, epidata_meta
+        """
+        if isinstance(source, DataFrame):
+            if reference_time != "*" or report_time != "*":
+                raise InvalidArgumentException(
+                    "`reference_time` and `report_time` are not supported when `source` is a DataFrame; "
+                    "they are derived from its own version."
+                )
+            return self._epidata_aux_merge(source, columns=columns, key_filters=key_filters)
+
+        return self._create_call(
+            "aux_data/",
+            {
+                "source": source,
+                "report_time_query": validate_report_time_query(report_time),
+                "filtered_keys": _serialize_key_filters(key_filters),
+                "columns": format_list(columns) if columns else None,
+            },
+            _aux_fields(),
+            api_version="cast",
+            post_filter=("*", reference_time, report_time if isinstance(report_time, EpiRange) else None),
+        )
+
+    def _aux_key_columns(self, source: str) -> Sequence[str]:
+        """Fetch the declared aux key columns for `source` from `metadata/aux_schema/`."""
+        url = add_endpoint_to_url(self._cast_base_url, "metadata/aux_schema/")
+        response = _request_with_retry(url, {"source": source}, self._session, stream=False, api_version="cast")
+        response.raise_for_status()
+        schema: Mapping[str, Mapping[str, Sequence[str]]] = response.json()
+        return schema.get(source, {}).get("key_columns", [])
+
+    def _epidata_aux_merge(
+        self,
+        base: DataFrame,
+        *,
+        columns: Sequence[str] | None,
+        key_filters: Mapping[str, Any],
+    ) -> DataFrame:
+        """Version-aware left join of auxiliary data onto a snapshot/archive result."""
+        src = base.attrs.get("cast_source")
+        if src is None:
+            raise InvalidArgumentException(
+                "`source` is a DataFrame but not a tagged cast-API output; "
+                "pass the result of `epidata_snapshot()` or `epidata_archive()`."
+            )
+        if len(base) == 0:
+            return base
+
+        ver = "report_time"
+        key_columns = self._aux_key_columns(src)
+        keys = [k for k in key_columns if k in base.columns and k != ver]
+        if not keys:
+            raise InvalidArgumentException("No shared key columns between base data and aux data. It cannot be merged.")
+        if columns is not None:
+            dropped = [k for k in keys if k not in columns]
+            if dropped:
+                names = ", ".join(f"`{k}`" for k in dropped)
+                raise InvalidArgumentException(f"`columns` excludes key column(s) {names} needed to merge.")
+
+        if key_filters:
+            unknown = [k for k in key_filters if k not in keys]
+            if unknown:
+                is_are = "is" if len(unknown) == 1 else "are"
+                names = ", ".join(f"`{k}`" for k in unknown)
+                warnings.warn(
+                    f"Filter(s) {names} {is_are} not aux key column(s) in the base.",
+                    UserWarning,
+                )
+            filters: Mapping[str, Any] = key_filters
+        else:
+            # Pin each key the base narrows to a small set (<= 10 distinct values).
+            inferred: dict[str, Any] = {}
+            for k in keys:
+                uniq = base[k].dropna().unique().tolist()
+                if len(uniq) <= 10:
+                    inferred[k] = uniq
+            filters = inferred
+
+        # Never need aux versions newer than the newest base report_time.
+        if ver in base.columns and base[ver].notna().any():
+            cutoff = base[ver].max() + Timedelta(days=1)
+            report_cut = f"<{cutoff.strftime('%Y-%m-%d')}"
+        else:
+            report_cut = "*"
+
+        aux = self.epidata_aux(src, report_time=report_cut, columns=columns, **filters).df()
+
+        value_cols = [c for c in aux.columns if c not in base.columns and c != ver]
+        if not value_cols or aux.empty:
+            return base
+
+        # Match each base row to the newest aux version at or before its own
+        # version (or the base's overall latest version, for a single-version
+        # snapshot), per key -- never clobbering existing base columns.
+        result = base.copy()
+        match_time = base[ver].max() if base.attrs.get("cast_kind") == "snapshot" else base[ver]
+        result["_aux_match_time"] = match_time
+        ordered = result.sort_values("_aux_match_time").reset_index()
+        aux_sorted = aux[[*keys, ver, *value_cols]].sort_values(ver)
+
+        merged = (
+            merge_asof(
+                ordered,
+                aux_sorted,
+                left_on="_aux_match_time",
+                right_on=ver,
+                by=keys,
+                direction="backward",
+            )
+            .set_index("index")
+            .sort_index()
+        )
+
+        for col in value_cols:
+            result[col] = merged[col]
+        return result.drop(columns="_aux_match_time")
+
 
 def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
     """Fields for CAST snapshot/archive responses; extras are skipped if absent."""
@@ -1728,4 +1939,20 @@ def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
         EpidataFieldInfo("nwss_source", EpidataFieldType.text),  # nwss
         EpidataFieldInfo("sample_index", EpidataFieldType.text),  # nwss
         EpidataFieldInfo("pcr_target", EpidataFieldType.text),  # nwss
+    ]
+
+
+def _aux_fields() -> Sequence[EpidataFieldInfo]:
+    """Fields for `/aux_data/` responses.
+
+    Only the aux key columns are typed (nwss's schema); value columns come
+    through untyped (as strings). Extend for new aux sources whose keys differ.
+    """
+    return [
+        EpidataFieldInfo("report_time", EpidataFieldType.date),
+        EpidataFieldInfo("geo_value", EpidataFieldType.text),
+        EpidataFieldInfo("reference_time", EpidataFieldType.date),
+        EpidataFieldInfo("nwss_source", EpidataFieldType.text),
+        EpidataFieldInfo("sample_index", EpidataFieldType.text),
+        EpidataFieldInfo("pcr_target", EpidataFieldType.text),
     ]
