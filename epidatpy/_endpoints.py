@@ -40,6 +40,17 @@ def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal[
     return time_value
 
 
+def _warn_v4_sunset(fn_name: str) -> None:
+    warnings.warn(
+        f"`{fn_name}` uses the V4 Epidata API. Starting in October 2026, V4 is "
+        "tentatively deprecated in favor of the V5 API. See the migration guide "
+        "(https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 "
+        "endpoints and how to move to them.",
+        UserWarning,
+        stacklevel=2,
+    )
+
+
 class EpiDataContext:
     """Endpoint catalog and synchronous fetcher for Delphi's Epidata API."""
 
@@ -510,6 +521,16 @@ class EpiDataContext:
     def pub_covidcast_meta(self) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>
 
         Obtains a data frame of metadata describing all publicly available data
@@ -576,6 +597,8 @@ class EpiDataContext:
             ``max_lag``
                 Largest lag from observation to issue, in days.
         """
+        _warn_v4_sunset("pub_covidcast_meta")
+
         return self._create_call(
             "covidcast_meta/",
             {},
@@ -615,6 +638,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch Delphi's COVID-19 Surveillance Streams.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>
 
         The primary endpoint for fetching COVID-19 data, providing access to a wide
@@ -652,6 +685,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``as_of`` and ``issues``.
         """
+        _warn_v4_sunset("pub_covidcast")
+
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
@@ -833,6 +868,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch CDC FluSurv flu hospitalizations.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>
 
         Obtain information on influenza hospitalization rates from the Center of Disease
@@ -857,6 +902,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _warn_v4_sunset("pub_flusurv")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -984,6 +1031,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch CDC FluView ILINet outpatient doctor visits.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>
 
         Obtains information on outpatient inluenza-like-illness (ILI) from U.S.
@@ -1012,6 +1069,8 @@ class EpiDataContext:
         auth : str, optional
             Private API key.
         """
+        _warn_v4_sunset("pub_fluview")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1397,6 +1456,16 @@ class EpiDataContext:
     def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Quidel data.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>
 
         Requires a private API key.
@@ -1414,6 +1483,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _warn_v4_sunset("pvt_quidel")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1660,7 +1731,7 @@ class EpiDataContext:
                 "signal": signal_str,
                 "geo_type": geo_type,
                 "fill_method": fill_method,
-                "report_time": report_time_str,
+                "report_time_query": report_time_str,
             },
             _cast_signal_fields(),
             api_version="cast",
