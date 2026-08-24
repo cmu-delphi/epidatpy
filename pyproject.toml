@@ -66,6 +66,9 @@ lint.extend-select = [
     "I",  # isort
     "UP", # pyupgrade
 ]
+# The API deals in naive civil dates (e.g. "20210101"), not timestamps, so
+# `datetime.strptime()` without a timezone is intentional here.
+lint.per-file-ignores = { "epidatpy/_parse.py" = ["DTZ007"] }
 
 [tool.pytest.ini_options]
 markers = [
