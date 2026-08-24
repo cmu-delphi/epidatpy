@@ -2,12 +2,12 @@
 
 # Make the linter happy about the unused variables
 __all__ = [
-    "__version__",
-    "available_endpoints",
-    "EpiDataContext",
     "CovidcastEpidata",
+    "EpiDataContext",
     "EpiRange",
     "InvalidArgumentException",
+    "__version__",
+    "available_endpoints",
 ]
 __author__ = "Delphi Research Group"
 

@@ -1,3 +1,6 @@
+# The API deals in naive civil dates (e.g. "20210101"), not timestamps, so
+# `datetime.strptime()` without a timezone is intentional throughout this file.
+# ruff: noqa: DTZ007
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
@@ -10,7 +13,7 @@ if TYPE_CHECKING:
     from ._model import EpiRange
 
 
-def parse_api_date(value: str | int | float | None) -> date | None:
+def parse_api_date(value: str | float | None) -> date | None:
     if value is None:
         return value
     v = str(value)
@@ -21,13 +24,13 @@ def parse_api_date(value: str | int | float | None) -> date | None:
     return d
 
 
-def parse_api_week(value: str | int | float | None) -> date | None:
+def parse_api_week(value: str | float | None) -> date | None:
     if value is None:
         return None
     return Week.fromstring(str(value)).startdate()
 
 
-def parse_api_date_or_week(value: str | int | float | None) -> date | None:
+def parse_api_date_or_week(value: str | float | None) -> date | None:
     if value is None:
         return None
     v = str(value)
@@ -41,7 +44,7 @@ def parse_api_date_or_week(value: str | int | float | None) -> date | None:
 
 
 def parse_user_date_or_week(
-    value: str | int | date | Week, out_type: Literal["day", "week", None] = None
+    value: str | int | date | Week, out_type: Literal["day", "week"] | None = None
 ) -> date | Week:
     if isinstance(value, Week):
         if out_type == "day":
