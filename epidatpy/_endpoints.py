@@ -964,6 +964,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch CDC FluView flu tests from clinical labs.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>
 
         Parameters
@@ -983,6 +993,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _warn_v4_sunset("pub_fluview_clinical")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
