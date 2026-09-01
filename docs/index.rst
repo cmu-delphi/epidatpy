@@ -39,6 +39,8 @@ Documentation Contents
 
    versioned_data
 
+   migration_guide
+
    epidatpy
 
 .. note :: **You should consider subscribing** to the `API mailing list
