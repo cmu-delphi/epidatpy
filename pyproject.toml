@@ -14,7 +14,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "epidatpy"
-version = "0.5.1"
+version = "0.6.0"
 description = "A programmatic interface to Delphi's Epidata API."
 readme = "README.md"
 license = { file = "LICENSE" }
