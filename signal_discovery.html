@@ -1,0 +1,5695 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Finding data of interest &#8212; epidatpy 0.6.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <script src="_static/documentation_options.js?v=8fa8b3e9"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Accessing versioned data" href="versioned_data.html" />
+    <link rel="prev" title="Getting started" href="getting_started.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="finding-data-of-interest">
+<h1>Finding data of interest<a class="headerlink" href="#finding-data-of-interest" title="Link to this heading">¶</a></h1>
+<p>The Epidata API includes numerous data streams – medical claims data, cases and
+deaths, mobility, and many others – covering different geographic regions. This
+can make it a challenge to find the data stream that you are most interested in.
+This page will provide some advice on how to locate donate that may be useful to
+you.</p>
+<section id="using-the-delphi-epidata-api-documentation">
+<h2>Using the Delphi Epidata API documentation<a class="headerlink" href="#using-the-delphi-epidata-api-documentation" title="Link to this heading">¶</a></h2>
+<p>The Delphi Epidata API documentation lists all the available data sources and
+signals for
+<a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">COVID-19</a>
+and for <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/README.html#source-specific-parameters">other
+diseases</a>.
+The site also includes a search tool if you have a keyword (e.g. “Taiwan”) in
+mind. Generally, any endpoint listed in the Delphi Epidata API has an associated
+function in this client where its API endpoint name is prefixed with either
+<code class="docutils literal notranslate"><span class="pre">pub_</span></code> or <code class="docutils literal notranslate"><span class="pre">pvt_</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code> or <code class="docutils literal notranslate"><span class="pre">pvt_twitter</span></code>.</p>
+</section>
+<section id="epidata-data-sources">
+<h2>Epidata data sources<a class="headerlink" href="#epidata-data-sources" title="Link to this heading">¶</a></h2>
+<p>The parameters available for each source data are documented in each linked
+source-specific API page. The epidatpy client will also expect certain fields,
+depending on the endpoint, though the Delphi Epidata API documentation will
+contain more information about the accepted ranges of values for each field.</p>
+<p>A dynamically generated list of all available data sources can be obtained by
+using the built-in <code class="docutils literal notranslate"><span class="pre">available_endpoints()</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTML</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">available_endpoints</span>
+
+<span class="n">table</span> <span class="o">=</span> <span class="n">available_endpoints</span><span class="p">()</span>
+<span class="n">HTML</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">to_html</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Endpoint</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>pub_covid_hosp_facility</td>
+      <td>Fetch COVID hospitalizations by facility.</td>
+    </tr>
+    <tr>
+      <td>pub_covid_hosp_facility_lookup</td>
+      <td>Helper for finding COVID hospitalization facilities.</td>
+    </tr>
+    <tr>
+      <td>pub_covid_hosp_state_timeseries</td>
+      <td>Fetch COVID hospitalizations by state.</td>
+    </tr>
+    <tr>
+      <td>pub_covidcast</td>
+      <td>Fetch Delphi's COVID-19 Surveillance Streams.</td>
+    </tr>
+    <tr>
+      <td>pub_covidcast_meta</td>
+      <td>Fetch COVIDcast surveillance stream metadata.</td>
+    </tr>
+    <tr>
+      <td>pub_delphi</td>
+      <td>Fetch Delphi's ILINet outpatient doctor visits forecasts.</td>
+    </tr>
+    <tr>
+      <td>pub_dengue_nowcast</td>
+      <td>Fetch Delphi's PAHO dengue nowcasts (North and South America).</td>
+    </tr>
+    <tr>
+      <td>pub_ecdc_ili</td>
+      <td>Fetch ECDC ILI incidence (Europe).</td>
+    </tr>
+    <tr>
+      <td>pub_flusurv</td>
+      <td>Fetch CDC FluSurv flu hospitalizations.</td>
+    </tr>
+    <tr>
+      <td>pub_fluview</td>
+      <td>Fetch CDC FluView ILINet outpatient doctor visits.</td>
+    </tr>
+    <tr>
+      <td>pub_fluview_clinical</td>
+      <td>Fetch CDC FluView flu tests from clinical labs.</td>
+    </tr>
+    <tr>
+      <td>pub_fluview_meta</td>
+      <td>Fetch Metadata for the FluView endpoint.</td>
+    </tr>
+    <tr>
+      <td>pub_gft</td>
+      <td>Fetch Google Flu Trends flu search volume.</td>
+    </tr>
+    <tr>
+      <td>pub_kcdc_ili</td>
+      <td>Fetch KCDC ILI incidence (Korea).</td>
+    </tr>
+    <tr>
+      <td>pub_meta</td>
+      <td>Fetch API metadata.</td>
+    </tr>
+    <tr>
+      <td>pub_nidss_dengue</td>
+      <td>Fetch NIDSS dengue data (Taiwan).</td>
+    </tr>
+    <tr>
+      <td>pub_nidss_flu</td>
+      <td>Fetch NIDSS flu data (Taiwan).</td>
+    </tr>
+    <tr>
+      <td>pub_nowcast</td>
+      <td>Fetch Delphi's wILI nowcast.</td>
+    </tr>
+    <tr>
+      <td>pub_paho_dengue</td>
+      <td>Fetch PAHO Dengue data.</td>
+    </tr>
+    <tr>
+      <td>pub_wiki</td>
+      <td>Fetch Wikipedia access data.</td>
+    </tr>
+    <tr>
+      <td>pvt_cdc</td>
+      <td>Fetch CDC total and by topic webpage visits.</td>
+    </tr>
+    <tr>
+      <td>pvt_dengue_sensors</td>
+      <td>Fetch PAHO dengue digital surveillance sensors (North and South America).</td>
+    </tr>
+    <tr>
+      <td>pvt_ght</td>
+      <td>Fetch Google Health Trends data.</td>
+    </tr>
+    <tr>
+      <td>pvt_meta_norostat</td>
+      <td>Fetch NoroSTAT metadata.</td>
+    </tr>
+    <tr>
+      <td>pvt_norostat</td>
+      <td>Fetch NoroSTAT data (point data, no min/max).</td>
+    </tr>
+    <tr>
+      <td>pvt_quidel</td>
+      <td>Fetch Quidel data.</td>
+    </tr>
+    <tr>
+      <td>pvt_sensors</td>
+      <td>Fetch Delphi's digital surveillance sensors.</td>
+    </tr>
+    <tr>
+      <td>pvt_twitter</td>
+      <td>Fetch HealthTweets data.</td>
+    </tr>
+  </tbody>
+</table></div></div>
+</div>
+</section>
+<section id="covidcast-source-and-signal-metadata">
+<h2>Covidcast source and signal metadata<a class="headerlink" href="#covidcast-source-and-signal-metadata" title="Link to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">CovidcastEpidata</span></code> class provides a way to access information about the data
+in the <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code> endpoint directly from within the client. The cell below
+demonstrates how to access this metadata by using <code class="docutils literal notranslate"><span class="pre">source_df</span></code> property, which
+returns a Pandas DataFrame of metadata describing all data streams publically
+accessible from the COVIDcast endpoint of the Delphi Epidata API. This mirrors
+the information found in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">COVIDcast signals
+endpoint</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">CovidcastEpidata</span>
+
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">CovidcastEpidata</span><span class="p">()</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">source_df</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>name</th>
+      <th>description</th>
+      <th>reference_signal</th>
+      <th>license</th>
+      <th>dua</th>
+      <th>signals</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>chng</td>
+      <td>Change Healthcare</td>
+      <td>Change Healthcare is a healthcare technology c...</td>
+      <td>smoothed_outpatient_cli</td>
+      <td>CC BY-NC</td>
+      <td>https://cmu.box.com/s/cto4to822zecr3oyq1kkk9xm...</td>
+      <td>smoothed_outpatient_cli,smoothed_adj_outpatien...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>covid-act-now</td>
+      <td>Covid Act Now (CAN)</td>
+      <td>COVID Act Now (CAN) tracks COVID-19 testing st...</td>
+      <td>pcr_specimen_total_tests</td>
+      <td>CC BY-NC</td>
+      <td>NaN</td>
+      <td>pcr_specimen_positivity_rate,pcr_specimen_tota...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>doctor-visits</td>
+      <td>Doctor Visits From Claims</td>
+      <td>Information about outpatient visits, provided ...</td>
+      <td>smoothed_cli</td>
+      <td>CC BY</td>
+      <td>https://cmu.box.com/s/l2tz6kmiws6jyty2azwb43po...</td>
+      <td>smoothed_cli,smoothed_adj_cli</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>Delphi US COVID-19 Trends and Impact Survey</td>
+      <td>We conduct the Delphi US COVID-19 Trends and I...</td>
+      <td>smoothed_cli</td>
+      <td>CC BY</td>
+      <td>https://cmu.box.com/s/qfxplcdrcn9retfzx4zniyug...</td>
+      <td>raw_wcli,raw_cli,smoothed_cli,smoothed_wcli,ra...</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>google-symptoms</td>
+      <td>Google Symptoms Search Trends</td>
+      <td>Google's [COVID-19 Search Trends symptoms data...</td>
+      <td>s05_smoothed_search</td>
+      <td>To download or use the data, you must agree to...</td>
+      <td>NaN</td>
+      <td>ageusia_raw_search,ageusia_smoothed_search,ano...</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>nssp</td>
+      <td>National Syndromic Surveillance Program</td>
+      <td>The National Syndromic Surveillance Program (N...</td>
+      <td>pct_ed_visits_covid</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>NaN</td>
+      <td>pct_ed_visits_covid,pct_ed_visits_influenza,pc...</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>nhsn</td>
+      <td>National Healthcare Safety Network</td>
+      <td>The National Healthcare Safety Network (NHSN) ...</td>
+      <td>confirmed_admissions_covid_ew</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>NaN</td>
+      <td>confirmed_admissions_covid_ew,hosprep_confirme...</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>beta_google_symptoms</td>
+      <td>BETA Google Symptoms Search Trends</td>
+      <td>BETA Google's [COVID-19 Search Trends symptoms...</td>
+      <td>s05_smoothed_search</td>
+      <td>To download or use the data, you must agree to...</td>
+      <td>NaN</td>
+      <td>s01_raw_search,s01_smoothed_search,s02_raw_sea...</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>beta_nssp</td>
+      <td>BETA National Syndromic Surveillance Program</td>
+      <td>BETA The National Syndromic Surveillance Progr...</td>
+      <td>pct_ed_visits_covid</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>NaN</td>
+      <td>pct_ed_visits_covid,pct_ed_visits_influenza,pc...</td>
+    </tr>
+    <tr>
+      <th>21</th>
+      <td>beta_nssp_github</td>
+      <td>BETA National Syndromic Surveillance Program (...</td>
+      <td>BETA The National Syndromic Surveillance Progr...</td>
+      <td>pct_ed_visits_covid</td>
+      <td>[Public Domain US Government](https://www.usa....</td>
+      <td>NaN</td>
+      <td>pct_ed_visits_covid,pct_ed_visits_influenza,pc...</td>
+    </tr>
+  </tbody>
+</table>
+<p>22 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p>This DataFrame contains the following columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> - API-internal source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - Human-readable source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - Description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reference_signal</span></code> - Geographic level for which this signal is available, such as county, state, msa, hss, hrr, or nation. Most signals are available at multiple geographic levels and will hence be listed in multiple rows with their own metadata.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">license</span></code> - The license.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dua</span></code> - Link to the Data Use Agreement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signals</span></code> - List of signals available from this data source.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">signal_df</span></code> DataFrame can also be used to obtain information about the signals
+that are available - for example, what time range they are available for,
+and when they have been updated.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">signal_df</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>name</th>
+      <th>active</th>
+      <th>short_description</th>
+      <th>description</th>
+      <th>time_type</th>
+      <th>time_label</th>
+      <th>value_label</th>
+      <th>format</th>
+      <th>category</th>
+      <th>high_values_are</th>
+      <th>is_smoothed</th>
+      <th>is_weighted</th>
+      <th>is_cumulative</th>
+      <th>has_stderr</th>
+      <th>has_sample_size</th>
+      <th>geo_types</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_cli</td>
+      <td>COVID-Related Doctor Visits</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>chng</td>
+      <td>smoothed_adj_outpatient_cli</td>
+      <td>COVID-Related Doctor Visits (Day-adjusted)</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_covid</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>False</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>chng</td>
+      <td>smoothed_adj_outpatient_covid</td>
+      <td>COVID-Confirmed Doctor Visits (Day-adjusted)</td>
+      <td>False</td>
+      <td>COVID-Confirmed Doctor Visits</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Date</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>chng</td>
+      <td>smoothed_outpatient_flu</td>
+      <td>Influenza-Confirmed Doctor Visits</td>
+      <td>False</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>Estimated percentage of outpatient doctor visi...</td>
+      <td>day</td>
+      <td>Day</td>
+      <td>Value</td>
+      <td>raw</td>
+      <td>early</td>
+      <td>bad</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>None</td>
+      <td>None</td>
+      <td>county,hhs,hrr,msa,nation,state</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>515</th>
+      <td>beta_nssp_github</td>
+      <td>pct_ed_visits_ari_fa</td>
+      <td>Emergency Department Visits for Acute Respirat...</td>
+      <td>False</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>hhs,hrr,msa</td>
+    </tr>
+    <tr>
+      <th>516</th>
+      <td>beta_nssp_github</td>
+      <td>pct_ed_visits_covid_fz</td>
+      <td>COVID Emergency Department Visits (Percent of ...</td>
+      <td>True</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>hhs,hrr,msa</td>
+    </tr>
+    <tr>
+      <th>517</th>
+      <td>beta_nssp_github</td>
+      <td>pct_ed_visits_influenza_fz</td>
+      <td>Influenza Emergency Department Visits (Percent...</td>
+      <td>True</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>hhs,hrr,msa</td>
+    </tr>
+    <tr>
+      <th>518</th>
+      <td>beta_nssp_github</td>
+      <td>pct_ed_visits_rsv_fz</td>
+      <td>RSV Emergency Department Visits (Percent of to...</td>
+      <td>True</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>hhs,hrr,msa</td>
+    </tr>
+    <tr>
+      <th>519</th>
+      <td>beta_nssp_github</td>
+      <td>pct_ed_visits_ari_fz</td>
+      <td>Emergency Department Visits for Acute Respirat...</td>
+      <td>False</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>Percent of ED visits that had a discharge diag...</td>
+      <td>week</td>
+      <td>Week</td>
+      <td>Percentage</td>
+      <td>percent</td>
+      <td>other</td>
+      <td>bad</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>False</td>
+      <td>hhs,hrr,msa</td>
+    </tr>
+  </tbody>
+</table>
+<p>520 rows × 18 columns</p>
+</div></div></div>
+</div>
+<p>This DataFrame contains one row each available signal, with the following columns:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">source</span></code> - Data source name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">signal</span></code> - API-internal signal name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name</span></code> - Human-readable signal name.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">active</span></code> - Whether the signal is currently not updated or not. Signals may be inactive because the sources have become unavailable, other sources have replaced them, or additional work is required for us to continue updating them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">short_description</span></code> - Brief description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> - Full description of the signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geo_types</span></code> - Spatial resolution of the signal (e.g., <code class="docutils literal notranslate"><span class="pre">county</span></code>, <code class="docutils literal notranslate"><span class="pre">hrr</span></code>, <code class="docutils literal notranslate"><span class="pre">msa</span></code>, <code class="docutils literal notranslate"><span class="pre">dma</span></code>, <code class="docutils literal notranslate"><span class="pre">state</span></code>). More detail about all <code class="docutils literal notranslate"><span class="pre">geo_types</span></code> is given in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html">geographic coding documentation</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_type</span></code> - Temporal resolution of the signal (e.g., day, week; see <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_times.html">date coding details</a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_label</span></code> - The time label (“Date”, “Week”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">value_label</span></code> - The value label (“Value”, “Percentage”, “Visits”, “Visits per 100,000 people”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">format</span></code> - The value format (“per100k”, “percent”, “fraction”, “count”, “raw”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">category</span></code> - The signal category (“early”, “public”, “late”, “other”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">high_values_are</span></code>- What the higher value of signal indicates (“good”, “bad”, “neutral”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_smoothed</span></code> - Whether the signal is smoothed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_weighted</span></code> - Whether the signal is weighted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">is_cumulative</span></code> - Whether the signal is cumulative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">has_stderr</span></code> - Whether the signal has <code class="docutils literal notranslate"><span class="pre">stderr</span></code> statistic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">has_sample_size</span></code> - Whether the signal has <code class="docutils literal notranslate"><span class="pre">sample_size</span></code> statistic.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">geo_types</span></code> - Geographical levels for which this signal is available.</p></li>
+</ul>
+</section>
+<section id="example-queries">
+<h2>Example Queries<a class="headerlink" href="#example-queries" title="Link to this heading">¶</a></h2>
+<section id="main-endpoint">
+<h3>Main Endpoint<a class="headerlink" href="#main-endpoint" title="Link to this heading">¶</a></h3>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html">https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html</a></p>
+<p>County geo_values are <a class="reference external" href="https://en.wikipedia.org/wiki/List_of_United_States_FIPS_codes_by_county">FIPS codes</a> and are discussed in the API docs <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covidcast_geography.html">here</a>. The example below is for Orange County, California.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EpiDataContext</span><span class="p">,</span> <span class="n">EpiRange</span>
+<span class="c1"># Reuse existing context if available, but creating new one for standalone clarity</span>
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">EpiDataContext</span><span class="p">()</span>
+
+<span class="n">epidata</span><span class="o">.</span><span class="n">pub_covidcast</span><span class="p">(</span>
+  <span class="n">data_source</span><span class="o">=</span><span class="s2">"fb-survey"</span><span class="p">,</span>
+  <span class="n">signals</span><span class="o">=</span><span class="s2">"smoothed_accept_covid_vaccine"</span><span class="p">,</span>
+  <span class="n">geo_type</span><span class="o">=</span><span class="s2">"county"</span><span class="p">,</span>
+  <span class="n">time_type</span><span class="o">=</span><span class="s2">"day"</span><span class="p">,</span>
+  <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20201221</span><span class="p">,</span> <span class="mi">20201225</span><span class="p">),</span>
+  <span class="n">geo_values</span><span class="o">=</span><span class="s2">"06059"</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:708: UserWarning: `pub_covidcast` uses the V4 Epidata API. Starting in October 2026, V4 is tentatively deprecated in favor of the V5 API. See the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 endpoints and how to move to them.
+  _warn_v4_sunset("pub_covidcast")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>source</th>
+      <th>signal</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>time_type</th>
+      <th>time_value</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>value</th>
+      <th>stderr</th>
+      <th>sample_size</th>
+      <th>direction</th>
+      <th>missing_value</th>
+      <th>missing_stderr</th>
+      <th>missing_sample_size</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>fb-survey</td>
+      <td>smoothed_accept_covid_vaccine</td>
+      <td>county</td>
+      <td>06059</td>
+      <td>day</td>
+      <td>2020-12-21</td>
+      <td>2020-12-22</td>
+      <td>1</td>
+      <td>80.859972</td>
+      <td>2.083591</td>
+      <td>356.4932</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>fb-survey</td>
+      <td>smoothed_accept_covid_vaccine</td>
+      <td>county</td>
+      <td>06059</td>
+      <td>day</td>
+      <td>2020-12-22</td>
+      <td>2020-12-23</td>
+      <td>1</td>
+      <td>78.891717</td>
+      <td>1.761983</td>
+      <td>536.39</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>fb-survey</td>
+      <td>smoothed_accept_covid_vaccine</td>
+      <td>county</td>
+      <td>06059</td>
+      <td>day</td>
+      <td>2020-12-23</td>
+      <td>2020-12-24</td>
+      <td>1</td>
+      <td>80.031942</td>
+      <td>1.499166</td>
+      <td>711.0497</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>fb-survey</td>
+      <td>smoothed_accept_covid_vaccine</td>
+      <td>county</td>
+      <td>06059</td>
+      <td>day</td>
+      <td>2020-12-24</td>
+      <td>2020-12-25</td>
+      <td>1</td>
+      <td>79.265789</td>
+      <td>1.350678</td>
+      <td>900.8858</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>fb-survey</td>
+      <td>smoothed_accept_covid_vaccine</td>
+      <td>county</td>
+      <td>06059</td>
+      <td>day</td>
+      <td>2020-12-25</td>
+      <td>2020-12-26</td>
+      <td>1</td>
+      <td>80.32682</td>
+      <td>1.211601</td>
+      <td>1076.5045</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="other-covid-endpoints">
+<h3>Other Covid Endpoints<a class="headerlink" href="#other-covid-endpoints" title="Link to this heading">¶</a></h3>
+<section id="covid-19-hospitalization-facility-lookup">
+<h4>COVID-19 Hospitalization: Facility Lookup<a class="headerlink" href="#covid-19-hospitalization-facility-lookup" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility_lookup.html">https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility_lookup.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covid_hosp_facility_lookup</span><span class="p">(</span><span class="n">city</span><span class="o">=</span><span class="s2">"southlake"</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:221: UserWarning: `pub_covid_hosp_facility_lookup` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_covid_hosp_facility_lookup")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>hospital_pk</th>
+      <th>state</th>
+      <th>ccn</th>
+      <th>hospital_name</th>
+      <th>address</th>
+      <th>city</th>
+      <th>zip</th>
+      <th>hospital_subtype</th>
+      <th>fips_code</th>
+      <th>is_metro_micro</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>450888</td>
+      <td>TX</td>
+      <td>450888</td>
+      <td>TEXAS HEALTH HARRIS METHODIST HOSPITAL SOUTHLAKE</td>
+      <td>1545 E SOUTHLAKE BLVD</td>
+      <td>SOUTHLAKE</td>
+      <td>76092</td>
+      <td>Short Term</td>
+      <td>48439</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>670132</td>
+      <td>TX</td>
+      <td>670132</td>
+      <td>METHODIST SOUTHLAKE MEDICAL CENTER</td>
+      <td>421 E STATE HIGHWAY 114</td>
+      <td>SOUTHLAKE</td>
+      <td>76092</td>
+      <td>Short Term</td>
+      <td>48439</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="covid-19-hospitalization-by-facility">
+<h4>COVID-19 Hospitalization by Facility<a class="headerlink" href="#covid-19-hospitalization-by-facility" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html">https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp_facility.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covid_hosp_facility</span><span class="p">(</span>
+  <span class="n">hospital_pks</span><span class="o">=</span><span class="s2">"100075"</span><span class="p">,</span>
+  <span class="n">collection_weeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">20200101</span><span class="p">,</span> <span class="mi">20200501</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:279: UserWarning: `pub_covid_hosp_facility` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_covid_hosp_facility")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>hospital_pk</th>
+      <th>state</th>
+      <th>ccn</th>
+      <th>hospital_name</th>
+      <th>address</th>
+      <th>city</th>
+      <th>zip</th>
+      <th>hospital_subtype</th>
+      <th>fips_code</th>
+      <th>publication_date</th>
+      <th>collection_week</th>
+      <th>is_metro_micro</th>
+      <th>total_beds_7_day_sum</th>
+      <th>all_adult_hospital_beds_7_day_sum</th>
+      <th>all_adult_hospital_inpatient_beds_7_day_sum</th>
+      <th>inpatient_beds_used_7_day_sum</th>
+      <th>all_adult_hospital_inpatient_bed_occupied_7_day_sum</th>
+      <th>total_adult_patients_hosp_confirmed_suspected_covid_7d_sum</th>
+      <th>total_adult_patients_hospitalized_confirmed_covid_7_day_sum</th>
+      <th>total_pediatric_patients_hosp_confirmed_suspected_covid_7d_sum</th>
+      <th>total_pediatric_patients_hospitalized_confirmed_covid_7_day_sum</th>
+      <th>inpatient_beds_7_day_sum</th>
+      <th>total_icu_beds_7_day_sum</th>
+      <th>total_staffed_adult_icu_beds_7_day_sum</th>
+      <th>icu_beds_used_7_day_sum</th>
+      <th>staffed_adult_icu_bed_occupancy_7_day_sum</th>
+      <th>staffed_icu_adult_patients_confirmed_suspected_covid_7d_sum</th>
+      <th>staffed_icu_adult_patients_confirmed_covid_7_day_sum</th>
+      <th>total_patients_hospitalized_confirmed_influenza_7_day_sum</th>
+      <th>icu_patients_confirmed_influenza_7_day_sum</th>
+      <th>total_patients_hosp_confirmed_influenza_and_covid_7d_sum</th>
+      <th>total_beds_7_day_coverage</th>
+      <th>all_adult_hospital_beds_7_day_coverage</th>
+      <th>all_adult_hospital_inpatient_beds_7_day_coverage</th>
+      <th>inpatient_beds_used_7_day_coverage</th>
+      <th>all_adult_hospital_inpatient_bed_occupied_7_day_coverage</th>
+      <th>total_adult_patients_hosp_confirmed_suspected_covid_7d_cov</th>
+      <th>total_adult_patients_hospitalized_confirmed_covid_7_day_coverage</th>
+      <th>total_pediatric_patients_hosp_confirmed_suspected_covid_7d_cov</th>
+      <th>total_pediatric_patients_hosp_confirmed_covid_7d_cov</th>
+      <th>inpatient_beds_7_day_coverage</th>
+      <th>total_icu_beds_7_day_coverage</th>
+      <th>total_staffed_adult_icu_beds_7_day_coverage</th>
+      <th>icu_beds_used_7_day_coverage</th>
+      <th>staffed_adult_icu_bed_occupancy_7_day_coverage</th>
+      <th>staffed_icu_adult_patients_confirmed_suspected_covid_7d_cov</th>
+      <th>staffed_icu_adult_patients_confirmed_covid_7_day_coverage</th>
+      <th>total_patients_hospitalized_confirmed_influenza_7_day_coverage</th>
+      <th>icu_patients_confirmed_influenza_7_day_coverage</th>
+      <th>total_patients_hosp_confirmed_influenza_and_covid_7d_cov</th>
+      <th>previous_day_admission_adult_covid_confirmed_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_18_19_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_20_29_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_30_39_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_40_49_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_50_59_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_60_69_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_70_79_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_80plus_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_confirmed_unknown_7_day_sum</th>
+      <th>previous_day_admission_pediatric_covid_confirmed_7_day_sum</th>
+      <th>previous_day_covid_ed_visits_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_18_19_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_20_29_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_30_39_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_40_49_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_50_59_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_60_69_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_70_79_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_80plus_7_day_sum</th>
+      <th>previous_day_admission_adult_covid_suspected_unknown_7_day_sum</th>
+      <th>previous_day_admission_pediatric_covid_suspected_7_day_sum</th>
+      <th>previous_day_total_ed_visits_7_day_sum</th>
+      <th>previous_day_admission_influenza_confirmed_7_day_sum</th>
+      <th>total_beds_7_day_avg</th>
+      <th>all_adult_hospital_beds_7_day_avg</th>
+      <th>all_adult_hospital_inpatient_beds_7_day_avg</th>
+      <th>inpatient_beds_used_7_day_avg</th>
+      <th>all_adult_hospital_inpatient_bed_occupied_7_day_avg</th>
+      <th>total_adult_patients_hosp_confirmed_suspected_covid_7d_avg</th>
+      <th>total_adult_patients_hospitalized_confirmed_covid_7_day_avg</th>
+      <th>total_pediatric_patients_hosp_confirmed_suspected_covid_7d_avg</th>
+      <th>total_pediatric_patients_hospitalized_confirmed_covid_7_day_avg</th>
+      <th>inpatient_beds_7_day_avg</th>
+      <th>total_icu_beds_7_day_avg</th>
+      <th>total_staffed_adult_icu_beds_7_day_avg</th>
+      <th>icu_beds_used_7_day_avg</th>
+      <th>staffed_adult_icu_bed_occupancy_7_day_avg</th>
+      <th>staffed_icu_adult_patients_confirmed_suspected_covid_7d_avg</th>
+      <th>staffed_icu_adult_patients_confirmed_covid_7_day_avg</th>
+      <th>total_patients_hospitalized_confirmed_influenza_7_day_avg</th>
+      <th>icu_patients_confirmed_influenza_7_day_avg</th>
+      <th>total_patients_hosp_confirmed_influenza_and_covid_7d_avg</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2024-03-08</td>
+      <td>2020-03-22</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>160</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>2</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>80.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2023-06-23</td>
+      <td>2020-03-27</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>615</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>87.9</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2024-03-08</td>
+      <td>2020-03-29</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>654</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>93.4</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2023-06-23</td>
+      <td>2020-04-03</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>527</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>6</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>87.8</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2024-03-08</td>
+      <td>2020-04-05</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>521</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>6</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>86.8</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2023-06-23</td>
+      <td>2020-04-17</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>666</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>95.1</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2024-03-08</td>
+      <td>2020-04-19</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>665</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>95.0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2023-06-23</td>
+      <td>2020-04-24</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>661</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>94.4</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2024-03-08</td>
+      <td>2020-04-26</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>660</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>94.3</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>100075</td>
+      <td>FL</td>
+      <td>100075</td>
+      <td>ST JOSEPHS HOSPITAL</td>
+      <td>3001 W MARTIN LUTHER KING JR BLVD</td>
+      <td>TAMPA</td>
+      <td>33677</td>
+      <td>Short Term</td>
+      <td>12057</td>
+      <td>2023-06-23</td>
+      <td>2020-05-01</td>
+      <td>True</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>661</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>7</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>94.4</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+  </tbody>
+</table>
+<p>12 rows × 94 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="covid-19-hospitalization-by-state">
+<h4>COVID-19 Hospitalization by State<a class="headerlink" href="#covid-19-hospitalization-by-state" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html">https://cmu-delphi.github.io/delphi-epidata/api/covid_hosp.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_covid_hosp_state_timeseries</span><span class="p">(</span><span class="n">states</span><span class="o">=</span><span class="s2">"MA"</span><span class="p">,</span> <span class="n">dates</span><span class="o">=</span><span class="s2">"20200510"</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:456: UserWarning: `pub_covid_hosp_state_timeseries` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_covid_hosp_state_timeseries")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>state</th>
+      <th>issue</th>
+      <th>date</th>
+      <th>critical_staffing_shortage_today_yes</th>
+      <th>critical_staffing_shortage_today_no</th>
+      <th>critical_staffing_shortage_today_not_reported</th>
+      <th>critical_staffing_shortage_anticipated_within_week_yes</th>
+      <th>critical_staffing_shortage_anticipated_within_week_no</th>
+      <th>critical_staffing_shortage_anticipated_within_week_not_reported</th>
+      <th>hospital_onset_covid</th>
+      <th>hospital_onset_covid_coverage</th>
+      <th>inpatient_beds</th>
+      <th>inpatient_beds_coverage</th>
+      <th>inpatient_beds_used</th>
+      <th>inpatient_beds_used_coverage</th>
+      <th>inpatient_beds_used_covid</th>
+      <th>inpatient_beds_used_covid_coverage</th>
+      <th>previous_day_admission_adult_covid_confirmed</th>
+      <th>previous_day_admission_adult_covid_confirmed_coverage</th>
+      <th>previous_day_admission_adult_covid_suspected</th>
+      <th>previous_day_admission_adult_covid_suspected_coverage</th>
+      <th>previous_day_admission_pediatric_covid_confirmed</th>
+      <th>previous_day_admission_pediatric_covid_confirmed_coverage</th>
+      <th>previous_day_admission_pediatric_covid_suspected</th>
+      <th>previous_day_admission_pediatric_covid_suspected_coverage</th>
+      <th>staffed_adult_icu_bed_occupancy</th>
+      <th>staffed_adult_icu_bed_occupancy_coverage</th>
+      <th>staffed_icu_adult_patients_confirmed_suspected_covid</th>
+      <th>staffed_icu_adult_patients_confirmed_suspected_covid_coverage</th>
+      <th>staffed_icu_adult_patients_confirmed_covid</th>
+      <th>staffed_icu_adult_patients_confirmed_covid_coverage</th>
+      <th>total_adult_patients_hosp_confirmed_suspected_covid</th>
+      <th>total_adult_patients_hosp_confirmed_suspected_covid_coverage</th>
+      <th>total_adult_patients_hosp_confirmed_covid</th>
+      <th>total_adult_patients_hosp_confirmed_covid_coverage</th>
+      <th>total_pediatric_patients_hosp_confirmed_suspected_covid</th>
+      <th>total_pediatric_patients_hosp_confirmed_suspected_covid_coverage</th>
+      <th>total_pediatric_patients_hosp_confirmed_covid</th>
+      <th>total_pediatric_patients_hosp_confirmed_covid_coverage</th>
+      <th>total_staffed_adult_icu_beds</th>
+      <th>total_staffed_adult_icu_beds_coverage</th>
+      <th>inpatient_beds_utilization_coverage</th>
+      <th>inpatient_beds_utilization_numerator</th>
+      <th>inpatient_beds_utilization_denominator</th>
+      <th>percent_of_inpatients_with_covid_coverage</th>
+      <th>percent_of_inpatients_with_covid_numerator</th>
+      <th>percent_of_inpatients_with_covid_denominator</th>
+      <th>inpatient_bed_covid_utilization_coverage</th>
+      <th>inpatient_bed_covid_utilization_numerator</th>
+      <th>inpatient_bed_covid_utilization_denominator</th>
+      <th>adult_icu_bed_covid_utilization_coverage</th>
+      <th>adult_icu_bed_covid_utilization_numerator</th>
+      <th>adult_icu_bed_covid_utilization_denominator</th>
+      <th>adult_icu_bed_utilization_coverage</th>
+      <th>adult_icu_bed_utilization_numerator</th>
+      <th>adult_icu_bed_utilization_denominator</th>
+      <th>inpatient_beds_utilization</th>
+      <th>percent_of_inpatients_with_covid</th>
+      <th>inpatient_bed_covid_utilization</th>
+      <th>adult_icu_bed_covid_utilization</th>
+      <th>adult_icu_bed_utilization</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>MA</td>
+      <td>2024-05-03</td>
+      <td>2020-05-10</td>
+      <td>False</td>
+      <td>False</td>
+      <td>True</td>
+      <td>False</td>
+      <td>False</td>
+      <td>True</td>
+      <td>53</td>
+      <td>84</td>
+      <td>15691</td>
+      <td>73</td>
+      <td>12427</td>
+      <td>83</td>
+      <td>3625</td>
+      <td>84</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>72</td>
+      <td>10876</td>
+      <td>15585</td>
+      <td>83</td>
+      <td>3607</td>
+      <td>12427</td>
+      <td>73</td>
+      <td>3304</td>
+      <td>15691</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>0.69785</td>
+      <td>0.290255</td>
+      <td>0.210567</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="flu-endpoints">
+<h3>Flu Endpoints<a class="headerlink" href="#flu-endpoints" title="Link to this heading">¶</a></h3>
+<section id="flusurv-hospitalization-data">
+<h4>FluSurv hospitalization data<a class="headerlink" href="#flusurv-hospitalization-data" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html">https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_flusurv</span><span class="p">(</span><span class="n">locations</span><span class="o">=</span><span class="s2">"ca"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="mi">202001</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:933: UserWarning: `pub_flusurv` uses the V4 Epidata API. Starting in October 2026, V4 is tentatively deprecated in favor of the V5 API. See the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 endpoints and how to move to them.
+  _warn_v4_sunset("pub_flusurv")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>location</th>
+      <th>issue</th>
+      <th>epiweek</th>
+      <th>lag</th>
+      <th>rate_age_0</th>
+      <th>rate_age_1</th>
+      <th>rate_age_2</th>
+      <th>rate_age_3</th>
+      <th>rate_age_4</th>
+      <th>rate_overall</th>
+      <th>rate_age_5</th>
+      <th>rate_age_6</th>
+      <th>rate_age_7</th>
+      <th>rate_age_18t29</th>
+      <th>rate_age_30t39</th>
+      <th>rate_age_40t49</th>
+      <th>rate_age_5t11</th>
+      <th>rate_age_12t17</th>
+      <th>rate_age_lt18</th>
+      <th>rate_age_gte18</th>
+      <th>rate_age_0tlt1</th>
+      <th>rate_age_1t4</th>
+      <th>rate_age_gte75</th>
+      <th>rate_race_white</th>
+      <th>rate_race_black</th>
+      <th>rate_race_hisp</th>
+      <th>rate_race_asian</th>
+      <th>rate_race_natamer</th>
+      <th>rate_sex_male</th>
+      <th>rate_sex_female</th>
+      <th>rate_flu_a</th>
+      <th>rate_flu_b</th>
+      <th>season</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2025-11-03</td>
+      <td>CA</td>
+      <td>2025-03-08</td>
+      <td>202001</td>
+      <td>298</td>
+      <td>8.6</td>
+      <td>0.8</td>
+      <td>1.5</td>
+      <td>5.7</td>
+      <td>15.3</td>
+      <td>4.7</td>
+      <td>11.5</td>
+      <td>20.4</td>
+      <td>20.8</td>
+      <td>1.2</td>
+      <td>1.6</td>
+      <td>1.8</td>
+      <td>1.1</td>
+      <td>0.4</td>
+      <td>2.9</td>
+      <td>5.1</td>
+      <td>12.6</td>
+      <td>7.6</td>
+      <td>20.5</td>
+      <td>4.1</td>
+      <td>8.1</td>
+      <td>4.1</td>
+      <td>3.4</td>
+      <td>0.0</td>
+      <td>4.7</td>
+      <td>4.7</td>
+      <td>3.6</td>
+      <td>1.0</td>
+      <td>2019-20</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="fluview-data">
+<h4>Fluview data<a class="headerlink" href="#fluview-data" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/fluview.html">https://cmu-delphi.github.io/delphi-epidata/api/fluview.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_fluview</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"nat"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">201201</span><span class="p">,</span> <span class="mi">202001</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1124: UserWarning: `pub_fluview` uses the V4 Epidata API. Starting in October 2026, V4 is tentatively deprecated in favor of the V5 API. See the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 endpoints and how to move to them.
+  _warn_v4_sunset("pub_fluview")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>region</th>
+      <th>issue</th>
+      <th>epiweek</th>
+      <th>lag</th>
+      <th>num_ili</th>
+      <th>num_patients</th>
+      <th>num_age_0</th>
+      <th>num_age_1</th>
+      <th>num_age_2</th>
+      <th>num_age_3</th>
+      <th>num_age_4</th>
+      <th>num_age_5</th>
+      <th>wili</th>
+      <th>ili</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2017-10-24</td>
+      <td>nat</td>
+      <td>201740</td>
+      <td>201201</td>
+      <td>300</td>
+      <td>11992</td>
+      <td>678631</td>
+      <td>4514</td>
+      <td>3393</td>
+      <td>&lt;NA&gt;</td>
+      <td>2342</td>
+      <td>1028</td>
+      <td>715</td>
+      <td>1.73625</td>
+      <td>1.76709</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2017-10-24</td>
+      <td>nat</td>
+      <td>201740</td>
+      <td>201202</td>
+      <td>299</td>
+      <td>11543</td>
+      <td>747894</td>
+      <td>4059</td>
+      <td>3636</td>
+      <td>&lt;NA&gt;</td>
+      <td>2319</td>
+      <td>918</td>
+      <td>611</td>
+      <td>1.55066</td>
+      <td>1.5434</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2017-10-24</td>
+      <td>nat</td>
+      <td>201740</td>
+      <td>201203</td>
+      <td>298</td>
+      <td>11939</td>
+      <td>724623</td>
+      <td>4364</td>
+      <td>4030</td>
+      <td>&lt;NA&gt;</td>
+      <td>2247</td>
+      <td>800</td>
+      <td>498</td>
+      <td>1.62891</td>
+      <td>1.64762</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2017-10-24</td>
+      <td>nat</td>
+      <td>201740</td>
+      <td>201204</td>
+      <td>297</td>
+      <td>13209</td>
+      <td>784244</td>
+      <td>4766</td>
+      <td>4802</td>
+      <td>&lt;NA&gt;</td>
+      <td>2303</td>
+      <td>825</td>
+      <td>513</td>
+      <td>1.76038</td>
+      <td>1.6843</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2017-10-24</td>
+      <td>nat</td>
+      <td>201740</td>
+      <td>201205</td>
+      <td>296</td>
+      <td>14448</td>
+      <td>775298</td>
+      <td>5218</td>
+      <td>5336</td>
+      <td>&lt;NA&gt;</td>
+      <td>2415</td>
+      <td>915</td>
+      <td>564</td>
+      <td>1.92728</td>
+      <td>1.86354</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>413</th>
+      <td>2021-10-08</td>
+      <td>nat</td>
+      <td>202139</td>
+      <td>201949</td>
+      <td>95</td>
+      <td>48904</td>
+      <td>1476208</td>
+      <td>13852</td>
+      <td>16397</td>
+      <td>&lt;NA&gt;</td>
+      <td>11947</td>
+      <td>3929</td>
+      <td>2779</td>
+      <td>3.2579</td>
+      <td>3.31281</td>
+    </tr>
+    <tr>
+      <th>414</th>
+      <td>2021-10-08</td>
+      <td>nat</td>
+      <td>202139</td>
+      <td>201950</td>
+      <td>94</td>
+      <td>56444</td>
+      <td>1458774</td>
+      <td>14728</td>
+      <td>21877</td>
+      <td>&lt;NA&gt;</td>
+      <td>12822</td>
+      <td>4114</td>
+      <td>2903</td>
+      <td>3.94308</td>
+      <td>3.86928</td>
+    </tr>
+    <tr>
+      <th>415</th>
+      <td>2021-10-08</td>
+      <td>nat</td>
+      <td>202139</td>
+      <td>201951</td>
+      <td>93</td>
+      <td>71594</td>
+      <td>1424436</td>
+      <td>18001</td>
+      <td>29182</td>
+      <td>&lt;NA&gt;</td>
+      <td>16227</td>
+      <td>4835</td>
+      <td>3349</td>
+      <td>5.06435</td>
+      <td>5.02613</td>
+    </tr>
+    <tr>
+      <th>416</th>
+      <td>2021-10-08</td>
+      <td>nat</td>
+      <td>202139</td>
+      <td>201952</td>
+      <td>92</td>
+      <td>95757</td>
+      <td>1338669</td>
+      <td>24097</td>
+      <td>34004</td>
+      <td>&lt;NA&gt;</td>
+      <td>24617</td>
+      <td>7638</td>
+      <td>5401</td>
+      <td>7.06161</td>
+      <td>7.15315</td>
+    </tr>
+    <tr>
+      <th>417</th>
+      <td>2021-10-08</td>
+      <td>nat</td>
+      <td>202139</td>
+      <td>202001</td>
+      <td>91</td>
+      <td>88731</td>
+      <td>1426691</td>
+      <td>21594</td>
+      <td>23392</td>
+      <td>&lt;NA&gt;</td>
+      <td>27655</td>
+      <td>9209</td>
+      <td>6881</td>
+      <td>5.90066</td>
+      <td>6.21936</td>
+    </tr>
+  </tbody>
+</table>
+<p>418 rows × 15 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="delphi-s-ilinet-forecasts">
+<h4>Delphi’s ILINet forecasts<a class="headerlink" href="#delphi-s-ilinet-forecasts" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/delphi.html">https://cmu-delphi.github.io/delphi-epidata/api/delphi.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">delphi_forecast</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">pub_delphi</span><span class="p">(</span><span class="n">system</span><span class="o">=</span><span class="s2">"ec"</span><span class="p">,</span> <span class="n">epiweek</span><span class="o">=</span><span class="mi">201501</span><span class="p">)</span>
+<span class="n">delphi_forecast</span><span class="p">()[</span><span class="s1">'epidata'</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:747: UserWarning: `pub_delphi` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_delphi")
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[{'epiweek': datetime.date(2015, 1, 4),
+  'forecast': {'_version': 1,
+   'baselines': {'hhs1': 1.2,
+    'hhs10': 1.1,
+    'hhs2': 2.3,
+    'hhs3': 2.0,
+    'hhs4': 1.9,
+    'hhs5': 1.7,
+    'hhs6': 3.3,
+    'hhs7': 1.7,
+    'hhs8': 1.3,
+    'hhs9': 2.7,
+    'nat': 2.0},
+   'data': {'hhs1': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 49},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       0.606623,
+       0.389349,
+       0.003301,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.68261},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.141845,
+       0.166269,
+       0.17314,
+       0.160168,
+       0.131628,
+       0.096099,
+       0.062331,
+       0.03592,
+       0.018396,
+       0.008379,
+       0.003401,
+       0.001238,
+       0.000414,
+       0.000138,
+       5.6e-05,
+       3.5e-05,
+       3e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 2},
+     'x1': {'dist': [0.000299,
+       0.142162,
+       0.774656,
+       0.082188,
+       0.00015,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.57828},
+     'x2': {'dist': [0.008214,
+       0.284314,
+       0.611941,
+       0.094128,
+       0.000857,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.2778},
+     'x3': {'dist': [0.009499,
+       0.316014,
+       0.599539,
+       0.073896,
+       0.000508,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.2778},
+     'x4': {'dist': [0.012442,
+       0.28382,
+       0.583112,
+       0.118032,
+       0.002046,
+       9.3e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.26591}},
+    'hhs10': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 49},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.265469,
+       0.327005,
+       0.248962,
+       0.11714,
+       0.034076,
+       0.006176,
+       0.000762,
+       0.000138],
+      'point': 3.827},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.059974,
+       0.085468,
+       0.110244,
+       0.128706,
+       0.135998,
+       0.130064,
+       0.112583,
+       0.088203,
+       0.062546,
+       0.040146,
+       0.023328,
+       0.012275,
+       0.005855,
+       0.002537,
+       0.001006,
+       0.000373,
+       0.000139,
+       6e-05,
+       3.7e-05,
+       3.1e-05],
+      'none': 2.9e-05,
+      'point': 5},
+     'x1': {'dist': [0.000239,
+       0.022839,
+       0.330283,
+       0.539504,
+       0.10451,
+       0.002166,
+       9.5e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.09921},
+     'x2': {'dist': [0.003541,
+       0.052104,
+       0.255792,
+       0.417205,
+       0.227338,
+       0.041111,
+       0.0025,
+       0.000136,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.12097},
+     'x3': {'dist': [0.007661,
+       0.066554,
+       0.242833,
+       0.371571,
+       0.238944,
+       0.064435,
+       0.0073,
+       0.000424,
+       9.7e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.12097},
+     'x4': {'dist': [0.012907,
+       0.074889,
+       0.220362,
+       0.328373,
+       0.247992,
+       0.094864,
+       0.018384,
+       0.001867,
+       0.000177,
+       9.3e-05,
+       9.1e-05],
+      'point': 2.976}},
+    'hhs2': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 45},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 5.836},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [9.3e-05,
+       0.000729,
+       0.030231,
+       0.271193,
+       0.494915,
+       0.187903,
+       0.014368,
+       0.000294,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.471},
+     'x2': {'dist': [9.3e-05,
+       0.000968,
+       0.051853,
+       0.403065,
+       0.462591,
+       0.079156,
+       0.001905,
+       9.6e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.143},
+     'x3': {'dist': [0.000106,
+       0.004776,
+       0.149634,
+       0.55783,
+       0.270959,
+       0.01614,
+       0.000191,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.143},
+     'x4': {'dist': [0.00019,
+       0.012741,
+       0.215321,
+       0.542862,
+       0.215562,
+       0.01277,
+       0.00019,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.612}},
+    'hhs3': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 48},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.404385,
+       0.573085,
+       0.021793,
+       0.000101,
+       9.1e-05],
+      'point': 6.991},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.490594,
+       2.9e-05,
+       2.9e-05,
+       0.278137,
+       0.144772,
+       0.059761,
+       0.019573,
+       0.005098,
+       0.001071,
+       0.000198,
+       5.1e-05,
+       3.1e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [9.1e-05,
+       9.1e-05,
+       0.000434,
+       0.081742,
+       0.647287,
+       0.265462,
+       0.004528,
+       9.3e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.59632},
+     'x2': {'dist': [0.000147,
+       0.004844,
+       0.089483,
+       0.389223,
+       0.407192,
+       0.102588,
+       0.006081,
+       0.000168,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.94511},
+     'x3': {'dist': [0.000578,
+       0.014584,
+       0.132912,
+       0.383475,
+       0.353809,
+       0.104275,
+       0.009727,
+       0.000364,
+       9.3e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.94511},
+     'x4': {'dist': [0.004678,
+       0.042022,
+       0.175175,
+       0.335853,
+       0.296666,
+       0.12068,
+       0.022576,
+       0.002002,
+       0.000164,
+       9.2e-05,
+       9.1e-05],
+      'point': 3.72394}},
+    'hhs4': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 47},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 7.517},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [0.011206,
+       0.077571,
+       0.245094,
+       0.353247,
+       0.232533,
+       0.069814,
+       0.009574,
+       0.000672,
+       0.000107,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.069},
+     'x2': {'dist': [0.020822,
+       0.109403,
+       0.276134,
+       0.335043,
+       0.195526,
+       0.054814,
+       0.007413,
+       0.000557,
+       0.000105,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.76},
+     'x3': {'dist': [0.029399,
+       0.129114,
+       0.285572,
+       0.318314,
+       0.178853,
+       0.05061,
+       0.007249,
+       0.000597,
+       0.000109,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.76},
+     'x4': {'dist': [0.028264,
+       0.153558,
+       0.345858,
+       0.323968,
+       0.126162,
+       0.020365,
+       0.001425,
+       0.000126,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.516}},
+    'hhs5': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 48},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 6.559},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [0.000212,
+       0.023922,
+       0.363184,
+       0.532228,
+       0.078934,
+       0.001065,
+       9.2e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.93489},
+     'x2': {'dist': [0.000118,
+       0.023279,
+       0.499287,
+       0.459099,
+       0.017656,
+       0.000107,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.84025},
+     'x3': {'dist': [0.015845,
+       0.122716,
+       0.346468,
+       0.358614,
+       0.136122,
+       0.018838,
+       0.001016,
+       0.000107,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.84025},
+     'x4': {'dist': [0.039492,
+       0.154966,
+       0.305849,
+       0.303889,
+       0.152003,
+       0.038242,
+       0.004885,
+       0.000391,
+       0.0001,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.48465}},
+    'hhs6': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 47},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091],
+      'point': 11.31},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 51},
+     'x1': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.4e-05,
+       0.001179,
+       0.049718,
+       0.365378,
+       0.471076,
+       0.107979,
+       0.004188,
+       0.000115],
+      'point': 6.96399},
+     'x2': {'dist': [9.1e-05,
+       0.000115,
+       0.00073,
+       0.008599,
+       0.056821,
+       0.190236,
+       0.32153,
+       0.274588,
+       0.118447,
+       0.025795,
+       0.003048],
+      'point': 6.481},
+     'x3': {'dist': [0.000843,
+       0.004469,
+       0.018511,
+       0.056139,
+       0.123467,
+       0.196609,
+       0.226625,
+       0.189082,
+       0.114196,
+       0.04994,
+       0.020118],
+      'point': 6.481},
+     'x4': {'dist': [0.003679,
+       0.012878,
+       0.035858,
+       0.078626,
+       0.135475,
+       0.18333,
+       0.194822,
+       0.162579,
+       0.106546,
+       0.054849,
+       0.031356],
+      'point': 5.83978}},
+    'hhs7': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 48},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 6.538},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [9.1e-05,
+       0.000104,
+       0.003659,
+       0.117105,
+       0.514204,
+       0.333217,
+       0.030895,
+       0.000451,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.86797},
+     'x2': {'dist': [0.000122,
+       0.002243,
+       0.042668,
+       0.247951,
+       0.435037,
+       0.232378,
+       0.037447,
+       0.001856,
+       0.000115,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.71607},
+     'x3': {'dist': [0.000158,
+       0.003827,
+       0.060307,
+       0.289898,
+       0.425797,
+       0.192192,
+       0.02638,
+       0.001155,
+       0.000103,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.71607},
+     'x4': {'dist': [0.000465,
+       0.013008,
+       0.129955,
+       0.390634,
+       0.357538,
+       0.099506,
+       0.008331,
+       0.000289,
+       9.2e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.80664}},
+    'hhs8': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 49},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.449},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 53},
+     'x1': {'dist': [0.000122,
+       0.0125,
+       0.30124,
+       0.584134,
+       0.100241,
+       0.001306,
+       9.2e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.30456},
+     'x2': {'dist': [0.000444,
+       0.045118,
+       0.456115,
+       0.45321,
+       0.044226,
+       0.000432,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.06773},
+     'x3': {'dist': [0.00038,
+       0.06721,
+       0.60625,
+       0.317294,
+       0.008314,
+       9.8e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.06773},
+     'x4': {'dist': [0.001436,
+       0.149783,
+       0.674095,
+       0.172228,
+       0.001912,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 2.602}},
+    'hhs9': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 51},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.572685,
+       0.42446,
+       0.002128,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.702},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.251052,
+       2.9e-05,
+       0.289579,
+       0.22157,
+       0.135234,
+       0.065842,
+       0.025579,
+       0.007939,
+       0.001981,
+       0.000413,
+       8.9e-05,
+       3.6e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 53},
+     'x1': {'dist': [9.1e-05,
+       0.000139,
+       0.023828,
+       0.450986,
+       0.492724,
+       0.031697,
+       0.000171,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.958},
+     'x2': {'dist': [0.000119,
+       0.002981,
+       0.0662,
+       0.348026,
+       0.438913,
+       0.133656,
+       0.00959,
+       0.000241,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.055},
+     'x3': {'dist': [0.000205,
+       0.006095,
+       0.086272,
+       0.348737,
+       0.407087,
+       0.137609,
+       0.01328,
+       0.000439,
+       9.3e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.055},
+     'x4': {'dist': [0.000131,
+       0.004162,
+       0.085448,
+       0.392373,
+       0.412594,
+       0.099508,
+       0.005362,
+       0.000149,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.871}},
+    'nat': {'onset': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.999029,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 47},
+     'peak': {'dist': [9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       0.999091,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 6.08},
+     'peakweek': {'dist': [2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05,
+       0.266381,
+       2.9e-05,
+       2.9e-05,
+       0.222786,
+       0.177498,
+       0.130045,
+       0.087619,
+       0.05429,
+       0.030939,
+       0.016221,
+       0.007828,
+       0.003483,
+       0.001436,
+       0.000556,
+       0.00021,
+       8.6e-05,
+       4.5e-05,
+       3.3e-05,
+       3e-05,
+       2.9e-05,
+       2.9e-05,
+       2.9e-05],
+      'none': 2.9e-05,
+      'point': 52},
+     'x1': {'dist': [9.1e-05,
+       9.1e-05,
+       0.005016,
+       0.448752,
+       0.536121,
+       0.009474,
+       9.2e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 4.05598},
+     'x2': {'dist': [9.1e-05,
+       0.0001,
+       0.027235,
+       0.639516,
+       0.329868,
+       0.002735,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.864},
+     'x3': {'dist': [9.2e-05,
+       0.001238,
+       0.097953,
+       0.583159,
+       0.304399,
+       0.012673,
+       0.000123,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.864},
+     'x4': {'dist': [0.000862,
+       0.022667,
+       0.184564,
+       0.432946,
+       0.296359,
+       0.058811,
+       0.003376,
+       0.000141,
+       9.1e-05,
+       9.1e-05,
+       9.1e-05],
+      'point': 3.476}}},
+   'epiweek': 201501,
+   'ili_bin_size': 1,
+   'ili_bins': 11,
+   'name': 'DELPHI-Epicast-(Carnegie-Mellon-University)',
+   'season': 2014,
+   'season_weeks': 34,
+   'year_weeks': 53},
+  'system': 'ec'}]
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="fluview-clinical">
+<h4>FluView Clinical<a class="headerlink" href="#fluview-clinical" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html">https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_fluview_clinical</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"nat"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">201601</span><span class="p">,</span> <span class="mi">201701</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1024: UserWarning: `pub_fluview_clinical` uses the V4 Epidata API. Starting in October 2026, V4 is tentatively deprecated in favor of the V5 API. See the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 endpoints and how to move to them.
+  _warn_v4_sunset("pub_fluview_clinical")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>region</th>
+      <th>issue</th>
+      <th>epiweek</th>
+      <th>lag</th>
+      <th>total_specimens</th>
+      <th>total_a</th>
+      <th>total_b</th>
+      <th>percent_positive</th>
+      <th>percent_a</th>
+      <th>percent_b</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201640</td>
+      <td>103</td>
+      <td>13380</td>
+      <td>120</td>
+      <td>90</td>
+      <td>1.56951</td>
+      <td>0.896861</td>
+      <td>0.672646</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201641</td>
+      <td>102</td>
+      <td>14053</td>
+      <td>108</td>
+      <td>83</td>
+      <td>1.35914</td>
+      <td>0.768519</td>
+      <td>0.590621</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201642</td>
+      <td>101</td>
+      <td>15110</td>
+      <td>115</td>
+      <td>97</td>
+      <td>1.40304</td>
+      <td>0.761085</td>
+      <td>0.641959</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201643</td>
+      <td>100</td>
+      <td>15312</td>
+      <td>143</td>
+      <td>88</td>
+      <td>1.50862</td>
+      <td>0.933908</td>
+      <td>0.574713</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201644</td>
+      <td>99</td>
+      <td>16652</td>
+      <td>201</td>
+      <td>118</td>
+      <td>1.91569</td>
+      <td>1.20706</td>
+      <td>0.708624</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201649</td>
+      <td>94</td>
+      <td>20564</td>
+      <td>696</td>
+      <td>180</td>
+      <td>4.25987</td>
+      <td>3.38456</td>
+      <td>0.875316</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201650</td>
+      <td>93</td>
+      <td>23476</td>
+      <td>1359</td>
+      <td>210</td>
+      <td>6.68342</td>
+      <td>5.78889</td>
+      <td>0.894531</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201651</td>
+      <td>92</td>
+      <td>26775</td>
+      <td>2556</td>
+      <td>339</td>
+      <td>10.8123</td>
+      <td>9.54622</td>
+      <td>1.26611</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201652</td>
+      <td>91</td>
+      <td>33273</td>
+      <td>4270</td>
+      <td>388</td>
+      <td>13.9993</td>
+      <td>12.8332</td>
+      <td>1.16611</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>2018-10-08</td>
+      <td>nat</td>
+      <td>201839</td>
+      <td>201701</td>
+      <td>90</td>
+      <td>35028</td>
+      <td>4288</td>
+      <td>386</td>
+      <td>13.3436</td>
+      <td>12.2416</td>
+      <td>1.10198</td>
+    </tr>
+  </tbody>
+</table>
+<p>14 rows × 11 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="fluview-metadata">
+<h4>FluView Metadata<a class="headerlink" href="#fluview-metadata" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html">https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_fluview_meta</span><span class="p">()</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1064: UserWarning: `pub_fluview_meta` uses the V4 Epidata API. Starting in October 2026, V4 is tentatively deprecated in favor of the V5 API. See the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 endpoints and how to move to them.
+  _warn_v4_sunset("pub_fluview_meta")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>latest_update</th>
+      <th>latest_issue</th>
+      <th>table_rows</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2026-08-28</td>
+      <td>2026-03-03</td>
+      <td>2851031</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="google-flu-trends">
+<h4>Google Flu Trends<a class="headerlink" href="#google-flu-trends" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/gft.html">https://cmu-delphi.github.io/delphi-epidata/api/gft.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_gft</span><span class="p">(</span><span class="n">locations</span><span class="o">=</span><span class="s2">"hhs1"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">201201</span><span class="p">,</span> <span class="mi">202001</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1180: UserWarning: `pub_gft` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_gft")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>location</th>
+      <th>epiweek</th>
+      <th>num</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>hhs1</td>
+      <td>201201</td>
+      <td>1567</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>hhs1</td>
+      <td>201202</td>
+      <td>1339</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>hhs1</td>
+      <td>201203</td>
+      <td>1220</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>hhs1</td>
+      <td>201204</td>
+      <td>1271</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>hhs1</td>
+      <td>201205</td>
+      <td>1181</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>184</th>
+      <td>hhs1</td>
+      <td>201528</td>
+      <td>581</td>
+    </tr>
+    <tr>
+      <th>185</th>
+      <td>hhs1</td>
+      <td>201529</td>
+      <td>487</td>
+    </tr>
+    <tr>
+      <th>186</th>
+      <td>hhs1</td>
+      <td>201530</td>
+      <td>454</td>
+    </tr>
+    <tr>
+      <th>187</th>
+      <td>hhs1</td>
+      <td>201531</td>
+      <td>323</td>
+    </tr>
+    <tr>
+      <th>188</th>
+      <td>hhs1</td>
+      <td>201532</td>
+      <td>487</td>
+    </tr>
+  </tbody>
+</table>
+<p>189 rows × 3 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="ecdc-ili">
+<h4>ECDC ILI<a class="headerlink" href="#ecdc-ili" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html">https://cmu-delphi.github.io/delphi-epidata/api/ecdc_ili.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_ecdc_ili</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"Armenia"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="mi">201840</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:870: UserWarning: `pub_ecdc_ili` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_ecdc_ili")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>region</th>
+      <th>release_date</th>
+      <th>issue</th>
+      <th>epiweek</th>
+      <th>lag</th>
+      <th>incidence_rate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Armenia</td>
+      <td>2020-03-26</td>
+      <td>202012</td>
+      <td>201840</td>
+      <td>76</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="kcdc-ili">
+<h4>KCDC ILI<a class="headerlink" href="#kcdc-ili" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html">https://cmu-delphi.github.io/delphi-epidata/api/kcdc_ili.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_kcdc_ili</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"ROK"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="mi">200436</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1277: UserWarning: `pub_kcdc_ili` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_kcdc_ili")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>region</th>
+      <th>issue</th>
+      <th>epiweek</th>
+      <th>lag</th>
+      <th>ili</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020-11-03</td>
+      <td>ROK</td>
+      <td>202045</td>
+      <td>200436</td>
+      <td>843</td>
+      <td>0.6</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="nidss-flu">
+<h4>NIDSS Flu<a class="headerlink" href="#nidss-flu" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html">https://cmu-delphi.github.io/delphi-epidata/api/nidss_flu.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_nidss_flu</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"taipei"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">200901</span><span class="p">,</span> <span class="mi">201301</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1398: UserWarning: `pub_nidss_flu` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_nidss_flu")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>region</th>
+      <th>epiweek</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>visits</th>
+      <th>ili</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>200901</td>
+      <td>201530</td>
+      <td>342</td>
+      <td>17021</td>
+      <td>1.14</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>200902</td>
+      <td>201530</td>
+      <td>341</td>
+      <td>20250</td>
+      <td>1.28</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>200903</td>
+      <td>201530</td>
+      <td>340</td>
+      <td>26337</td>
+      <td>1.36</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>200904</td>
+      <td>201530</td>
+      <td>339</td>
+      <td>8508</td>
+      <td>1.68</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>200905</td>
+      <td>201530</td>
+      <td>338</td>
+      <td>22275</td>
+      <td>1.34</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>204</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>201249</td>
+      <td>201530</td>
+      <td>138</td>
+      <td>12115</td>
+      <td>0.79</td>
+    </tr>
+    <tr>
+      <th>205</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>201250</td>
+      <td>201530</td>
+      <td>137</td>
+      <td>12032</td>
+      <td>0.8</td>
+    </tr>
+    <tr>
+      <th>206</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>201251</td>
+      <td>201530</td>
+      <td>136</td>
+      <td>12810</td>
+      <td>0.83</td>
+    </tr>
+    <tr>
+      <th>207</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>201252</td>
+      <td>201530</td>
+      <td>135</td>
+      <td>13929</td>
+      <td>0.85</td>
+    </tr>
+    <tr>
+      <th>208</th>
+      <td>2015-08-04</td>
+      <td>Taipei</td>
+      <td>201301</td>
+      <td>201530</td>
+      <td>134</td>
+      <td>12715</td>
+      <td>0.93</td>
+    </tr>
+  </tbody>
+</table>
+<p>209 rows × 7 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="ili-nearby-nowcast">
+<h4>ILI Nearby Nowcast<a class="headerlink" href="#ili-nearby-nowcast" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/nowcast.html">https://cmu-delphi.github.io/delphi-epidata/api/nowcast.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_nowcast</span><span class="p">(</span><span class="n">locations</span><span class="o">=</span><span class="s2">"ca"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">202201</span><span class="p">,</span> <span class="mi">202319</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1469: UserWarning: `pub_nowcast` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_nowcast")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>location</th>
+      <th>epiweek</th>
+      <th>value</th>
+      <th>std</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>ca</td>
+      <td>202201</td>
+      <td>3.62907</td>
+      <td>0.275527</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>ca</td>
+      <td>202202</td>
+      <td>3.53796</td>
+      <td>0.276336</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>ca</td>
+      <td>202203</td>
+      <td>3.51095</td>
+      <td>0.276373</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>ca</td>
+      <td>202204</td>
+      <td>2.50756</td>
+      <td>0.279392</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>ca</td>
+      <td>202205</td>
+      <td>1.84246</td>
+      <td>0.279689</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>31</th>
+      <td>ca</td>
+      <td>202232</td>
+      <td>1.34375</td>
+      <td>0.300289</td>
+    </tr>
+    <tr>
+      <th>32</th>
+      <td>ca</td>
+      <td>202233</td>
+      <td>1.2412</td>
+      <td>0.299868</td>
+    </tr>
+    <tr>
+      <th>33</th>
+      <td>ca</td>
+      <td>202234</td>
+      <td>1.32822</td>
+      <td>0.299832</td>
+    </tr>
+    <tr>
+      <th>34</th>
+      <td>ca</td>
+      <td>202235</td>
+      <td>1.61345</td>
+      <td>0.299792</td>
+    </tr>
+    <tr>
+      <th>35</th>
+      <td>ca</td>
+      <td>202236</td>
+      <td>1.868</td>
+      <td>0.299878</td>
+    </tr>
+  </tbody>
+</table>
+<p>36 rows × 4 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="dengue-endpoints">
+<h3>Dengue Endpoints<a class="headerlink" href="#dengue-endpoints" title="Link to this heading">¶</a></h3>
+<section id="delphi-s-dengue-nowcast">
+<h4>Delphi’s Dengue Nowcast<a class="headerlink" href="#delphi-s-dengue-nowcast" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html">https://cmu-delphi.github.io/delphi-epidata/api/dengue_nowcast.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_dengue_nowcast</span><span class="p">(</span><span class="n">locations</span><span class="o">=</span><span class="s2">"pr"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">201401</span><span class="p">,</span> <span class="mi">202301</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:776: UserWarning: `pub_dengue_nowcast` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_dengue_nowcast")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>location</th>
+      <th>epiweek</th>
+      <th>value</th>
+      <th>std</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>pr</td>
+      <td>201409</td>
+      <td>92.7234</td>
+      <td>547.278</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>pr</td>
+      <td>201410</td>
+      <td>96.7706</td>
+      <td>601.445</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>pr</td>
+      <td>201411</td>
+      <td>93.4814</td>
+      <td>654.537</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>pr</td>
+      <td>201412</td>
+      <td>87.7994</td>
+      <td>706.574</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>pr</td>
+      <td>201413</td>
+      <td>93.9504</td>
+      <td>758.041</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>315</th>
+      <td>pr</td>
+      <td>202027</td>
+      <td>12.0741</td>
+      <td>44.6905</td>
+    </tr>
+    <tr>
+      <th>316</th>
+      <td>pr</td>
+      <td>202028</td>
+      <td>10.286</td>
+      <td>44.1914</td>
+    </tr>
+    <tr>
+      <th>317</th>
+      <td>pr</td>
+      <td>202029</td>
+      <td>0.480332</td>
+      <td>42.919</td>
+    </tr>
+    <tr>
+      <th>318</th>
+      <td>pr</td>
+      <td>202030</td>
+      <td>8.26231</td>
+      <td>46.6275</td>
+    </tr>
+    <tr>
+      <th>319</th>
+      <td>pr</td>
+      <td>202032</td>
+      <td>263.337</td>
+      <td>1897.88</td>
+    </tr>
+  </tbody>
+</table>
+<p>320 rows × 4 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="nidss-dengue">
+<h4>NIDSS Dengue<a class="headerlink" href="#nidss-dengue" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html">https://cmu-delphi.github.io/delphi-epidata/api/nidss_dengue.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_nidss_dengue</span><span class="p">(</span><span class="n">locations</span><span class="o">=</span><span class="s2">"taipei"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">200301</span><span class="p">,</span> <span class="mi">201301</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1356: UserWarning: `pub_nidss_dengue` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_nidss_dengue")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>location</th>
+      <th>epiweek</th>
+      <th>count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>Taipei</td>
+      <td>200301</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>Taipei</td>
+      <td>200302</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>Taipei</td>
+      <td>200303</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Taipei</td>
+      <td>200304</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>Taipei</td>
+      <td>200305</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>518</th>
+      <td>Taipei</td>
+      <td>201249</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>519</th>
+      <td>Taipei</td>
+      <td>201250</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>520</th>
+      <td>Taipei</td>
+      <td>201251</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>521</th>
+      <td>Taipei</td>
+      <td>201252</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>522</th>
+      <td>Taipei</td>
+      <td>201301</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+<p>523 rows × 3 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="paho-dengue">
+<h4>PAHO Dengue<a class="headerlink" href="#paho-dengue" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html">https://cmu-delphi.github.io/delphi-epidata/api/paho_dengue.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_paho_dengue</span><span class="p">(</span><span class="n">regions</span><span class="o">=</span><span class="s2">"ca"</span><span class="p">,</span> <span class="n">epiweeks</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">200201</span><span class="p">,</span> <span class="mi">202319</span><span class="p">))</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1513: UserWarning: `pub_paho_dengue` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_paho_dengue")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>release_date</th>
+      <th>region</th>
+      <th>serotype</th>
+      <th>epiweek</th>
+      <th>issue</th>
+      <th>lag</th>
+      <th>total_pop</th>
+      <th>num_dengue</th>
+      <th>num_severe</th>
+      <th>num_deaths</th>
+      <th>incidence_rate</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>201401</td>
+      <td>202032</td>
+      <td>344</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>201402</td>
+      <td>202032</td>
+      <td>343</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>201403</td>
+      <td>202032</td>
+      <td>342</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>201404</td>
+      <td>202032</td>
+      <td>341</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>201405</td>
+      <td>202032</td>
+      <td>340</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>337</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>202026</td>
+      <td>202032</td>
+      <td>6</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>338</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>202027</td>
+      <td>202032</td>
+      <td>5</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>339</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>202028</td>
+      <td>202032</td>
+      <td>4</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>340</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>202029</td>
+      <td>202032</td>
+      <td>3</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+    <tr>
+      <th>341</th>
+      <td>2020-08-07</td>
+      <td>CA</td>
+      <td></td>
+      <td>202030</td>
+      <td>202032</td>
+      <td>2</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>342 rows × 11 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="other-endpoints">
+<h3>Other Endpoints<a class="headerlink" href="#other-endpoints" title="Link to this heading">¶</a></h3>
+<section id="wikipedia-access">
+<h4>Wikipedia Access<a class="headerlink" href="#wikipedia-access" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/wiki.html">https://cmu-delphi.github.io/delphi-epidata/api/wiki.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">pub_wiki</span><span class="p">(</span>
+  <span class="n">language</span><span class="o">=</span><span class="s2">"en"</span><span class="p">,</span>
+  <span class="n">articles</span><span class="o">=</span><span class="s2">"influenza"</span><span class="p">,</span>
+  <span class="n">time_type</span><span class="o">=</span><span class="s2">"week"</span><span class="p">,</span>
+  <span class="n">time_values</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="mi">202001</span><span class="p">,</span> <span class="mi">202319</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/runner/work/epidatpy/epidatpy/epidatpy/_endpoints.py:1720: UserWarning: `pub_wiki` covers a data source that is no longer updated. Historical data remains available, but no new data is being ingested. See the "Endpoints kept for historical reference" section of the migration guide (https://cmu-delphi.github.io/epidatpy/migration_guide.html#endpoints-kept-for-historical-reference) for details.
+  _note_frozen_endpoint("pub_wiki")
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>article</th>
+      <th>epiweek</th>
+      <th>count</th>
+      <th>total</th>
+      <th>hour</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>influenza</td>
+      <td>202001</td>
+      <td>6516</td>
+      <td>663604044</td>
+      <td>-1</td>
+      <td>9.819108</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>influenza</td>
+      <td>202002</td>
+      <td>10244</td>
+      <td>789885521</td>
+      <td>-1</td>
+      <td>12.968968</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>influenza</td>
+      <td>202003</td>
+      <td>10728</td>
+      <td>783760384</td>
+      <td>-1</td>
+      <td>13.687857</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>influenza</td>
+      <td>202004</td>
+      <td>24843</td>
+      <td>785222292</td>
+      <td>-1</td>
+      <td>31.638175</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>influenza</td>
+      <td>202005</td>
+      <td>62850</td>
+      <td>780291898</td>
+      <td>-1</td>
+      <td>80.54678</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>59</th>
+      <td>influenza</td>
+      <td>202107</td>
+      <td>7975</td>
+      <td>684093074</td>
+      <td>-1</td>
+      <td>11.65777</td>
+    </tr>
+    <tr>
+      <th>60</th>
+      <td>influenza</td>
+      <td>202108</td>
+      <td>9473</td>
+      <td>710145306</td>
+      <td>-1</td>
+      <td>13.339524</td>
+    </tr>
+    <tr>
+      <th>61</th>
+      <td>influenza</td>
+      <td>202109</td>
+      <td>9043</td>
+      <td>721180910</td>
+      <td>-1</td>
+      <td>12.539156</td>
+    </tr>
+    <tr>
+      <th>62</th>
+      <td>influenza</td>
+      <td>202110</td>
+      <td>8477</td>
+      <td>710483659</td>
+      <td>-1</td>
+      <td>11.931309</td>
+    </tr>
+    <tr>
+      <th>63</th>
+      <td>influenza</td>
+      <td>202111</td>
+      <td>6581</td>
+      <td>566080628</td>
+      <td>-1</td>
+      <td>11.625552</td>
+    </tr>
+  </tbody>
+</table>
+<p>64 rows × 6 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+<section id="private-methods">
+<h3>Private methods<a class="headerlink" href="#private-methods" title="Link to this heading">¶</a></h3>
+<p>These require private access keys to use.</p>
+<section id="google-health-trends">
+<h4>Google Health Trends<a class="headerlink" href="#google-health-trends" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/ght.html">https://cmu-delphi.github.io/delphi-epidata/api/ght.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires valid API key</span>
+<span class="c1"># epidata.pvt_ght(</span>
+<span class="c1">#   auth="&lt;YOUR_API_KEY&gt;",</span>
+<span class="c1">#   epiweeks=EpiRange(199301, 202304),</span>
+<span class="c1">#   locations="ma",</span>
+<span class="c1">#   query="how to get over the flu"</span>
+<span class="c1"># ).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="cdc">
+<h4>CDC<a class="headerlink" href="#cdc" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/cdc.html">https://cmu-delphi.github.io/delphi-epidata/api/cdc.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_cdc(auth="...", locations="ma", epiweeks=EpiRange(202003, 202304)).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="dengue-digital-surveillance-sensors">
+<h4>Dengue Digital Surveillance Sensors<a class="headerlink" href="#dengue-digital-surveillance-sensors" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html">https://cmu-delphi.github.io/delphi-epidata/api/dengue_sensors.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_dengue_sensors(</span>
+<span class="c1">#   auth="...",</span>
+<span class="c1">#   names="ght",</span>
+<span class="c1">#   locations="ag",</span>
+<span class="c1">#   epiweeks=EpiRange(201404, 202004)</span>
+<span class="c1"># ).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="norostat-metadata">
+<h4>NoroSTAT metadata<a class="headerlink" href="#norostat-metadata" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/meta_norostat.html">https://cmu-delphi.github.io/delphi-epidata/api/meta_norostat.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_meta_norostat(auth="...").df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="norostat-data">
+<h4>NoroSTAT data<a class="headerlink" href="#norostat-data" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/norostat.html">https://cmu-delphi.github.io/delphi-epidata/api/norostat.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_norostat(auth="...", locations="1", epiweeks=201233).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="quidel-influenza-testing">
+<h4>Quidel Influenza testing<a class="headerlink" href="#quidel-influenza-testing" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/quidel.html">https://cmu-delphi.github.io/delphi-epidata/api/quidel.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_quidel(auth="...", locations="hhs1", epiweeks=EpiRange(200301, 202105)).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="sensors">
+<h4>Sensors<a class="headerlink" href="#sensors" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/sensors.html">https://cmu-delphi.github.io/delphi-epidata/api/sensors.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_sensors(</span>
+<span class="c1">#   auth="...",</span>
+<span class="c1">#   names="sar3",</span>
+<span class="c1">#   locations="nat",</span>
+<span class="c1">#   epiweeks=EpiRange(200301, 202105)</span>
+<span class="c1"># ).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="twitter">
+<h4>Twitter<a class="headerlink" href="#twitter" title="Link to this heading">¶</a></h4>
+<p>API docs: <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/twitter.html">https://cmu-delphi.github.io/delphi-epidata/api/twitter.html</a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># epidata.pvt_twitter(</span>
+<span class="c1">#   auth="...",</span>
+<span class="c1">#   locations="nat",</span>
+<span class="c1">#   time_type="week",</span>
+<span class="c1">#   time_values=EpiRange(200301, 202105)</span>
+<span class="c1"># ).df()</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Finding data of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_guide.html">Migrating from pub_covidcast to the new Epidata API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="getting_started.html" title="previous chapter">Getting started</a></li>
+      <li>Next: <a href="versioned_data.html" title="next chapter">Accessing versioned data</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/signal_discovery.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
