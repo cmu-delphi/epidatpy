@@ -41,7 +41,7 @@ class TestCastEndpoints:
     def test_epidata_meta_all_sources(self) -> None:
         meta = EpiDataContext().epidata_meta()
         assert isinstance(meta, dict)
-        assert set(q[0] for q in CAST_QUERIES).issubset(meta)
+        assert {q[0] for q in CAST_QUERIES}.issubset(meta)
 
     def test_epidata_meta_per_source(self) -> None:
         ctx = EpiDataContext()
