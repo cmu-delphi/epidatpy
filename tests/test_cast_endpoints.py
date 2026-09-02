@@ -38,12 +38,15 @@ CAST_QUERIES = [
 class TestCastEndpoints:
     """Live network tests for the CAST API."""
 
+    def test_epidata_meta_all_sources(self) -> None:
+        meta = EpiDataContext().epidata_meta()
+        assert isinstance(meta, dict)
+        assert set(q[0] for q in CAST_QUERIES).issubset(meta)
+
     def test_epidata_meta_per_source(self) -> None:
         ctx = EpiDataContext()
         for src in sorted({q[0] for q in CAST_QUERIES}):
-            meta = ctx.epidata_meta(source=src)
-            assert src in meta, f"metadata response missing source {src!r}"
-            source_meta = meta[src]
+            source_meta = ctx.epidata_meta(source=src)
             assert isinstance(source_meta, dict)
             assert len(source_meta.get("signals", [])) > 0
             assert len(source_meta.get("geo_types", [])) > 0
