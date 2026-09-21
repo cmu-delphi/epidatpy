@@ -65,6 +65,23 @@ def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
     assert sorted(df["geo_type"].unique()) == ["nation", "state"]
 
 
+def test_epidata_archive_report_time_epirange_is_inclusive_range() -> None:
+    """EpiRange maps to a server-side "from:to" range query."""
+    call = EpiDataContext().epidata_archive(
+        source="nssp", signals="sig1", geo_type="state", report_time=EpiRange("2024-01-02", "2024-01-05")
+    )
+    _, params = call.request_arguments()
+    assert params["report_time_query"] == "2024-01-02:2024-01-05"
+
+
+def test_epidata_snapshot_snapshot_date_accepts_utc_timestamp() -> None:
+    call = EpiDataContext().epidata_snapshot(
+        source="nssp", signals="sig1", geo_type="state", snapshot_date="2024-01-02T13:45:00Z"
+    )
+    _, params = call.request_arguments()
+    assert params["snapshot_date"] == "2024-01-02T13:45:00Z"
+
+
 @pytest.mark.live
 @pytest.mark.skipif(not auth, reason="DELPHI_EPIDATA_KEY not available.")
 class TestCastEndpoints:
@@ -163,3 +180,7 @@ class TestCastEndpoints:
         assert isinstance(merged, pd.DataFrame)
         assert len(merged) == len(base)
         assert set(base.columns).issubset(set(merged.columns))
+        # Must actually bring aux columns in: the assertions above all hold when
+        # the merge silently no-ops and returns `base` itself.
+        assert set(merged.columns) - set(base.columns)
+        assert merged["population_served"].notna().any()
