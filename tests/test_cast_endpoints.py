@@ -21,9 +21,9 @@ CAST_QUERIES = [
     ("nssp", "pct_ed_visits_influenza", "state"),
     ("nssp", "pct_ed_visits_influenza", "hhs"),
     # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: row limit
-    # ("nhsn", "confirmed_admissions_flu_ew", "state"),  # ignored: no data
-    # ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
-    # ("nhsn", "confirmed_admissions_flu_ew", "national"),
+    ("nhsn", "confirmed_admissions_flu_ew", "state"),
+    ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
+    ("nhsn", "confirmed_admissions_flu_ew", "nation"),
     ("pophive", "flu_pct_ed", "state"),
     ("pophive", "flu_pct_ed", "hhs"),
     ("pophive", "flu_n_ed", "state"),
