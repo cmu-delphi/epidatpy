@@ -1757,6 +1757,7 @@ class EpiDataContext:
         *,
         reference_time: EpiRangeParam = "*",
         report_time: str | date | EpiRange | None = "*",
+        snapshot_date: str | date | int | None = None,
         columns: Sequence[str] | None = None,
         **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall | DataFrame:
@@ -1784,7 +1785,13 @@ class EpiDataContext:
             defaults to all ("*"). Base-pull mode only (when `source` is a string).
         report_time : Union[str, date, EpiRange, None]
             Version of the auxiliary data to retrieve. Base-pull mode only
-            (when `source` is a string).
+            (when `source` is a string). Mutually exclusive with `snapshot_date`.
+        snapshot_date : Union[str, date, int, None]
+            Return auxiliary data as it appeared on this date (one row per key,
+            the most recent version at or before it). `None` (default) returns
+            the full version history filtered by `report_time` instead.
+            Base-pull mode only (when `source` is a string). Mutually
+            exclusive with `report_time`.
         columns : Sequence[str], optional
             Columns to return. By default, all columns are returned.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
@@ -1809,18 +1816,35 @@ class EpiDataContext:
         epidata_snapshot, epidata_archive, epidata_meta
         """
         if isinstance(source, DataFrame):
-            if reference_time != "*" or report_time != "*":
+            if reference_time != "*" or report_time != "*" or snapshot_date is not None:
                 raise InvalidArgumentException(
-                    "`reference_time` and `report_time` are not supported when `source` is a DataFrame; "
-                    "they are derived from its own version."
+                    "`reference_time`, `report_time`, and `snapshot_date` are not supported when "
+                    "`source` is a DataFrame; they are derived from its own version."
                 )
             return self._epidata_aux_merge(source, columns=columns, key_filters=key_filters)
+
+        if snapshot_date is not None and report_time != "*":
+            raise InvalidArgumentException("`snapshot_date` and `report_time` are mutually exclusive.")
+
+        if snapshot_date is None:
+            snapshot_date_str: str | None = None
+            report_time_str = validate_report_time_query(report_time)
+        elif isinstance(snapshot_date, date):
+            snapshot_date_str = snapshot_date.strftime("%Y-%m-%d")
+            report_time_str = None
+        else:
+            parsed = parse_api_date(snapshot_date)
+            if parsed is None:
+                raise InvalidArgumentException(f"Invalid `snapshot_date` value: {snapshot_date!r}")
+            snapshot_date_str = parsed.strftime("%Y-%m-%d")
+            report_time_str = None
 
         return self._create_call(
             "aux_data/",
             {
                 "source": source,
-                "report_time_query": validate_report_time_query(report_time),
+                "snapshot_date": snapshot_date_str,
+                "report_time_query": report_time_str,
                 "filtered_keys": _serialize_key_filters(key_filters),
                 "columns": format_list(columns) if columns else None,
             },
@@ -1884,14 +1908,20 @@ class EpiDataContext:
                     inferred[k] = uniq
             filters = inferred
 
-        # Never need aux versions newer than the newest base report_time.
-        if ver in base.columns and base[ver].notna().any():
-            cutoff = base[ver].max() + Timedelta(days=1)
-            report_cut = f"<{cutoff.strftime('%Y-%m-%d')}"
+        # Never need aux versions newer than the newest base report_time. For a
+        # snapshot (one version for every row), ask the server for that single
+        # as-of row per key directly via `snapshot_date` instead of the full
+        # report_time-bounded history.
+        has_versions = ver in base.columns and base[ver].notna().any()
+        if not has_versions:
+            version_kwargs: dict[str, Any] = {"report_time": "*"}
+        elif base.attrs.get("cast_kind") == "snapshot":
+            version_kwargs = {"snapshot_date": base[ver].max()}
         else:
-            report_cut = "*"
+            cutoff = base[ver].max() + Timedelta(days=1)
+            version_kwargs = {"report_time": f"<{cutoff.strftime('%Y-%m-%d')}"}
 
-        aux = self.epidata_aux(src, report_time=report_cut, columns=columns, **filters).df()
+        aux = self.epidata_aux(src, columns=columns, **version_kwargs, **filters).df()
 
         value_cols = [c for c in aux.columns if c not in base.columns and c != ver]
         if not value_cols or aux.empty:
