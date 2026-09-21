@@ -99,9 +99,7 @@ def _error_body_message(response: Response) -> str | None:
             message = body.get("message") or body.get("detail")
             if isinstance(message, list):
                 # FastAPI validation errors: a list of {"loc", "msg", ...} objects.
-                message = "; ".join(
-                    d.get("msg", "invalid value") if isinstance(d, dict) else str(d) for d in message
-                )
+                message = "; ".join(d.get("msg", "invalid value") if isinstance(d, dict) else str(d) for d in message)
         elif content_type.startswith("text/html"):
             # grab the error information out of the returned HTML document
             message = " ".join(
@@ -304,14 +302,16 @@ class EpiDataCall:
         disable_type_parsing: bool | None = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
+        if self.use_cache:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache_key = self._get_cache_key("classic")
+                if cache_key in cache:
+                    return cast(EpiDataResponse, cache[cache_key])
+        response = self._call(fields)
+        # Raised, not buried in the result dict: an HTTP error means no data came
+        # back, and df() would otherwise hand back a silently empty frame.
+        _raise_for_status(response)
         try:
-            if self.use_cache:
-                with Cache(CACHE_DIRECTORY) as cache:
-                    cache_key = self._get_cache_key("classic")
-                    if cache_key in cache:
-                        return cast(EpiDataResponse, cache[cache_key])
-            response = self._call(fields)
-            _raise_for_status(response)
             r = cast(EpiDataResponse, response.json())
             if disable_type_parsing:
                 return r

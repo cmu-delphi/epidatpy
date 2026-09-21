@@ -43,11 +43,14 @@ def test_raise_for_status_surfaces_server_message(body: str, content_type: str, 
 
 
 def test_classic_surfaces_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
-    """classic() swallows errors into its result dict -- the message must still get there."""
+    """A classic (V4) HTTP error raises rather than returning an empty frame."""
     res = _response("<html><body><p>Internal Server Error</p></body></html>", 500, "text/html")
     monkeypatch.setattr("epidatpy._call._request_with_retry", lambda *a, **k: res)
-    out = EpiDataContext().pub_flusurv("network", "202001").classic()
-    assert "Internal Server Error" in out["message"]
+    call = EpiDataContext().pub_flusurv("network", "202001")
+    with pytest.raises(HTTPError, match="Internal Server Error"):
+        call.classic()
+    with pytest.raises(HTTPError, match="Internal Server Error"):
+        call.df()
 
 
 def test_df_cast_surfaces_server_message(monkeypatch: pytest.MonkeyPatch) -> None:
