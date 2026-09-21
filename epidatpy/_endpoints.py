@@ -77,6 +77,27 @@ def _serialize_key_filters(key_filters: Mapping[str, Any], max_vals: int = 10) -
             UserWarning,
         )
     return ",".join(terms)
+def _warn_v4_sunset(fn_name: str) -> None:
+    warnings.warn(
+        f"`{fn_name}` uses the V4 Epidata API. Starting in October 2026, V4 is "
+        "tentatively deprecated in favor of the V5 API. See the migration guide "
+        "(https://cmu-delphi.github.io/epidatpy/migration_guide.html) for the V5 "
+        "endpoints and how to move to them.",
+        UserWarning,
+        stacklevel=2,
+    )
+
+
+def _note_frozen_endpoint(fn_name: str) -> None:
+    warnings.warn(
+        f"`{fn_name}` covers a data source that is no longer updated. Historical "
+        "data remains available, but no new data is being ingested. See the "
+        '"Endpoints kept for historical reference" section of the migration guide '
+        "(https://cmu-delphi.github.io/epidatpy/migration_guide.html"
+        "#endpoints-kept-for-historical-reference) for details.",
+        UserWarning,
+        stacklevel=2,
+    )
 
 
 class EpiDataContext:
@@ -179,6 +200,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pvt_cdc")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "day")
 
         return self._create_call(
@@ -232,6 +255,8 @@ class EpiDataContext:
         fips_code : str, optional
             A 5-digit FIPS county code, zero-padded.
         """
+        _note_frozen_endpoint("pub_covid_hosp_facility_lookup")
+
         if all(v is None for v in (state, ccn, city, zip, fips_code)):
             raise InvalidArgumentException("one of `state`, `ccn`, `city`, `zip`, or `fips_code` is required")
 
@@ -288,6 +313,8 @@ class EpiDataContext:
         publication_dates : EpiRangeParam, optional
             Publication dates to fetch. Supports :class:`~epidatpy.EpiRange`. Format as YYYY-MM-DD (string or numeric).
         """
+        _note_frozen_endpoint("pub_covid_hosp_facility")
+
         collection_weeks = get_wildcard_equivalent_dates(collection_weeks, "day")
 
         # Confusingly, the endpoint expects `collection_weeks` to be in day format,
@@ -463,6 +490,8 @@ class EpiDataContext:
             Fetch data as it was known as of this date. Format as YYYYMMDD.
             Mutually exclusive with `issues`.
         """
+        _note_frozen_endpoint("pub_covid_hosp_state_timeseries")
+
         if issues is not None and as_of is not None:
             raise InvalidArgumentException("`issues` and `as_of` are mutually exclusive")
 
@@ -549,6 +578,16 @@ class EpiDataContext:
     def pub_covidcast_meta(self) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_meta.html>
 
         Obtains a data frame of metadata describing all publicly available data
@@ -615,6 +654,8 @@ class EpiDataContext:
             ``max_lag``
                 Largest lag from observation to issue, in days.
         """
+        _warn_v4_sunset("pub_covidcast_meta")
+
         return self._create_call(
             "covidcast_meta/",
             {},
@@ -654,6 +695,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch Delphi's COVID-19 Surveillance Streams.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>
 
         The primary endpoint for fetching COVID-19 data, providing access to a wide
@@ -691,6 +742,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``as_of`` and ``issues``.
         """
+        _warn_v4_sunset("pub_covidcast")
+
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
@@ -728,6 +781,8 @@ class EpiDataContext:
             Epiweek to fetch. Does not support multiple dates.
             Make separate calls to fetch data for multiple epiweeks.
         """
+        _note_frozen_endpoint("pub_delphi")
+
         return self._create_call(
             "delphi/",
             {"system": system, "epiweek": epiweek},
@@ -755,6 +810,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pub_dengue_nowcast")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -796,6 +853,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pvt_dengue_sensors")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -845,6 +904,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _note_frozen_endpoint("pub_ecdc_ili")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -872,6 +933,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch CDC FluSurv flu hospitalizations.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/flusurv.html>
 
         Obtain information on influenza hospitalization rates from the Center of Disease
@@ -896,6 +967,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _warn_v4_sunset("pub_flusurv")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -956,6 +1029,16 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch CDC FluView flu tests from clinical labs.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_clinical.html>
 
         Parameters
@@ -975,6 +1058,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _warn_v4_sunset("pub_fluview_clinical")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1001,8 +1086,20 @@ class EpiDataContext:
     def pub_fluview_meta(self) -> EpiDataCall:
         """Fetch Metadata for the FluView endpoint.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview_meta.html>
         """
+        _warn_v4_sunset("pub_fluview_meta")
+
         return self._create_call(
             "fluview_meta",
             {},
@@ -1022,6 +1119,16 @@ class EpiDataContext:
         auth: str | None = None,
     ) -> EpiDataCall:
         """Fetch CDC FluView ILINet outpatient doctor visits.
+
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
 
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/fluview.html>
 
@@ -1051,6 +1158,8 @@ class EpiDataContext:
         auth : str, optional
             Private API key.
         """
+        _warn_v4_sunset("pub_fluview")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1105,6 +1214,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pub_gft")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1146,6 +1257,8 @@ class EpiDataContext:
             GHT search query.
             See `Valid Queries <https://cmu-delphi.github.io/delphi-epidata/api/ght.html#valid-queries>`__.
         """
+        _note_frozen_endpoint("pvt_ght")
+
         if auth is None or locations is None or query == "":
             raise InvalidArgumentException("`auth`, `locations`, `epiweeks`, and `query` are all required")
 
@@ -1198,6 +1311,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _note_frozen_endpoint("pub_kcdc_ili")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1228,6 +1343,8 @@ class EpiDataContext:
         auth : str
             Private API key.
         """
+        _note_frozen_endpoint("pvt_meta_norostat")
+
         return self._create_call(
             "meta_norostat/",
             {"auth": auth},
@@ -1237,8 +1354,20 @@ class EpiDataContext:
     def pub_meta(self) -> EpiDataCall:
         """Fetch API metadata.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/meta.html>
         """
+        _warn_v4_sunset("pub_meta")
+
         return self._create_call(
             "meta/",
             {},
@@ -1261,6 +1390,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pub_nidss_dengue")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1301,6 +1432,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _note_frozen_endpoint("pub_nidss_flu")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1340,6 +1473,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pvt_norostat")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1368,6 +1503,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pub_nowcast")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1410,6 +1547,8 @@ class EpiDataContext:
             Number of days between the observation and its publication.
             Mutually exclusive with ``issues``.
         """
+        _note_frozen_endpoint("pub_paho_dengue")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         if issues is not None and lag is not None:
@@ -1436,6 +1575,16 @@ class EpiDataContext:
     def pvt_quidel(self, auth: str, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Quidel data.
 
+        This is a V4 endpoint. Starting in October 2026, it is tentatively
+        deprecated in favor of the V5 API. The new API can be accessed via
+        the :meth:`epidata_snapshot`, :meth:`epidata_archive`, and
+        :meth:`epidata_meta` functions. For more details on the changes,
+        refer to the `migration guide
+        <https://cmu-delphi.github.io/epidatpy/migration_guide.html>`_, and
+        visit the `V5 signals documentation
+        <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>`_
+        to see which sources are currently available.
+
         API docs: <https://cmu-delphi.github.io/delphi-epidata/api/quidel.html>
 
         Requires a private API key.
@@ -1453,6 +1602,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _warn_v4_sunset("pvt_quidel")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1493,6 +1644,8 @@ class EpiDataContext:
             Format as ``epirange(startweek, endweek)``, where startweek and endweek are of the form
             YYYYWW (string or numeric).
         """
+        _note_frozen_endpoint("pvt_sensors")
+
         epiweeks = get_wildcard_equivalent_dates(epiweeks, "week")
 
         return self._create_call(
@@ -1538,6 +1691,8 @@ class EpiDataContext:
             Format as ``epirange(start, end)``, where start and end are of the form YYYY-MM-DD
             or YYYYWW depending on the ``time_type``.
         """
+        _note_frozen_endpoint("pvt_twitter")
+
         if time_type == "day":
             dates = time_values
             epiweeks = None
@@ -1599,6 +1754,8 @@ class EpiDataContext:
         language : str, default "en"
             Two-letter language code.
         """
+        _note_frozen_endpoint("pub_wiki")
+
         if time_type == "day":
             dates = time_values
             epiweeks = None
@@ -1699,7 +1856,7 @@ class EpiDataContext:
                 "signal": signal_str,
                 "geo_type": geo_type,
                 "fill_method": fill_method,
-                "report_time": report_time_str,
+                "report_time_query": report_time_str,
             },
             _cast_signal_fields(),
             api_version="cast",

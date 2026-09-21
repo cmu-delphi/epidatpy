@@ -168,7 +168,7 @@ class EpiDataCall:
     def _parse_value(
         self,
         key: str,
-        value: str | float | int | None,
+        value: str | float | None,
         disable_date_parsing: bool | None = False,
     ) -> str | float | int | date | None:
         meta = self.meta_by_name.get(key)
@@ -235,7 +235,7 @@ class EpiDataCall:
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"
         if self._params:
-            cache_key += f" | {str(dict(sorted(self._params.items())))}"
+            cache_key += f" | {dict(sorted(self._params.items()))!s}"
         return cache_key
 
     def classic(
@@ -263,7 +263,7 @@ class EpiDataCall:
                     cache_key = self._get_cache_key("classic")
                     cache.set(cache_key, r, expire=self.cache_max_age_days * 24 * 60 * 60)
             return r
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - intentional catch-all
             return {"result": 0, "message": f"error: {e}", "epidata": []}
 
     def __call__(

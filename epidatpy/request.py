@@ -13,9 +13,9 @@ from ._endpoints import EpiDataContext
 from ._model import EpiRangeParam, add_endpoint_to_url
 
 __all__ = [
+    "CovidcastEpidata",
     "EpiDataCall",
     "EpiDataContext",
-    "CovidcastEpidata",
     "available_endpoints",
 ]
 
