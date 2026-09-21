@@ -106,18 +106,22 @@ def test_epidata_aux_merge_no_shared_keys_raises() -> None:
     base = pd.DataFrame({"unrelated_column": [1]})
     base.attrs["cast_source"] = "nwss"
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]):
-        with pytest.raises(InvalidArgumentException):
-            ctx.epidata_aux(base)
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]),
+        pytest.raises(InvalidArgumentException),
+    ):
+        ctx.epidata_aux(base)
 
 
 def test_epidata_aux_merge_columns_excluding_key_raises() -> None:
     base = pd.DataFrame({"geo_value": ["ca"], "report_time": pd.to_datetime(["2024-02-01"])})
     base.attrs["cast_source"] = "nwss"
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]):
-        with pytest.raises(InvalidArgumentException, match="geo_value"):
-            ctx.epidata_aux(base, columns=["population_served"])
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]),
+        pytest.raises(InvalidArgumentException, match="geo_value"),
+    ):
+        ctx.epidata_aux(base, columns=["population_served"])
 
 
 def _fake_aux_fetch(aux: pd.DataFrame, calls: list[dict[str, Any]] | None = None) -> Callable[..., Any]:
@@ -179,9 +183,11 @@ def test_epidata_aux_merge_archive_is_version_aware_per_row() -> None:
     base.attrs["cast_kind"] = "archive"
 
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS):
-        with patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS)):
-            result = ctx.epidata_aux(base)
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS)),
+    ):
+        result = ctx.epidata_aux(base)
 
     assert isinstance(result, pd.DataFrame)
     # row0 (01-15) predates the earliest ca/01-01/A revision (02-01) -> NaN.
@@ -221,9 +227,11 @@ def test_epidata_aux_merge_snapshot_uses_uniform_cutoff() -> None:
     base.attrs["cast_kind"] = "snapshot"
 
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS):
-        with patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS)):
-            result = ctx.epidata_aux(base)
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS)),
+    ):
+        result = ctx.epidata_aux(base)
 
     assert isinstance(result, pd.DataFrame)
     # Cutoff = max(base report_time) = 06-01 for every row.
@@ -255,9 +263,11 @@ def test_epidata_aux_merge_infers_and_forwards_multi_value_filters() -> None:
 
     calls: list[dict[str, Any]] = []
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]):
-        with patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(aux, calls)):
-            ctx.epidata_aux(base)
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(aux, calls)),
+    ):
+        ctx.epidata_aux(base)
 
     assert len(calls) == 1
     assert sorted(calls[0]["geo_value"]) == ["ca", "ny"]
@@ -281,10 +291,12 @@ def test_epidata_aux_merge_forwards_explicit_filters_and_caps_report_time() -> N
 
     calls: list[dict[str, Any]] = []
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]):
-        with patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(empty_aux, calls)):
-            with pytest.warns(UserWarning, match="pcr_target"):
-                ctx.epidata_aux(base, pcr_target="x")
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(empty_aux, calls)),
+        pytest.warns(UserWarning, match="pcr_target"),
+    ):
+        ctx.epidata_aux(base, pcr_target="x")
 
     assert len(calls) == 1
     assert calls[0]["pcr_target"] == "x"
@@ -308,9 +320,11 @@ def test_epidata_aux_merge_snapshot_base_requests_snapshot_date() -> None:
 
     calls: list[dict[str, Any]] = []
     ctx = EpiDataContext()
-    with patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]):
-        with patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(empty_aux, calls)):
-            ctx.epidata_aux(base)
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=["report_time", "geo_value"]),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(empty_aux, calls)),
+    ):
+        ctx.epidata_aux(base)
 
     assert len(calls) == 1
     assert calls[0]["snapshot_date"] == pd.Timestamp("2024-05-20")
