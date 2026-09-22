@@ -326,8 +326,26 @@ class EpiDataCall:
             return None
         return entry if isinstance(entry, dict) else None
 
+    def _unknown_cast_keys(self, source: str, signals: list[str], geo_types: list[str]) -> list[str]:
+        """Sentences naming the requested signals and geo types that `source`'s metadata does not list."""
+        meta = self._cast_source_meta(source) if signals or geo_types else None
+        if meta is None:
+            return []
+        problems = []
+        for kind, requested in (("signals", signals), ("geo_types", geo_types)):
+            known = meta.get(kind, [])
+            unknown = [v for v in requested if v not in known]
+            if unknown:
+                problems.append(f"For source {source!r}, {kind} {unknown} are not available (known: {known}).")
+        return problems
+
     def _check_cast_empty(self, fetched: DataFrame, result: DataFrame) -> None:
-        """Warn about empty (or partially empty) cast results; error when metadata says the query can't match."""
+        """Warn about empty or partially empty cast results, the way epidatr does.
+
+        Signals or geo types missing from the source's metadata are an error
+        only when nothing came back at all; alongside real data they are
+        mentioned in the warning instead.
+        """
         source = format_list(cast("EpiRangeParam", self._params.get("source", "")))
         signals = self._requested_values("signal")
         geo_types = self._requested_values("geo_type")
@@ -338,35 +356,26 @@ class EpiDataCall:
         if not empty_signals and not empty_geo_types and len(result) > 0:
             return
 
-        if empty_signals or empty_geo_types:
-            meta = self._cast_source_meta(source)
-            if meta is not None:
-                unknown_signals = [s for s in empty_signals if s not in meta.get("signals", [])]
-                unknown_geo_types = [g for g in empty_geo_types if g not in meta.get("geo_types", [])]
-                problems = []
-                if unknown_signals:
-                    problems.append(f"signals {unknown_signals} are not available (known: {meta.get('signals', [])})")
-                if unknown_geo_types:
-                    problems.append(
-                        f"geo_types {unknown_geo_types} are not available (known: {meta.get('geo_types', [])})"
-                    )
-                if problems:
-                    raise InvalidArgumentException(f"For source {source!r}, " + "; ".join(problems) + ".")
-            if len(fetched) == 0:
-                message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
-            else:
-                parts = []
-                if empty_signals:
-                    parts.append(f"signals {empty_signals}")
-                if empty_geo_types:
-                    parts.append(f"geo_types {empty_geo_types}")
-                message = f"No data returned for {' and '.join(parts)} from source {source!r}."
-        else:
+        unknown = self._unknown_cast_keys(source, empty_signals, empty_geo_types)
+        if len(result) == 0 and unknown:
+            raise InvalidArgumentException(" ".join(unknown))
+
+        if len(fetched) == 0:
+            message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
+        elif len(result) == 0:
             message = (
                 f"The server returned {len(fetched)} rows but the local `geo_values`/`reference_time` "
                 "filter dropped them all."
             )
-        warnings.warn(message + " Pass return_empty=True to silence this.", EmptyResultWarning, stacklevel=3)
+        else:
+            parts = [f"signals {empty_signals}"] if empty_signals else []
+            parts += [f"geo_types {empty_geo_types}"] if empty_geo_types else []
+            message = f"No data returned for {' and '.join(parts)} from source {source!r}."
+        warnings.warn(
+            " ".join([message, *unknown, "Pass return_empty=True to silence this."]),
+            EmptyResultWarning,
+            stacklevel=3,
+        )
 
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"

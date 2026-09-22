@@ -1814,11 +1814,12 @@ class EpiDataContext:
         order, so `limit` does not guarantee the same rows (or count) across
         calls. Use it to preview or debug a query, not as a filter.
 
-        An empty result warns with :class:`~epidatpy.EmptyResultWarning`, naming
-        the signals and geo types that returned nothing, and raises
-        :class:`~epidatpy.InvalidArgumentException` when :meth:`epidata_meta`
-        says they do not exist for `source`. Pass ``return_empty=True`` to get
-        an empty frame back silently instead.
+        An empty or partially empty result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals and geo types
+        that returned nothing. When nothing came back at all and
+        :meth:`epidata_meta` says a requested signal or geo type does not exist
+        for `source`, it raises :class:`~epidatpy.InvalidArgumentException`
+        instead. Pass ``return_empty=True`` to get an empty frame back silently.
         """
         snapshot_date_str = None if snapshot_date is None else format_report_time_bound(snapshot_date)
         signal_str = format_list(signals)

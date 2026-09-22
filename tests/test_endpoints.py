@@ -111,6 +111,13 @@ def test_unknown_signal_raises(fake_server: Callable[..., FakeServer]) -> None:
         EpiDataContext(use_cache=False).epidata_snapshot("nssp", "zzz", "state").df()
 
 
+def test_unknown_signal_with_partial_data_warns(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], "a")))
+    with pytest.warns(EmptyResultWarning, match=r"signals \['zzz'\] are not available"):
+        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "zzz"], "state").df()
+    assert len(df) == 1
+
+
 def test_unknown_geo_type_raises(fake_server: Callable[..., FakeServer]) -> None:
     fake_server(_meta_or(lambda params: ""))
     with pytest.raises(InvalidArgumentException, match=r"geo_types \['moon'\] are not available"):
