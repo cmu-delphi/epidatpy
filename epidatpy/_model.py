@@ -94,6 +94,10 @@ class InvalidArgumentException(Exception):
     """exception for an invalid argument"""
 
 
+class EmptyResultWarning(UserWarning):
+    """A cast-API query returned no rows, or the local filters dropped them all."""
+
+
 class EpiDataHTTPError(Exception):
     """The API returned an error status; `message` is what the server said."""
 

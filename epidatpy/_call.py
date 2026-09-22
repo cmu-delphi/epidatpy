@@ -25,11 +25,13 @@ from ._constants import HTTP_HEADERS
 from ._model import (
     ApiVersion,
     CastPostFilter,
+    EmptyResultWarning,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiDataHTTPError,
     EpiDataResponse,
     EpiRangeParam,
+    InvalidArgumentException,
     OnlySupportsClassicFormatException,
     add_endpoint_to_url,
     cast_filter,
@@ -141,6 +143,7 @@ class EpiDataCall:
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
     _fan_out: Final[str | None]
+    _return_empty: Final[bool]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
@@ -160,6 +163,7 @@ class EpiDataCall:
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
         fan_out: str | None = None,
+        return_empty: bool = False,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
@@ -167,6 +171,7 @@ class EpiDataCall:
         self._api_version = api_version
         self._post_filter = post_filter
         self._fan_out = fan_out
+        self._return_empty = return_empty
         self._session = session
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
@@ -262,6 +267,7 @@ class EpiDataCall:
             api_version=self._api_version,
             post_filter=self._post_filter,
             fan_out=self._fan_out,
+            return_empty=self._return_empty,
         )
 
     def with_session(self, session: Session) -> EpiDataCall:
@@ -277,6 +283,7 @@ class EpiDataCall:
             api_version=self._api_version,
             post_filter=self._post_filter,
             fan_out=self._fan_out,
+            return_empty=self._return_empty,
         )
 
     def _call(
@@ -316,6 +323,68 @@ class EpiDataCall:
         df_cols = set(df.columns)
         cols_in_df = [c for c in columns if c in df_cols]
         return df[cols_in_df] if cols_in_df else df
+
+    def _requested_values(self, name: str) -> list[str]:
+        value = self._params.get(name)
+        if value is None:
+            return []
+        return [v.strip() for v in format_list(value).split(",") if v.strip()]
+
+    def _cast_source_meta(self, source: str) -> Mapping[str, Any] | None:
+        try:
+            res = _request_with_retry(
+                add_endpoint_to_url(self._base_url, "metadata/"),
+                {"source": source},
+                self._session,
+                False,
+                api_version="cast",
+            ).json()
+        except Exception:  # noqa: BLE001 - diagnostics must never mask the real result
+            return None
+        entry = res.get(source) if isinstance(res, dict) else None
+        return entry if isinstance(entry, dict) else None
+
+    def _check_cast_empty(self, fetched: DataFrame, result: DataFrame) -> None:
+        """Warn about empty (or partially empty) cast results; error when metadata says the query can't match."""
+        source = format_list(cast("EpiRangeParam", self._params.get("source", "")))
+        signals = self._requested_values("signal")
+        geo_types = self._requested_values("geo_type")
+        returned_signals = set(fetched["signal"]) if "signal" in fetched.columns else set()
+        returned_geo_types = set(fetched["geo_type"]) if "geo_type" in fetched.columns else set()
+        empty_signals = [s for s in signals if s not in returned_signals]
+        empty_geo_types = [g for g in geo_types if g not in returned_geo_types]
+        if not empty_signals and not empty_geo_types and len(fetched) > 0 and len(result) > 0:
+            return
+
+        if empty_signals or empty_geo_types:
+            meta = self._cast_source_meta(source)
+            if meta is not None:
+                unknown_signals = [s for s in empty_signals if s not in meta.get("signals", [])]
+                unknown_geo_types = [g for g in empty_geo_types if g not in meta.get("geo_types", [])]
+                problems = []
+                if unknown_signals:
+                    problems.append(f"signals {unknown_signals} are not available (known: {meta.get('signals', [])})")
+                if unknown_geo_types:
+                    problems.append(
+                        f"geo_types {unknown_geo_types} are not available (known: {meta.get('geo_types', [])})"
+                    )
+                if problems:
+                    raise InvalidArgumentException(f"For source {source!r}, " + "; ".join(problems) + ".")
+            if len(fetched) == 0:
+                message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
+            else:
+                parts = []
+                if empty_signals:
+                    parts.append(f"signals {empty_signals}")
+                if empty_geo_types:
+                    parts.append(f"geo_types {empty_geo_types}")
+                message = f"No data returned for {' and '.join(parts)} from source {source!r}."
+        else:
+            message = (
+                f"The server returned {len(fetched)} rows but the local `geo_values`/`reference_time` "
+                "filter dropped them all."
+            )
+        warnings.warn(message + " Pass return_empty=True to silence this.", EmptyResultWarning, stacklevel=3)
 
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"
@@ -382,10 +451,12 @@ class EpiDataCall:
 
         pred = fields_to_predicate(fields)
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
+        fetched: DataFrame | None = None
         if self._api_version == "cast":
             frames = [self._fetch_cast_csv(fields, columns, fan_out_value) for fan_out_value in self._fan_out_values()]
             non_empty = [f for f in frames if len(f) > 0]
             df = concat(non_empty, ignore_index=True) if non_empty else frames[0]
+            fetched = df
         else:
             json = self.classic(fields, disable_type_parsing=True)
             rows = json.get("epidata", [])
@@ -456,5 +527,8 @@ class EpiDataCall:
         if self._post_filter is not None:
             geo_values, reference_time = self._post_filter
             df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
+
+        if fetched is not None and not self._return_empty:
+            self._check_cast_empty(fetched, df)
 
         return df

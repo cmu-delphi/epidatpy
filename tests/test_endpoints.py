@@ -5,7 +5,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy import EmptyResultWarning, EpiDataContext, EpiRange, InvalidArgumentException
 
 from .conftest import FakeServer
 
@@ -78,3 +78,62 @@ def test_limit_none_and_minus_one_are_omitted() -> None:
 def test_limit_invalid(bad: object) -> None:
     with pytest.raises(InvalidArgumentException):
         EpiDataContext().epidata_snapshot("nssp", "a", "state", limit=bad)  # type: ignore[arg-type]
+
+
+META_JSON = '{"nssp": {"signals": ["a", "b"], "geo_types": ["state", "hhs"]}}'
+
+
+def _meta_or(csv_fn: Callable[[Mapping[str, str]], str]) -> Callable[[str, Mapping[str, str]], str]:
+    def responder(url: str, params: Mapping[str, str]) -> str:
+        return META_JSON if "metadata" in url else csv_fn(params)
+
+    return responder
+
+
+def test_empty_result_warns(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: ""))
+    with pytest.warns(EmptyResultWarning, match="No data returned for source 'nssp'"):
+        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
+    assert len(df) == 0
+
+
+def test_partially_empty_result_names_missing_signals(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], "a")))
+    with pytest.warns(EmptyResultWarning, match=r"signals \['b'\]"):
+        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "b"], "state").df()
+    assert len(df) == 1
+
+
+def test_unknown_signal_raises(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: ""))
+    with pytest.raises(InvalidArgumentException, match=r"signals \['zzz'\] are not available"):
+        EpiDataContext(use_cache=False).epidata_snapshot("nssp", "zzz", "state").df()
+
+
+def test_unknown_geo_type_raises(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: ""))
+    with pytest.raises(InvalidArgumentException, match=r"geo_types \['moon'\] are not available"):
+        EpiDataContext(use_cache=False).epidata_archive("nssp", "a", "moon").df()
+
+
+def test_local_filter_dropping_everything_warns(fake_server: Callable[..., FakeServer]) -> None:
+    fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
+    with pytest.warns(EmptyResultWarning, match="local `geo_values`/`reference_time` filter"):
+        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state", geo_values="zz").df()
+    assert len(df) == 0
+
+
+def test_return_empty_silences_diagnostics(
+    fake_server: Callable[..., FakeServer], recwarn: pytest.WarningsRecorder
+) -> None:
+    fake_server(_meta_or(lambda params: ""))
+    df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "zzz", "state", return_empty=True).df()
+    assert len(df) == 0
+    assert not [w for w in recwarn if issubclass(w.category, EmptyResultWarning)]
+
+
+def test_non_empty_result_is_silent(fake_server: Callable[..., FakeServer], recwarn: pytest.WarningsRecorder) -> None:
+    server = fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
+    EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "b"], ["state", "hhs"]).df()
+    assert not [w for w in recwarn if issubclass(w.category, EmptyResultWarning)]
+    assert not any("metadata" in url for url, _ in server.requests)
