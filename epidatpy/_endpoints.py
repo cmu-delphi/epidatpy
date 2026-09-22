@@ -2153,6 +2153,8 @@ def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
         EpidataFieldInfo("reference_time", EpidataFieldType.date),
         EpidataFieldInfo("value", EpidataFieldType.float),
         # Source-specific extras (skipped per-response if not present):
+        EpidataFieldInfo("ci_lower", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
+        EpidataFieldInfo("ci_upper", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
         EpidataFieldInfo("age_group", EpidataFieldType.text),  # pophive
         EpidataFieldInfo("nwss_source", EpidataFieldType.text),  # nwss
         EpidataFieldInfo("sample_index", EpidataFieldType.text),  # nwss
