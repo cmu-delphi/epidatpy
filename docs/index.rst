@@ -13,6 +13,7 @@ Useful links:
 - `Listing on PyPI <https://pypi.org/project/epidatpy/>`_
 - `Epidata API key registration form <https://api.delphi.cmu.edu/epidata/admin/registration_form>`_
 - `Epidata API key documentation <https://cmu-delphi.github.io/delphi-epidata/api/api_keys.html>`_
+- `The R client, epidatr <https://cmu-delphi.github.io/epidatr/>`_
 
 See also the `CMU Delphi Terms of Use
 <https://delphi.cmu.edu/epidemic-signals/terms-of-use/>`_, noting that the data
@@ -26,6 +27,12 @@ Install from PyPI using pip:
 .. code-block:: sh
 
    pip install epidatpy
+
+The Delphi Epidata API has three generations of endpoints. Start with the V5
+methods (``epidata_snapshot``, ``epidata_archive``, ``epidata_meta``); the
+covidcast (V4) and legacy (V3) methods remain for sources that have not moved
+yet and are being deprecated as of October 2026. See the :doc:`migration guide
+<migration_guide>` for how to update covidcast queries.
 
 Documentation Contents
 ======================
