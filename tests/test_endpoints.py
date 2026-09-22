@@ -137,3 +137,11 @@ def test_non_empty_result_is_silent(fake_server: Callable[..., FakeServer], recw
     EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "b"], ["state", "hhs"]).df()
     assert not [w for w in recwarn if issubclass(w.category, EmptyResultWarning)]
     assert not any("metadata" in url for url, _ in server.requests)
+
+
+@pytest.mark.filterwarnings("ignore:`pub_covidcast_meta` uses the V4 Epidata API")
+def test_pub_covidcast_meta_filters() -> None:
+    ctx = EpiDataContext()
+    assert _params(ctx.pub_covidcast_meta().request_url()) == {}
+    p = _params(ctx.pub_covidcast_meta(signals=["a:b", "c:d"], time_type="day", geo_type="state").request_url())
+    assert p == {"signals": ["a:b,c:d"], "time_types": ["day"], "geo_types": ["state"]}

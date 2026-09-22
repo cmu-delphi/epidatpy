@@ -561,7 +561,12 @@ class EpiDataContext:
             ],
         )
 
-    def pub_covidcast_meta(self) -> EpiDataCall:
+    def pub_covidcast_meta(
+        self,
+        signals: StringParam | None = None,
+        time_type: TimeType | None = None,
+        geo_type: GeoType | None = None,
+    ) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
         This is a V4 endpoint. Starting in October 2026, it is tentatively
@@ -581,6 +586,16 @@ class EpiDataContext:
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
+
+        Parameters
+        ----------
+        signals : StringParam, optional
+            Restrict to these ``source:signal`` pairs (e.g. ``"jhu-csse:confirmed_cumulative_num"``),
+            filtered server-side. Defaults to all.
+        time_type : TimeType, optional
+            Restrict to this temporal resolution ("day" or "week"). Defaults to all.
+        geo_type : GeoType, optional
+            Restrict to this geographic level. Defaults to all.
 
         Returns
         -------
@@ -644,7 +659,11 @@ class EpiDataContext:
 
         return self._create_call(
             "covidcast_meta/",
-            {},
+            {
+                "signals": signals,
+                "time_types": time_type,
+                "geo_types": geo_type,
+            },
             [
                 EpidataFieldInfo("data_source", EpidataFieldType.text),
                 EpidataFieldInfo("signal", EpidataFieldType.text),
@@ -653,6 +672,7 @@ class EpiDataContext:
                     EpidataFieldType.categorical,
                     categories=["week", "day"],
                 ),
+                EpidataFieldInfo("geo_type", EpidataFieldType.text),
                 EpidataFieldInfo("min_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("max_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("num_locations", EpidataFieldType.int),
