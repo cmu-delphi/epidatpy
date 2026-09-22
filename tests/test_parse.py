@@ -4,7 +4,13 @@ import pytest
 from epiweeks import Week
 
 from epidatpy._model import EpiRange, InvalidArgumentException
-from epidatpy._parse import format_report_time_bound, validate_report_time_query
+from epidatpy._parse import format_report_time_bound, parse_api_datetimetz, validate_report_time_query
+
+
+def test_parse_api_datetimetz() -> None:
+    parsed = parse_api_datetimetz("2025-10-16T13:45:00Z")
+    assert parsed == datetime.datetime(2025, 10, 16, 13, 45, tzinfo=datetime.timezone.utc)
+    assert parse_api_datetimetz(None) is None
 
 
 def test_format_report_time_bound_dates() -> None:

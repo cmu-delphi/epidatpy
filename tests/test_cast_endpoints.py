@@ -53,14 +53,15 @@ class TestCastEndpoints:
         df = EpiDataContext().epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
         assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        assert pd.api.types.is_datetime64tz_dtype(df["report_time"])
+        assert str(df["report_time"].dt.tz) == "UTC"
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
         df = EpiDataContext().epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
         assert len(df) > 0
         assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        assert pd.api.types.is_datetime64tz_dtype(df["report_time"])
 
     def test_epidata_router_dispatch(self) -> None:
         # `snapshot_date="*"` routes to archive (no report_time sent);

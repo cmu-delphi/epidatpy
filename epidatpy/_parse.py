@@ -31,6 +31,13 @@ def parse_api_week(value: str | float | None) -> date | None:
     return Week.fromstring(str(value)).startdate()
 
 
+def parse_api_datetimetz(value: str | None) -> datetime | None:
+    """Parse a CAST-API UTC timestamp such as ``2025-10-16T13:45:00Z`` to an aware datetime."""
+    if value is None:
+        return None
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
 def parse_api_date_or_week(value: str | float | None) -> date | None:
     if value is None:
         return None

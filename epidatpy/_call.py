@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, datetime
 from io import StringIO
 from os import environ
 from typing import (
@@ -37,6 +37,7 @@ from ._parse import (
     fields_to_predicate,
     parse_api_date,
     parse_api_date_or_week,
+    parse_api_datetimetz,
     parse_api_week,
 )
 
@@ -170,7 +171,7 @@ class EpiDataCall:
         key: str,
         value: str | float | None,
         disable_date_parsing: bool | None = False,
-    ) -> str | float | int | date | None:
+    ) -> str | float | int | date | datetime | None:
         meta = self.meta_by_name.get(key)
         if not meta or value is None:
             return value
@@ -180,6 +181,8 @@ class EpiDataCall:
             return parse_api_date(value)
         if meta.type == EpidataFieldType.epiweek and not disable_date_parsing:
             return parse_api_week(value)
+        if meta.type == EpidataFieldType.datetimetz and not disable_date_parsing:
+            return parse_api_datetimetz(str(value))
         if meta.type == EpidataFieldType.bool:
             return bool(value)
         return value
@@ -188,7 +191,7 @@ class EpiDataCall:
         self,
         row: Mapping[str, str | float | int | None],
         disable_date_parsing: bool | None = False,
-    ) -> Mapping[str, str | float | int | date | None]:
+    ) -> Mapping[str, str | float | int | date | datetime | None]:
         if not self.meta:
             return row
         return {k: self._parse_value(k, v, disable_date_parsing) for k, v in row.items()}
@@ -336,6 +339,7 @@ class EpiDataCall:
                 EpidataFieldType.date,
                 EpidataFieldType.epiweek,
                 EpidataFieldType.date_or_epiweek,
+                EpidataFieldType.datetimetz,
             ):
                 data_types[info.name] = "string"
                 time_fields.append(info)
@@ -348,6 +352,9 @@ class EpiDataCall:
         if not disable_date_parsing:
             for info in time_fields:
                 if info.type == EpidataFieldType.epiweek:
+                    continue
+                if info.type == EpidataFieldType.datetimetz:
+                    df[info.name] = to_datetime(df[info.name], format="ISO8601", utc=True)
                     continue
                 # Try known date formats in priority order; keep as string if all
                 # fail. The try/except is needed because the time field might be
