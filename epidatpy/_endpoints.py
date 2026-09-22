@@ -681,7 +681,7 @@ class EpiDataContext:
                 EpidataFieldInfo("max_value", EpidataFieldType.float),
                 EpidataFieldInfo("mean_value", EpidataFieldType.float),
                 EpidataFieldInfo("stdev_value", EpidataFieldType.float),
-                EpidataFieldInfo("last_update", EpidataFieldType.int),
+                EpidataFieldInfo("last_update", EpidataFieldType.epoch_seconds),
                 EpidataFieldInfo("max_issue", EpidataFieldType.date),
                 EpidataFieldInfo("min_lag", EpidataFieldType.int),
                 EpidataFieldInfo("max_lag", EpidataFieldType.int),

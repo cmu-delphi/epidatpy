@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from io import StringIO
 from os import environ
 from typing import (
@@ -241,6 +241,8 @@ class EpiDataCall:
             return parse_api_week(value)
         if meta.type == EpidataFieldType.datetimetz and not disable_date_parsing:
             return parse_api_datetimetz(str(value))
+        if meta.type == EpidataFieldType.epoch_seconds and not disable_date_parsing:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
         if meta.type == EpidataFieldType.bool:
             return bool(value)
         return value
@@ -487,6 +489,9 @@ class EpiDataCall:
             ):
                 data_types[info.name] = "string"
                 time_fields.append(info)
+            elif info.type == EpidataFieldType.epoch_seconds:
+                data_types[info.name] = "Int64"
+                time_fields.append(info)
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = "Float64"
             else:
@@ -499,6 +504,9 @@ class EpiDataCall:
                     continue
                 if info.type == EpidataFieldType.datetimetz:
                     df[info.name] = to_datetime(df[info.name], format="ISO8601", utc=True)
+                    continue
+                if info.type == EpidataFieldType.epoch_seconds:
+                    df[info.name] = to_datetime(df[info.name], unit="s", utc=True)
                     continue
                 # Try known date formats in priority order; keep as string if all
                 # fail. The try/except is needed because the time field might be
