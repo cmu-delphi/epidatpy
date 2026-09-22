@@ -103,14 +103,23 @@ client methods for all of them:
   `pub_gft()`), one per dataset. Most of these datasets are static or no
   longer updated; they remain available for historical work.
 
-## Migrating to the V5 API
+## Migrating from covidcast and to the V5 API
 
-`pub_covidcast()` and the other V3/V4 methods are being deprecated as of
-October 2026, and calling them now emits a warning. New code should use the V5
-methods, reserving `pub_covidcast()` for sources that have not yet
-transitioned. The [migration
-guide](https://cmu-delphi.github.io/epidatpy/migration_guide.html) maps
-`pub_covidcast()` arguments and columns onto the V5 methods.
+If you are migrating existing workflows, there are two transitions to keep in
+mind:
+
+- From the `covidcast` package to `epidatpy`. The standalone [`covidcast`
+  package](https://cmu-delphi.github.io/covidcast/covidcast-py/html/) is
+  deprecated and superseded by `epidatpy`, which is a complete rewrite offering
+  better speed, reliability, and broader endpoint support.
+- From V3/V4 endpoints to the V5 API. Within `epidatpy`, `pub_covidcast()` and
+  the other V3/V4 methods are being deprecated as of October 2026, and calling
+  them now emits a warning. See the [migration
+  guide](https://cmu-delphi.github.io/epidatpy/migration_guide.html), which maps
+  `pub_covidcast()` arguments and columns onto the V5 methods. New code should
+  use the current V5 methods (`epidata_snapshot()`, `epidata_archive()`, and
+  `epidata_meta()`), reserving `pub_covidcast()` only for sources that have not
+  yet transitioned.
 
 ## Get updates
 
