@@ -48,3 +48,11 @@ def test_limit_none_and_minus_one_are_omitted() -> None:
 def test_limit_invalid(bad: object) -> None:
     with pytest.raises(InvalidArgumentException):
         EpiDataContext().epidata_snapshot("nssp", "a", "state", limit=bad)  # type: ignore[arg-type]
+
+
+@pytest.mark.filterwarnings("ignore:`pub_covidcast_meta` uses the V4 Epidata API")
+def test_pub_covidcast_meta_filters() -> None:
+    ctx = EpiDataContext()
+    assert _params(ctx.pub_covidcast_meta().request_url()) == {}
+    p = _params(ctx.pub_covidcast_meta(signals=["a:b", "c:d"], time_type="day", geo_type="state").request_url())
+    assert p == {"signals": ["a:b,c:d"], "time_types": ["day"], "geo_types": ["state"]}
