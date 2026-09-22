@@ -118,6 +118,7 @@ class EpidataFieldType(Enum):
     categorical = 5
     bool = 6
     date_or_epiweek = 7
+    epoch_seconds = 8
 
 
 @dataclass

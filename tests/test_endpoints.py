@@ -1,11 +1,15 @@
 """Offline tests for how EpiDataContext builds cast-API requests."""
 
+from collections.abc import Callable
 from urllib.parse import parse_qs, urlparse
 
+import pandas as pd
 import pytest
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
 from epidatpy._call import EpiDataCall
+
+from .conftest import FakeServer
 
 
 def _params(url: str) -> dict[str, list[str]]:
@@ -69,3 +73,18 @@ def test_pub_covidcast_validation() -> None:
         ctx.pub_covidcast("nchs-mortality", "deaths_covid_incidence_num", "state", "day")
     url = ctx.pub_covidcast("nssp", "pct_ed_visits_covid", "hsa_nci", "week").request_url()
     assert _params(url)["geo_type"] == ["hsa_nci"]
+
+
+@pytest.mark.filterwarnings("ignore:`pub_covidcast_meta` uses the V4 Epidata API")
+def test_pub_covidcast_meta_last_update_is_utc_datetime(fake_server: Callable[..., FakeServer]) -> None:
+    body = (
+        '{"result": 1, "message": "success", "epidata": ['
+        '{"data_source": "s", "signal": "x", "time_type": "day", "geo_type": "state", "last_update": 1760622300}]}'
+    )
+    fake_server(lambda url, params: body)
+    call = EpiDataContext(use_cache=False).pub_covidcast_meta()
+    df = call.df()
+    assert pd.api.types.is_datetime64tz_dtype(df["last_update"])
+    assert df["last_update"][0].isoformat() == "2025-10-16T13:45:00+00:00"
+    row = call.classic()["epidata"][0]
+    assert row["last_update"].isoformat() == "2025-10-16T13:45:00+00:00"
