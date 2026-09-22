@@ -104,3 +104,21 @@ class TestCastEndpoints:
             assert set(df["geo_value"].str.lower().unique()).issubset({"ca", "ny"})
             assert df["reference_time"].min() >= pd.Timestamp("2025-01-01")
             assert df["reference_time"].max() <= pd.Timestamp("2025-06-01")
+
+    def test_epidata_aux_base_pull(self) -> None:
+        # Narrow to a single real site: an unfiltered pull returns the full
+        # report-time history for every matching row, which is slow and large.
+        df = EpiDataContext().epidata_aux("nwss", sample_index="5886455", pcr_target="sars-cov-2").df()
+        assert len(df) > 0
+        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
+        assert set(df["sample_index"].unique()) == {"5886455"}
+
+    def test_epidata_aux_merge_onto_snapshot(self) -> None:
+        base = EpiDataContext().epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed").df()
+        if len(base) == 0:
+            pytest.skip("no nwss snapshot data available to merge onto")
+        merged = EpiDataContext().epidata_aux(base)
+        assert isinstance(merged, pd.DataFrame)
+        assert len(merged) == len(base)
+        assert set(base.columns).issubset(set(merged.columns))
