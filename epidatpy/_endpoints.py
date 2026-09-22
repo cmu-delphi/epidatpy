@@ -77,6 +77,8 @@ def _serialize_key_filters(key_filters: Mapping[str, Any], max_vals: int = 10) -
             UserWarning,
         )
     return ",".join(terms)
+
+
 def _warn_v4_sunset(fn_name: str) -> None:
     warnings.warn(
         f"`{fn_name}` uses the V4 Epidata API. Starting in October 2026, V4 is "
@@ -1948,6 +1950,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = "*",
         snapshot_date: str | date | datetime | int | None = None,
         columns: Sequence[str] | None = None,
+        limit: int | None = None,
         **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall | DataFrame:
         """Fetch V5 auxiliary data associated with a cast-API signal.
@@ -1987,6 +1990,12 @@ class EpiDataContext:
             (when `source` is a string). Mutually exclusive with `report_time`.
         columns : Sequence[str], optional
             Columns to return. By default, all columns are returned.
+        limit : int, optional
+            Cap on the number of rows the server returns (direct pulls only;
+            ignored when `source` is a DataFrame). `None` (default) or `-1`
+            means no limit. The underlying query has no stable sort order, so
+            `limit` does not guarantee the same rows (or count) across calls.
+            Use it to preview or debug a query, not as a filter.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
             Named filters on the auxiliary key columns, such as
             ``pcr_target="sars-cov-2"`` or ``geo_value=["ca", "ny"]``. Each key
@@ -2039,6 +2048,7 @@ class EpiDataContext:
                 "report_time_query": report_time_str,
                 "filtered_keys": _serialize_key_filters(key_filters),
                 "columns": format_list(columns) if columns else None,
+                "limit": _validate_limit(limit),
             },
             _aux_fields(),
             api_version="cast",

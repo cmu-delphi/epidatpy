@@ -5,6 +5,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy._call import EpiDataCall
 
 
 def _params(url: str) -> dict[str, list[str]]:
@@ -31,6 +32,10 @@ def test_limit_is_sent_when_positive() -> None:
     assert _params(ctx.epidata("nssp", "a", "state", report_time="<2025-01-01", limit=5).request_url())["limit"] == [
         "5"
     ]
+    # epidatr wires `limit` into epidata_aux() too (cmu-delphi/epidatr#379).
+    aux = ctx.epidata_aux("nwss", limit=3)
+    assert isinstance(aux, EpiDataCall)
+    assert _params(aux.request_url())["limit"] == ["3"]
 
 
 def test_limit_none_and_minus_one_are_omitted() -> None:
