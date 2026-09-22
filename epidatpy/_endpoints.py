@@ -1844,24 +1844,64 @@ class EpiDataContext:
         limit: int | None = None,
         return_empty: bool = False,
     ) -> EpiDataCall:
-        """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
+        """Fetch a snapshot of V5 signals as they appeared at `snapshot_date`.
 
-        `snapshot_date=None` returns the latest available version. `geo_values`
-        and `reference_time` are filtered locally after the API call. `signals`
-        are sent comma-joined in a single request per `geo_type` (the cast-API
-        only accepts one geo type per request); results across geo types are
-        combined.
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>
 
-        An empty (or partially empty) result warns with
-        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
-        that came back with no rows; when the source's metadata says a
-        requested signal or geo type does not exist at all, it raises instead.
-        Pass ``return_empty=True`` to get an empty frame back silently.
+        Parameters
+        ----------
+        source : str
+            The data source to query (e.g. ``"nssp"``, ``"nhsn"``). Use
+            :meth:`epidata_meta` to discover available sources.
+        signals : StringParam
+            One or more signals of the source, as a sequence or a comma-joined
+            string. All signals are sent in a single request per geo type.
+        geo_type : StringParam
+            One or more geography types (e.g. ``"state"``, ``"hhs"``,
+            ``"nation"``). The server accepts one geo type per request, so the
+            call issues one request per value and concatenates the results.
+        geo_values : StringParam
+            Locations to keep, as a sequence or a comma-joined string; ``"*"``
+            (default) keeps all. Filtered locally after the request.
+        reference_time : EpiRangeParam
+            Reference dates to keep: a date, a sequence of dates, or an
+            :class:`~epidatpy.EpiRange`; ``"*"`` (default) keeps all. Filtered
+            locally after the request.
+        fill_method : str, optional
+            Restrict to one imputation variant of the signal: ``"source"``
+            (raw source data), ``"fill_ave"`` (nulls filled with the average
+            of neighboring values), or ``"fill_zero"`` (nulls filled with
+            zero). ``None`` (default) returns all variants.
+        snapshot_date : date, datetime, str, or int, optional
+            The instant the snapshot describes: a date (``date``,
+            ``"YYYY-MM-DD"``, ``YYYYMMDD``) or an instant (``datetime`` or a
+            UTC timestamp string such as ``"2025-10-16T13:45:00Z"``).
+            ``None`` (default) returns the latest available version.
+        limit : int, optional
+            Cap on the rows the server returns; ``None`` (default) or ``-1``
+            means no limit. The query has no stable sort order, so `limit`
+            does not guarantee the same rows (or count) across calls. Use it
+            to preview or debug a query, not as a filter.
+        return_empty : bool
+            Return an empty frame silently instead of diagnosing it.
 
-        `limit` caps the number of rows the server returns; ``None`` (default)
-        or ``-1`` means no limit. The underlying query has no stable sort
-        order, so `limit` does not guarantee the same rows (or count) across
-        calls. Use it to preview or debug a query, not as a filter.
+        Returns
+        -------
+        EpiDataCall
+            Columns: ``signal``, ``report_time`` (UTC timestamp), ``geo_type``,
+            ``geo_value``, ``fill_method``, ``reference_time``, ``value``, plus
+            ``ci_lower``/``ci_upper`` and source-specific key columns (e.g.
+            ``age_group`` for pophive; ``nwss_source``, ``sample_index``,
+            ``pcr_target`` for nwss) when the source provides them.
+
+        Notes
+        -----
+        An empty or partially empty result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals and geo
+        types that returned nothing. When nothing came back at all and
+        :meth:`epidata_meta` says a requested signal or geo type does not
+        exist for `source`, it raises
+        :class:`~epidatpy.InvalidArgumentException` instead.
         """
         if snapshot_date is None:
             snapshot_date_str: str | None = None
@@ -1899,26 +1939,42 @@ class EpiDataContext:
         limit: int | None = None,
         return_empty: bool = False,
     ) -> EpiDataCall:
-        """Fetch the full report-time history of CAST-API signals.
+        """Fetch the full revision history of V5 signals.
 
-        `report_time` accepts a comparison operator string (e.g.
-        ``"<2025-10-16"``, ``">=2025-10-16T13:45:00Z"`` for a UTC timestamp
-        bound), or an :class:`EpiRange` for an inclusive date range, filtered
-        fully server-side. ``"*"`` (default) requests all report times. Bare
-        dates and the ``"="`` operator are rejected.
-        `geo_values` and `reference_time` are
-        filtered locally after the API call.
+        Every version of each value is returned, one row per ``report_time``.
+        See :meth:`epidata_snapshot` for the shared arguments and the columns
+        returned.
 
-        An empty (or partially empty) result warns with
-        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
-        that came back with no rows; when the source's metadata says a
-        requested signal or geo type does not exist at all, it raises instead.
-        Pass ``return_empty=True`` to get an empty frame back silently.
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html>
 
-        `limit` caps the number of rows the server returns; ``None`` (default)
-        or ``-1`` means no limit. The underlying query has no stable sort
-        order, so `limit` does not guarantee the same rows (or count) across
-        calls. Use it to preview or debug a query, not as a filter.
+        Parameters
+        ----------
+        source : str
+            The data source to query.
+        signals : StringParam
+            One or more signals of the source.
+        geo_type : StringParam
+            One or more geography types; one request is made per value.
+        geo_values : StringParam
+            Locations to keep; ``"*"`` (default) keeps all. Filtered locally.
+        reference_time : EpiRangeParam
+            Reference dates to keep; ``"*"`` (default) keeps all. Filtered
+            locally.
+        fill_method : str, optional
+            Restrict to one imputation variant (``"source"``, ``"fill_ave"``,
+            or ``"fill_zero"``); ``None`` (default) returns all.
+        report_time : str or EpiRange, optional
+            Filter on the ``report_time`` column, applied server-side. Either a
+            comparison string (``<``, ``<=``, ``>``, or ``>=`` followed by a
+            date or a UTC timestamp, e.g. ``"<2025-10-16"`` or
+            ``"<=2025-10-16T13:45:00Z"``) or an :class:`~epidatpy.EpiRange`
+            for an inclusive date range. Bare dates and ``=`` are rejected;
+            use :meth:`epidata_snapshot` for point-in-time data. ``"*"``
+            (default) returns all report times.
+        limit : int, optional
+            Cap on the rows the server returns; see :meth:`epidata_snapshot`.
+        return_empty : bool
+            Return an empty frame silently instead of diagnosing it.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1953,12 +2009,13 @@ class EpiDataContext:
         limit: int | None = None,
         return_empty: bool = False,
     ) -> EpiDataCall:
-        """Router for CAST-API queries.
+        """Fetch V5 signals, routing on the versioning argument supplied.
 
-        Dispatches to :meth:`epidata_archive` when ``report_time`` is
-        supplied or ``snapshot_date == "*"``; otherwise to
-        :meth:`epidata_snapshot`. ``report_time`` and ``snapshot_date``
-        are mutually exclusive. See those methods for the argument details.
+        Dispatches to :meth:`epidata_archive` when `report_time` is supplied
+        or ``snapshot_date == "*"``, and otherwise to :meth:`epidata_snapshot`
+        (so with neither argument it returns the latest snapshot).
+        `report_time` and `snapshot_date` are mutually exclusive. See those
+        two methods for the argument details.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
