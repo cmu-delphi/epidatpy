@@ -76,8 +76,7 @@ epidata.epidata(
 ).df()
 ```
 
-`geo_values`, `reference_time`, and an `EpiRange` `report_time` lower
-bound are filtered locally after the request.
+`geo_values` and `reference_time` are filtered locally after the request.
 
 ## Development
 

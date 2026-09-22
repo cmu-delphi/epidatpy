@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date
 from typing import (
     Any,
     Final,
@@ -28,7 +27,12 @@ from ._model import (
     add_endpoint_to_url,
     format_list,
 )
-from ._parse import parse_api_date, parse_user_date_or_week, validate_report_time_query
+from ._parse import (
+    ReportTimeBound,
+    format_report_time_bound,
+    parse_user_date_or_week,
+    validate_report_time_query,
+)
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -1759,22 +1763,17 @@ class EpiDataContext:
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        snapshot_date: str | date | int | None = None,
+        snapshot_date: ReportTimeBound | None = None,
     ) -> EpiDataCall:
-        """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
+        """Fetch a snapshot of CAST-API signals as they appeared at `snapshot_date`.
 
-        `snapshot_date=None` returns the latest available version. `geo_values`
-        and `reference_time` are filtered locally after the API call.
+        `snapshot_date` accepts a date (``date``, ``YYYY-MM-DD``, ``YYYYMMDD``)
+        or an instant (``datetime`` or a UTC timestamp string such as
+        ``"2025-10-16T13:45:00Z"``); ``None`` returns the latest available
+        version. `geo_values` and `reference_time` are filtered locally after
+        the API call.
         """
-        if snapshot_date is None:
-            snapshot_date_str: str | None = None
-        elif isinstance(snapshot_date, date):
-            snapshot_date_str = snapshot_date.strftime("%Y-%m-%d")
-        else:
-            parsed = parse_api_date(snapshot_date)
-            if parsed is None:
-                raise InvalidArgumentException(f"Invalid `snapshot_date` value: {snapshot_date!r}")
-            snapshot_date_str = parsed.strftime("%Y-%m-%d")
+        snapshot_date_str = None if snapshot_date is None else format_report_time_bound(snapshot_date)
         signal_str = format_list(signals)
 
         return self._create_call(
@@ -1788,7 +1787,7 @@ class EpiDataContext:
             },
             _cast_signal_fields(),
             api_version="cast",
-            post_filter=(geo_values, reference_time, None),
+            post_filter=(geo_values, reference_time),
         )
 
     def epidata_archive(
@@ -1799,14 +1798,18 @@ class EpiDataContext:
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        report_time: str | date | EpiRange | None = "*",
+        report_time: str | EpiRange | None = "*",
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
-        `report_time` accepts an exact date, an operator-prefixed string
-        (e.g. ``"<2025-10-16"``), or an :class:`EpiRange`. ``"*"`` (default)
-        requests all report times. `geo_values`, `reference_time`, and the
-        EpiRange lower bound are filtered locally after the API call.
+        `report_time` filters on the `report_time` column. It accepts a
+        comparison string (``<``, ``<=``, ``>``, ``>=`` followed by a date or a
+        UTC timestamp, e.g. ``"<2025-10-16"`` or ``"<=2025-10-16T13:45:00Z"``)
+        or an :class:`EpiRange` for an inclusive date range, both applied
+        server-side. Bare dates and ``=`` are rejected; use
+        :meth:`epidata_snapshot` for point-in-time data. ``"*"`` (default)
+        requests all report times. `geo_values` and `reference_time` are
+        filtered locally after the API call.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1823,11 +1826,7 @@ class EpiDataContext:
             },
             _cast_signal_fields(),
             api_version="cast",
-            post_filter=(
-                geo_values,
-                reference_time,
-                report_time if isinstance(report_time, EpiRange) else None,
-            ),
+            post_filter=(geo_values, reference_time),
         )
 
     def epidata(
@@ -1838,8 +1837,8 @@ class EpiDataContext:
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
-        snapshot_date: str | date | int | None = None,
-        report_time: str | date | EpiRange | None = None,
+        snapshot_date: ReportTimeBound | None = None,
+        report_time: str | EpiRange | None = None,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 

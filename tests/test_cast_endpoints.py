@@ -81,7 +81,7 @@ class TestCastEndpoints:
                 signals="pct_ed_visits_influenza",
                 geo_type="state",
                 snapshot_date="2025-10-16",
-                report_time="2025-10-16",
+                report_time="<2025-10-16",
             )
 
     def test_epidata_snapshot_local_filters(self) -> None:

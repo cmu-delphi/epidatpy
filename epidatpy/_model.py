@@ -130,11 +130,10 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
 
 ApiVersion = Literal["classic", "cast"]
 
-# (geo_values, reference_time, report_time) — passed straight to cast_filter.
+# (geo_values, reference_time) — passed straight to cast_filter.
 CastPostFilter = tuple[
     Union[str, Sequence[str]],
     Union[str, "EpiRangeParam"],
-    Union[str, "EpiRange", None],
 ]
 
 
@@ -142,12 +141,11 @@ def cast_filter(
     df: DataFrame,
     geo_values: str | Sequence[str] = "*",
     reference_time: str | EpiRangeParam = "*",
-    report_time: str | EpiRange | None = None,
 ) -> DataFrame:
     """Local post-filter for CAST-API responses.
 
-    The CAST endpoints return data that's only weakly filtered server-side.
-    Apply geo, reference_time, and EpiRange report_time-lower-bound filters locally.
+    The CAST endpoints do not filter on geo_value or reference_time
+    server-side, so both are applied locally.
     """
     from pandas import to_datetime
 
@@ -163,9 +161,6 @@ def cast_filter(
 
     if reference_time != "*" and "reference_time" in df.columns:
         df = _filter_by_timeset(df, "reference_time", reference_time, to_datetime)
-
-    if isinstance(report_time, EpiRange) and "report_time" in df.columns:
-        df = _filter_by_timeset(df, "report_time", report_time, to_datetime)
 
     return df
 

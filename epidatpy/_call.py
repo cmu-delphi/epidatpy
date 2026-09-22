@@ -374,7 +374,7 @@ class EpiDataCall:
                 cache.set(cache_key, df, expire=self.cache_max_age_days * 24 * 60 * 60)
 
         if self._post_filter is not None:
-            geo_values, reference_time, report_time = self._post_filter
-            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
+            geo_values, reference_time = self._post_filter
+            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
 
         return df
