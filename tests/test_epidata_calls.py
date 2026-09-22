@@ -114,7 +114,7 @@ class TestEpidataCalls:
         assert str(data["max_value"].dtype) == "Float64"
         assert str(data["mean_value"].dtype) == "Float64"
         assert str(data["stdev_value"].dtype) == "Float64"
-        assert pd.api.types.is_datetime64tz_dtype(data["last_update"])
+        assert isinstance(data["last_update"].dtype, pd.DatetimeTZDtype)
         assert pd.api.types.is_datetime64_any_dtype(data["max_issue"])
         assert str(data["min_lag"].dtype) == "Int64"
         assert str(data["max_lag"].dtype) == "Int64"

@@ -70,13 +70,9 @@ def _error_body_message(response: Response) -> str | None:
             detail = body.get("detail")
             if isinstance(detail, str):
                 return detail
-            if isinstance(detail, list) and detail:
-                return "; ".join(
-                    d.get("msg", "invalid value")
-                    if isinstance(d, dict) and isinstance(d.get("msg"), str)
-                    else "invalid value"
-                    for d in detail
-                )
+            if isinstance(detail, list):
+                msgs = [d["msg"] for d in detail if isinstance(d, dict) and isinstance(d.get("msg"), str)]
+                return "; ".join(msgs) or None
             return None
         if content_type == "text/html":
             paragraphs = re.findall(r"<p[^>]*>(.*?)</p>", response.text, flags=re.S)
@@ -134,6 +130,14 @@ def _request_impl(
         return call_impl(s)
 
 
+def fetch_cast_meta(base_url: str, session: Session | None, source: str | None = None) -> Any:
+    """Fetch CAST-API metadata: every source keyed by name, or one source's entry when `source` is given."""
+    url = add_endpoint_to_url(base_url, "metadata/")
+    params = {"source": source} if source is not None else {}
+    res = _request_with_retry(url, params, session, False, api_version="cast").json()
+    return res[source] if source is not None else res
+
+
 class EpiDataCall:
     """epidata call representation"""
 
@@ -142,7 +146,6 @@ class EpiDataCall:
     _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
-    _fan_out: Final[str | None]
     _return_empty: Final[bool]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
@@ -162,7 +165,6 @@ class EpiDataCall:
         cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
-        fan_out: str | None = None,
         return_empty: bool = False,
     ) -> None:
         self._base_url = base_url
@@ -170,7 +172,6 @@ class EpiDataCall:
         self._params = params
         self._api_version = api_version
         self._post_filter = post_filter
-        self._fan_out = fan_out
         self._return_empty = return_empty
         self._session = session
         self.only_supports_classic = only_supports_classic
@@ -268,7 +269,6 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
-            fan_out=self._fan_out,
             return_empty=self._return_empty,
         )
 
@@ -284,7 +284,6 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
-            fan_out=self._fan_out,
             return_empty=self._return_empty,
         )
 
@@ -299,24 +298,11 @@ class EpiDataCall:
             params = {**params, **extra_params}
         return _request_with_retry(url, params, self._session, stream, api_version=self._api_version)
 
-    def _fan_out_values(self) -> list[str | None]:
-        """Values of the fan-out parameter, one request each; `[None]` when not fanning out."""
-        if self._fan_out is None or self._params.get(self._fan_out) is None:
-            return [None]
-        raw = format_list(cast("EpiRangeParam", self._params[self._fan_out]))
-        values = list(dict.fromkeys(v.strip() for v in raw.split(",") if v.strip()))
-        return cast("list[str | None]", values) or [None]
-
-    def _fetch_cast_csv(
-        self,
-        fields: Sequence[str] | None,
-        columns: Sequence[str],
-        fan_out_value: str | None,
-    ) -> DataFrame:
-        # CAST endpoints only speak CSV.
+    def _fetch_cast_csv(self, fields: Sequence[str] | None, columns: Sequence[str], geo_type: str | None) -> DataFrame:
+        # CAST endpoints only speak CSV and accept a single geo_type per request.
         extra_params = {"format": "csv"}
-        if fan_out_value is not None and self._fan_out is not None:
-            extra_params[self._fan_out] = fan_out_value
+        if geo_type is not None:
+            extra_params["geo_type"] = geo_type
         body = self._call(fields, extra_params=extra_params).text
         if not body.strip():
             return DataFrame(columns=columns or None)
@@ -327,23 +313,17 @@ class EpiDataCall:
         return df[cols_in_df] if cols_in_df else df
 
     def _requested_values(self, name: str) -> list[str]:
+        """The distinct comma-separated values of a request parameter, in order."""
         value = self._params.get(name)
         if value is None:
             return []
-        return [v.strip() for v in format_list(value).split(",") if v.strip()]
+        return list(dict.fromkeys(v.strip() for v in format_list(value).split(",") if v.strip()))
 
     def _cast_source_meta(self, source: str) -> Mapping[str, Any] | None:
         try:
-            res = _request_with_retry(
-                add_endpoint_to_url(self._base_url, "metadata/"),
-                {"source": source},
-                self._session,
-                False,
-                api_version="cast",
-            ).json()
+            entry = fetch_cast_meta(self._base_url, self._session, source)
         except Exception:  # noqa: BLE001 - diagnostics must never mask the real result
             return None
-        entry = res.get(source) if isinstance(res, dict) else None
         return entry if isinstance(entry, dict) else None
 
     def _check_cast_empty(self, fetched: DataFrame, result: DataFrame) -> None:
@@ -355,7 +335,7 @@ class EpiDataCall:
         returned_geo_types = set(fetched["geo_type"]) if "geo_type" in fetched.columns else set()
         empty_signals = [s for s in signals if s not in returned_signals]
         empty_geo_types = [g for g in geo_types if g not in returned_geo_types]
-        if not empty_signals and not empty_geo_types and len(fetched) > 0 and len(result) > 0:
+        if not empty_signals and not empty_geo_types and len(result) > 0:
             return
 
         if empty_signals or empty_geo_types:
@@ -455,7 +435,8 @@ class EpiDataCall:
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
         fetched: DataFrame | None = None
         if self._api_version == "cast":
-            frames = [self._fetch_cast_csv(fields, columns, fan_out_value) for fan_out_value in self._fan_out_values()]
+            geo_types: list[str | None] = list(self._requested_values("geo_type")) or [None]
+            frames = [self._fetch_cast_csv(fields, columns, g) for g in geo_types]
             non_empty = [f for f in frames if len(f) > 0]
             df = concat(non_empty, ignore_index=True) if non_empty else frames[0]
             fetched = df

@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from datetime import date, datetime, timezone
-from typing import TYPE_CHECKING, Literal, Union
+from typing import TYPE_CHECKING, Literal, Union, cast
 
 from epiweeks import Week
 
@@ -114,15 +114,12 @@ def format_report_time_bound(value: ReportTimeBound) -> str:
     if _UTC_TIMESTAMP_RE.match(raw):
         return raw
     try:
-        parsed = parse_api_date(raw)
-    except ValueError:
-        parsed = None
-    if parsed is None:
+        return cast("date", parse_api_date(raw)).strftime("%Y-%m-%d")
+    except ValueError as e:
         raise InvalidArgumentException(
             f"Invalid date or timestamp {value!r}. Use YYYY-MM-DD, YYYYMMDD, a `date`, "
             "a `datetime`, or a UTC timestamp like '2025-10-16T13:45:00Z'."
-        )
-    return parsed.strftime("%Y-%m-%d")
+        ) from e
 
 
 def validate_report_time_query(report_time: str | EpiRange | None) -> str | None:

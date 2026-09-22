@@ -12,7 +12,7 @@ from typing import (
 from epiweeks import Week
 from requests import Session
 
-from ._call import EpiDataCall, _request_with_retry
+from ._call import EpiDataCall, fetch_cast_meta
 from ._constants import BASE_URL, CAST_BASE_URL
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
@@ -25,7 +25,6 @@ from ._model import (
     IntParam,
     InvalidArgumentException,
     StringParam,
-    add_endpoint_to_url,
     format_list,
 )
 from ._parse import (
@@ -124,7 +123,6 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
-        fan_out: str | None = None,
         return_empty: bool = False,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
@@ -139,7 +137,6 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
-            fan_out=fan_out,
             return_empty=return_empty,
         )
 
@@ -152,18 +149,7 @@ class EpiDataContext:
         result is a dict keyed by source name covering every available
         source; with a `source` it is that source's entry alone.
         """
-        url = add_endpoint_to_url(self._cast_base_url, "metadata/")
-        response = _request_with_retry(
-            url,
-            {"source": source} if source is not None else {},
-            self._session,
-            stream=False,
-            api_version="cast",
-        )
-        res = response.json()
-        if source is not None and isinstance(res, dict) and source in res:
-            return res[source]
-        return res
+        return fetch_cast_meta(self._cast_base_url, self._session, source)
 
     def pvt_cdc(
         self,
@@ -1850,7 +1836,6 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
-            fan_out="geo_type",
             return_empty=return_empty,
         )
 
@@ -1907,7 +1892,6 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
-            fan_out="geo_type",
             return_empty=return_empty,
         )
 

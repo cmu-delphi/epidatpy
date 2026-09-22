@@ -21,7 +21,7 @@ def test_error_body_message_json_message() -> None:
 
 def test_error_body_message_fastapi_detail() -> None:
     r = _response(422, '{"detail": [{"msg": "field required"}, {"loc": ["x"]}]}', "application/json")
-    assert _error_body_message(r) == "field required; invalid value"
+    assert _error_body_message(r) == "field required"
     r = _response(422, '{"detail": "not found"}', "application/json")
     assert _error_body_message(r) == "not found"
 
