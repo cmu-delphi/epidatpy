@@ -16,8 +16,12 @@ import pandas as pd
 import pytest
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy._constants import CAST_BASE_URL
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
+# Mirrors epidatr's EPIDATR_CAST_BASE_URL: point the live cast tests at a
+# non-default server (e.g. dev) without touching the classic endpoints.
+cast_base_url = os.environ.get("EPIDATPY_CAST_BASE_URL") or CAST_BASE_URL
 
 # (source, signal, geo_type) — kept in sync with R's `cast_queries`.
 # Commented-out rows mirror the R suite's TODOs; uncomment when server-side
@@ -50,7 +54,9 @@ def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
         resp = MagicMock()
         resp.raise_for_status = lambda: None
         g = params["geo_type"]
-        resp.text = f"signal,geo_type,geo_value,reference_time,report_time,value\nsig1,{g},ca,2024-01-01,2024-01-02,1.0\n"
+        resp.text = (
+            f"signal,geo_type,geo_value,reference_time,report_time,value\nsig1,{g},ca,2024-01-01,2024-01-02,1.0\n"
+        )
         return resp
 
     with patch("epidatpy._call._request_with_retry", fake_request):
@@ -80,6 +86,12 @@ def test_epidata_snapshot_snapshot_date_accepts_utc_timestamp() -> None:
     )
     _, params = call.request_arguments()
     assert params["snapshot_date"] == "2024-01-02T13:45:00Z"
+
+
+def _bound(value: str, series: pd.Series) -> pd.Timestamp:
+    """`value` as a UTC instant, matched to the series' tz-awareness."""
+    ts = pd.Timestamp(value, tz="UTC")
+    return ts if series.dt.tz is not None else ts.tz_localize(None)
 
 
 @pytest.mark.live
@@ -184,3 +196,43 @@ class TestCastEndpoints:
         # the merge silently no-ops and returns `base` itself.
         assert set(merged.columns) - set(base.columns)
         assert merged["population_served"].notna().any()
+
+    def test_cast_versioning_args_reach_the_server(self) -> None:
+        """Mirrors epidatr's "cast versioning args reach the server": the
+        `snapshot_date` / `report_time` bounds are applied server-side, not
+        silently dropped."""
+        ctx = EpiDataContext(cast_base_url=cast_base_url)
+
+        snap = ctx.epidata_snapshot(
+            source="nssp", signals="pct_ed_visits_influenza", geo_type="state", snapshot_date="2025-01-01"
+        ).df()
+        assert len(snap) > 0
+        assert (snap["report_time"] <= _bound("2025-01-01", snap["report_time"])).all()
+
+        lt = ctx.epidata_archive(
+            source="nssp", signals="pct_ed_visits_influenza", geo_type="state", report_time="<2025-06-01"
+        ).df()
+        assert len(lt) > 0
+        assert (lt["report_time"] < _bound("2025-06-01", lt["report_time"])).all()
+
+        # A single-day EpiRange pins report_time to that one day.
+        one_day = lt["report_time"].max().date()
+        eq = ctx.epidata_archive(
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time=EpiRange(one_day, one_day),
+        ).df()
+        assert len(eq) > 0
+        assert (eq["report_time"].dt.date == one_day).all()
+
+        # Both bounds go server-side as an inclusive "from:to" range.
+        rng = ctx.epidata_archive(
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time=EpiRange("2025-01-01", "2025-06-01"),
+        ).df()
+        assert len(rng) > 0
+        assert (rng["report_time"] >= _bound("2025-01-01", rng["report_time"])).all()
+        assert (rng["report_time"] <= _bound("2025-06-01", rng["report_time"])).all()
