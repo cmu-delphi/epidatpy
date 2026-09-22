@@ -138,20 +138,27 @@ class EpiDataContext:
             post_filter=post_filter,
         )
 
-    def epidata_meta(self, source: str) -> Any:
+    def epidata_meta(self, source: str | None = None) -> Any:
         """Fetch source-level metadata from the CAST API.
 
-        Returns the parsed JSON (a list of signal/geo descriptors) for `source`.
+        Each source's entry lists its ``signals``, ``geo_types``, extra key
+        columns, and its ``reference_time_range`` and ``report_time_range``
+        (the latter as UTC timestamps). With ``source=None`` (default) the
+        result is a dict keyed by source name covering every available
+        source; with a `source` it is that source's entry alone.
         """
         url = add_endpoint_to_url(self._cast_base_url, "metadata/")
         response = _request_with_retry(
             url,
-            {"source": source},
+            {"source": source} if source is not None else {},
             self._session,
             stream=False,
             api_version="cast",
         )
-        return response.json()
+        res = response.json()
+        if source is not None and isinstance(res, dict) and source in res:
+            return res[source]
+        return res
 
     def pvt_cdc(
         self,
