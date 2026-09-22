@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date
+from datetime import date, datetime, timezone
+from html import unescape
 from io import StringIO
 from os import environ
+from re import DOTALL, IGNORECASE, findall, sub
 from typing import (
     Any,
     Final,
@@ -15,7 +17,7 @@ from urllib.parse import urlencode
 from appdirs import user_cache_dir
 from diskcache import Cache
 from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
-from requests import Response, Session
+from requests import HTTPError, Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
@@ -24,10 +26,12 @@ from ._constants import HTTP_HEADERS
 from ._model import (
     ApiVersion,
     CastPostFilter,
+    EmptyResultWarning,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiDataResponse,
     EpiRangeParam,
+    InvalidArgumentException,
     OnlySupportsClassicFormatException,
     StringParam,
     add_endpoint_to_url,
@@ -83,6 +87,45 @@ def _request_with_retry(
         return call_impl(s)
 
 
+def _error_body_message(response: Response) -> str | None:
+    """Extract the server's own error message from an error response body.
+
+    Whatever format was requested, error bodies come back either as JSON --
+    ``{"message": ...}``, or FastAPI's automatic validation errors under
+    ``"detail"`` -- or as an HTML error page from the web server.
+    """
+    content_type = response.headers.get("Content-Type", "").lower()
+    try:
+        if content_type.startswith("application/json"):
+            body = response.json()
+            message = body.get("message") or body.get("detail")
+            if isinstance(message, list):
+                # FastAPI validation errors: a list of {"loc", "msg", ...} objects.
+                message = "; ".join(d.get("msg", "invalid value") if isinstance(d, dict) else str(d) for d in message)
+        elif content_type.startswith("text/html"):
+            # grab the error information out of the returned HTML document
+            message = " ".join(
+                unescape(sub(r"<[^>]+>", "", p)).strip()
+                for p in findall(r"<p>(.*?)</p>", response.text, DOTALL | IGNORECASE)
+            )
+        else:
+            return None
+    except (AttributeError, TypeError, ValueError):  # body isn't the shape we expected
+        return None
+    return str(message) if message else None
+
+
+def _raise_for_status(response: Response) -> None:
+    """``Response.raise_for_status()``, with the server's own message appended."""
+    try:
+        response.raise_for_status()
+    except HTTPError as e:
+        message = _error_body_message(response)
+        if message:
+            raise HTTPError(f"{e}: {message}", response=response) from None
+        raise
+
+
 class EpiDataCall:
     """epidata call representation"""
 
@@ -91,6 +134,7 @@ class EpiDataCall:
     _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
+    _return_empty: Final[bool]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
@@ -109,12 +153,14 @@ class EpiDataCall:
         cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        return_empty: bool = False,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
         self._api_version = api_version
         self._post_filter = post_filter
+        self._return_empty = return_empty
         self._session = session
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
@@ -182,6 +228,8 @@ class EpiDataCall:
             return parse_api_date(value)
         if meta.type == EpidataFieldType.epiweek and not disable_date_parsing:
             return parse_api_week(value)
+        if meta.type == EpidataFieldType.epoch_seconds and not disable_date_parsing:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
         if meta.type == EpidataFieldType.bool:
             return bool(value)
         return value
@@ -207,6 +255,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty,
         )
 
     def with_session(self, session: Session) -> EpiDataCall:
@@ -221,9 +270,10 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty,
         )
 
-    def _with_param(self, key: str, value: EpiRangeParam | None) -> EpiDataCall:
+    def _with_param(self, key: str, value: EpiRangeParam | None, *, return_empty: bool | None = None) -> EpiDataCall:
         return EpiDataCall(
             self._base_url,
             self._session,
@@ -235,6 +285,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty if return_empty is None else return_empty,
         )
 
     def _call(
@@ -247,6 +298,78 @@ class EpiDataCall:
         if extra_params:
             params = {**params, **extra_params}
         return _request_with_retry(url, params, self._session, stream, api_version=self._api_version)
+
+    def _requested_values(self, name: str) -> list[str]:
+        """The distinct comma-separated values of a request parameter, in order."""
+        value = self._params.get(name)
+        if value is None:
+            return []
+        return list(dict.fromkeys(v.strip() for v in format_list(value).split(",") if v.strip()))
+
+    def _cast_source_meta(self, source: str) -> Mapping[str, Any] | None:
+        try:
+            res = _request_with_retry(
+                add_endpoint_to_url(self._base_url, "metadata/"),
+                {"source": source},
+                self._session,
+                False,
+                api_version="cast",
+            ).json()
+        except Exception:  # noqa: BLE001 - diagnostics must never mask the real result
+            return None
+        entry = res.get(source) if isinstance(res, dict) else None
+        return entry if isinstance(entry, dict) else None
+
+    def _unknown_cast_keys(self, source: str, signals: list[str], geo_types: list[str]) -> list[str]:
+        """Sentences naming the requested signals and geo types that `source`'s metadata does not list."""
+        meta = self._cast_source_meta(source) if signals or geo_types else None
+        if meta is None:
+            return []
+        problems = []
+        for kind, requested in (("signals", signals), ("geo_types", geo_types)):
+            known = meta.get(kind, [])
+            unknown = [v for v in requested if v not in known]
+            if unknown:
+                problems.append(f"For source {source!r}, {kind} {unknown} are not available (known: {known}).")
+        return problems
+
+    def _check_cast_empty(self, fetched: DataFrame, result: DataFrame) -> None:
+        """Warn about empty or partially empty cast results, the way epidatr does.
+
+        Signals or geo types missing from the source's metadata are an error
+        only when nothing came back at all; alongside real data they are
+        mentioned in the warning instead.
+        """
+        source = format_list(cast("EpiRangeParam", self._params.get("source", "")))
+        signals = self._requested_values("signal")
+        geo_types = self._requested_values("geo_type")
+        returned_signals = set(fetched["signal"]) if "signal" in fetched.columns else set()
+        returned_geo_types = set(fetched["geo_type"]) if "geo_type" in fetched.columns else set()
+        empty_signals = [s for s in signals if s not in returned_signals]
+        empty_geo_types = [g for g in geo_types if g not in returned_geo_types]
+        if not empty_signals and not empty_geo_types and len(result) > 0:
+            return
+
+        unknown = self._unknown_cast_keys(source, empty_signals, empty_geo_types)
+        if len(result) == 0 and unknown:
+            raise InvalidArgumentException(" ".join(unknown))
+
+        if len(fetched) == 0:
+            message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
+        elif len(result) == 0:
+            message = (
+                f"The server returned {len(fetched)} rows but the local `geo_values`/`reference_time` "
+                "filter dropped them all."
+            )
+        else:
+            parts = [f"signals {empty_signals}"] if empty_signals else []
+            parts += [f"geo_types {empty_geo_types}"] if empty_geo_types else []
+            message = f"No data returned for {' and '.join(parts)} from source {source!r}."
+        warnings.warn(
+            " ".join([message, *unknown, "Pass return_empty=True to silence this."]),
+            EmptyResultWarning,
+            stacklevel=3,
+        )
 
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"
@@ -261,13 +384,16 @@ class EpiDataCall:
         disable_type_parsing: bool | None = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
+        if self.use_cache:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache_key = self._get_cache_key("classic")
+                if cache_key in cache:
+                    return cast(EpiDataResponse, cache[cache_key])
+        response = self._call(fields)
+        # Raised, not buried in the result dict: an HTTP error means no data came
+        # back, and df() would otherwise hand back a silently empty frame.
+        _raise_for_status(response)
         try:
-            if self.use_cache:
-                with Cache(CACHE_DIRECTORY) as cache:
-                    cache_key = self._get_cache_key("classic")
-                    if cache_key in cache:
-                        return cast(EpiDataResponse, cache[cache_key])
-            response = self._call(fields)
             r = cast(EpiDataResponse, response.json())
             if disable_type_parsing:
                 return r
@@ -313,11 +439,18 @@ class EpiDataCall:
             geo_types = split_list(cast(StringParam, self._params.get("geo_type") or ""))
             if len(geo_types) > 1:
                 frames = [
-                    self._with_param("geo_type", g).df(fields, disable_date_parsing=disable_date_parsing)
+                    self._with_param("geo_type", g, return_empty=True).df(
+                        fields, disable_date_parsing=disable_date_parsing
+                    )
                     for g in geo_types
                 ]
                 combined = concat(frames, ignore_index=True)
                 combined.attrs = frames[0].attrs
+                if not self._return_empty:
+                    # Per-request frames are already locally filtered, so the
+                    # combined frame stands in for both the fetched and the
+                    # filtered result here.
+                    self._check_cast_empty(combined, combined)
                 return combined
 
         if self.use_cache:
@@ -328,10 +461,11 @@ class EpiDataCall:
 
         pred = fields_to_predicate(fields)
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
+        fetched: DataFrame | None = None
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
             response = self._call(fields, extra_params={"format": "csv"})
-            response.raise_for_status()
+            _raise_for_status(response)
             body = response.text
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
@@ -342,6 +476,7 @@ class EpiDataCall:
                 df = df[cols_in_df + extras]
             else:
                 df = DataFrame(columns=columns or None)
+            fetched = df
         else:
             json = self.classic(fields, disable_type_parsing=True)
             rows = json.get("epidata", [])
@@ -371,6 +506,9 @@ class EpiDataCall:
             ):
                 data_types[info.name] = "string"
                 time_fields.append(info)
+            elif info.type == EpidataFieldType.epoch_seconds:
+                data_types[info.name] = "Int64"
+                time_fields.append(info)
             elif info.type == EpidataFieldType.float:
                 data_types[info.name] = "Float64"
             else:
@@ -380,6 +518,9 @@ class EpiDataCall:
         if not disable_date_parsing:
             for info in time_fields:
                 if info.type == EpidataFieldType.epiweek:
+                    continue
+                if info.type == EpidataFieldType.epoch_seconds:
+                    df[info.name] = to_datetime(df[info.name], unit="s", utc=True)
                     continue
                 # Try known date formats in priority order; keep as string if all
                 # fail. The try/except is needed because the time field might be
@@ -408,6 +549,9 @@ class EpiDataCall:
         if self._post_filter is not None:
             geo_values, reference_time = self._post_filter
             df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
+
+        if fetched is not None and not self._return_empty:
+            self._check_cast_empty(fetched, df)
 
         if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
             # Lets `EpiDataContext.epidata_aux()` recover the source/kind from a

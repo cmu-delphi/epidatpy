@@ -54,9 +54,8 @@ def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
         resp = MagicMock()
         resp.raise_for_status = lambda: None
         g = params["geo_type"]
-        resp.text = (
-            f"signal,geo_type,geo_value,reference_time,report_time,value\nsig1,{g},ca,2024-01-01,2024-01-02,1.0\n"
-        )
+        rows = [f"{sig},{g},ca,2024-01-01,2024-01-02,1.0" for sig in params["signal"].split(",")]
+        resp.text = "\n".join(["signal,geo_type,geo_value,reference_time,report_time,value", *rows]) + "\n"
         return resp
 
     with patch("epidatpy._call._request_with_retry", fake_request):
@@ -119,13 +118,16 @@ def _bound(value: str, series: pd.Series) -> pd.Timestamp:
 class TestCastEndpoints:
     """Live network tests for the CAST API."""
 
+    def test_epidata_meta_all_sources(self) -> None:
+        meta = EpiDataContext().epidata_meta()
+        assert isinstance(meta, dict)
+        assert {q[0] for q in CAST_QUERIES}.issubset(meta)
+
     def test_epidata_meta_per_source(self) -> None:
         ctx = EpiDataContext()
         for src in sorted({q[0] for q in CAST_QUERIES}):
-            meta = ctx.epidata_meta(source=src)
-            assert src in meta, f"metadata response missing source {src!r}"
-            source_meta = meta[src]
-            assert isinstance(source_meta, dict)
+            source_meta = ctx.epidata_meta(source=src)
+            assert isinstance(source_meta, dict), f"metadata response missing source {src!r}"
             assert len(source_meta.get("signals", [])) > 0
             assert len(source_meta.get("geo_types", [])) > 0
 

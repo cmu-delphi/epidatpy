@@ -64,9 +64,7 @@ def test_format_report_time_bound() -> None:
         == "2025-10-16T13:45:00Z"
     )
     tz = datetime.timezone(datetime.timedelta(hours=-5))
-    assert (
-        format_report_time_bound(datetime.datetime(2025, 10, 16, 8, 45, tzinfo=tz)) == "2025-10-16T13:45:00Z"
-    )
+    assert format_report_time_bound(datetime.datetime(2025, 10, 16, 8, 45, tzinfo=tz)) == "2025-10-16T13:45:00Z"
 
     # Malformed timestamp returns None.
     assert format_report_time_bound("2025-10-16T13:45") is None

@@ -20,7 +20,7 @@ from epiweeks import Week
 
 from ._parse import parse_user_date_or_week
 
-GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
+GeoType = Literal["nation", "msa", "hrr", "hhs", "hsa_nci", "dma", "state", "county"]
 TimeType = Literal["day", "week"]
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
@@ -107,6 +107,10 @@ class OnlySupportsClassicFormatException(Exception):
     """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
 
+class EmptyResultWarning(UserWarning):
+    """A cast-API query returned no rows, or the local filters dropped them all."""
+
+
 class EpidataFieldType(Enum):
     """field type"""
 
@@ -118,6 +122,7 @@ class EpidataFieldType(Enum):
     categorical = 5
     bool = 6
     date_or_epiweek = 7
+    epoch_seconds = 8
 
 
 @dataclass

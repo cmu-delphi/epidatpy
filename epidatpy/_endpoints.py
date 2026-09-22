@@ -7,13 +7,14 @@ from typing import (
     Any,
     Final,
     Literal,
+    get_args,
 )
 
 from epiweeks import Week
 from pandas import DataFrame, merge_asof
 from requests import Session
 
-from ._call import EpiDataCall, _request_with_retry
+from ._call import EpiDataCall, _raise_for_status, _request_with_retry
 from ._constants import BASE_URL, CAST_BASE_URL
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
@@ -77,6 +78,8 @@ def _serialize_key_filters(key_filters: Mapping[str, Any], max_vals: int = 10) -
             UserWarning,
         )
     return ",".join(terms)
+
+
 def _warn_v4_sunset(fn_name: str) -> None:
     warnings.warn(
         f"`{fn_name}` uses the V4 Epidata API. Starting in October 2026, V4 is "
@@ -86,6 +89,15 @@ def _warn_v4_sunset(fn_name: str) -> None:
         UserWarning,
         stacklevel=2,
     )
+
+
+def _validate_limit(limit: int | None) -> int | None:
+    """Normalize the cast-API `limit`: None or -1 means no limit; otherwise a positive int."""
+    if limit is None or limit == -1:
+        return None
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise InvalidArgumentException("`limit` must be -1 (no limit) or a positive integer")
+    return limit
 
 
 def _note_frozen_endpoint(fn_name: str) -> None:
@@ -147,6 +159,7 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -160,23 +173,31 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
+            return_empty=return_empty,
         )
 
-    def epidata_meta(self, source: str) -> Any:
+    def epidata_meta(self, source: str | None = None) -> Any:
         """Fetch source-level metadata from the CAST API.
 
-        Returns the parsed JSON (a list of signal/geo descriptors) for `source`.
+        Each source's entry lists its ``signals``, ``geo_types``, extra key
+        columns, and its ``reference_time_range`` and ``report_time_range``
+        (the latter as UTC timestamps). With ``source=None`` (default) the
+        result is a dict keyed by source name covering every available
+        source; with a `source` it is that source's entry alone.
         """
         url = add_endpoint_to_url(self._cast_base_url, "metadata/")
         response = _request_with_retry(
             url,
-            {"source": source},
+            {"source": source} if source is not None else {},
             self._session,
             stream=False,
             api_version="cast",
         )
-        response.raise_for_status()
-        return response.json()
+        _raise_for_status(response)
+        res = response.json()
+        if source is not None and isinstance(res, dict) and source in res:
+            return res[source]
+        return res
 
     def pvt_cdc(
         self,
@@ -575,7 +596,12 @@ class EpiDataContext:
             ],
         )
 
-    def pub_covidcast_meta(self) -> EpiDataCall:
+    def pub_covidcast_meta(
+        self,
+        signals: StringParam | None = None,
+        time_type: TimeType | None = None,
+        geo_type: GeoType | None = None,
+    ) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
         This is a V4 endpoint. Starting in October 2026, it is tentatively
@@ -595,6 +621,16 @@ class EpiDataContext:
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
+
+        Parameters
+        ----------
+        signals : StringParam, optional
+            Restrict to these ``source:signal`` pairs (e.g. ``"jhu-csse:confirmed_cumulative_num"``),
+            filtered server-side. Defaults to all.
+        time_type : TimeType, optional
+            Restrict to this temporal resolution ("day" or "week"). Defaults to all.
+        geo_type : GeoType, optional
+            Restrict to this geographic level. Defaults to all.
 
         Returns
         -------
@@ -658,7 +694,11 @@ class EpiDataContext:
 
         return self._create_call(
             "covidcast_meta/",
-            {},
+            {
+                "signals": signals,
+                "time_types": time_type,
+                "geo_types": geo_type,
+            },
             [
                 EpidataFieldInfo("data_source", EpidataFieldType.text),
                 EpidataFieldInfo("signal", EpidataFieldType.text),
@@ -667,6 +707,7 @@ class EpiDataContext:
                     EpidataFieldType.categorical,
                     categories=["week", "day"],
                 ),
+                EpidataFieldInfo("geo_type", EpidataFieldType.text),
                 EpidataFieldInfo("min_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("max_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("num_locations", EpidataFieldType.int),
@@ -674,7 +715,7 @@ class EpiDataContext:
                 EpidataFieldInfo("max_value", EpidataFieldType.float),
                 EpidataFieldInfo("mean_value", EpidataFieldType.float),
                 EpidataFieldInfo("stdev_value", EpidataFieldType.float),
-                EpidataFieldInfo("last_update", EpidataFieldType.int),
+                EpidataFieldInfo("last_update", EpidataFieldType.epoch_seconds),
                 EpidataFieldInfo("max_issue", EpidataFieldType.date),
                 EpidataFieldInfo("min_lag", EpidataFieldType.int),
                 EpidataFieldInfo("max_lag", EpidataFieldType.int),
@@ -747,8 +788,11 @@ class EpiDataContext:
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
-        if data_source == "nchs-mortality" and time_type != "week":
-            raise InvalidArgumentException("nchs-mortality data source only supports the week time type.")
+        if time_type not in get_args(TimeType):
+            raise InvalidArgumentException(f"`time_type` must be one of {get_args(TimeType)}, got {time_type!r}.")
+
+        if data_source in ("nchs-mortality", "nssp") and time_type != "week":
+            raise InvalidArgumentException(f"The {data_source} data source only supports the week time type.")
 
         return self._create_call(
             "covidcast/",
@@ -1797,6 +1841,8 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
+        limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1805,6 +1851,17 @@ class EpiDataContext:
         are sent comma-joined in a single request per `geo_type` (the cast-API
         only accepts one geo type per request); results across geo types are
         combined.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         if snapshot_date is None:
             snapshot_date_str: str | None = None
@@ -1822,10 +1879,12 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata_archive(
@@ -1837,6 +1896,8 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
+        limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
@@ -1847,6 +1908,17 @@ class EpiDataContext:
         dates and the ``"="`` operator are rejected.
         `geo_values` and `reference_time` are
         filtered locally after the API call.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1860,10 +1932,12 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata(
@@ -1876,13 +1950,15 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
+        limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 
         Dispatches to :meth:`epidata_archive` when ``report_time`` is
         supplied or ``snapshot_date == "*"``; otherwise to
         :meth:`epidata_snapshot`. ``report_time`` and ``snapshot_date``
-        are mutually exclusive.
+        are mutually exclusive. See those methods for the argument details.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
@@ -1896,6 +1972,8 @@ class EpiDataContext:
                 reference_time=reference_time,
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
+                limit=limit,
+                return_empty=return_empty,
             )
         return self.epidata_snapshot(
             source=source,
@@ -1905,6 +1983,8 @@ class EpiDataContext:
             reference_time=reference_time,
             fill_method=fill_method,
             snapshot_date=snapshot_date,
+            limit=limit,
+            return_empty=return_empty,
         )
 
     def epidata_aux(
@@ -1915,6 +1995,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = "*",
         snapshot_date: str | date | datetime | int | None = None,
         columns: Sequence[str] | None = None,
+        limit: int | None = None,
         **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall | DataFrame:
         """Fetch V5 auxiliary data associated with a cast-API signal.
@@ -1954,6 +2035,12 @@ class EpiDataContext:
             (when `source` is a string). Mutually exclusive with `report_time`.
         columns : Sequence[str], optional
             Columns to return. By default, all columns are returned.
+        limit : int, optional
+            Cap on the number of rows the server returns (direct pulls only;
+            ignored when `source` is a DataFrame). `None` (default) or `-1`
+            means no limit. The underlying query has no stable sort order, so
+            `limit` does not guarantee the same rows (or count) across calls.
+            Use it to preview or debug a query, not as a filter.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
             Named filters on the auxiliary key columns, such as
             ``pcr_target="sars-cov-2"`` or ``geo_value=["ca", "ny"]``. Each key
@@ -2006,6 +2093,7 @@ class EpiDataContext:
                 "report_time_query": report_time_str,
                 "filtered_keys": _serialize_key_filters(key_filters),
                 "columns": format_list(columns) if columns else None,
+                "limit": _validate_limit(limit),
             },
             _aux_fields(),
             api_version="cast",
@@ -2016,7 +2104,7 @@ class EpiDataContext:
         """Fetch the declared aux key columns for `source` from `metadata/aux_schema/`."""
         url = add_endpoint_to_url(self._cast_base_url, "metadata/aux_schema/")
         response = _request_with_retry(url, {"source": source}, self._session, stream=False, api_version="cast")
-        response.raise_for_status()
+        _raise_for_status(response)
         schema: Mapping[str, Mapping[str, Sequence[str]]] = response.json()
         return schema.get(source, {}).get("key_columns", [])
 
@@ -2120,6 +2208,8 @@ def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
         EpidataFieldInfo("reference_time", EpidataFieldType.date),
         EpidataFieldInfo("value", EpidataFieldType.float),
         # Source-specific extras (skipped per-response if not present):
+        EpidataFieldInfo("ci_lower", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
+        EpidataFieldInfo("ci_upper", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
         EpidataFieldInfo("age_group", EpidataFieldType.text),  # pophive
         EpidataFieldInfo("nwss_source", EpidataFieldType.text),  # nwss
         EpidataFieldInfo("sample_index", EpidataFieldType.text),  # nwss
