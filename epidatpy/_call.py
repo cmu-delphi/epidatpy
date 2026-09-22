@@ -15,7 +15,7 @@ from urllib.parse import urlencode
 
 from appdirs import user_cache_dir
 from diskcache import Cache
-from pandas import CategoricalDtype, DataFrame, Series, read_csv, to_datetime
+from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
@@ -140,6 +140,7 @@ class EpiDataCall:
     _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
+    _fan_out: Final[str | None]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
@@ -158,12 +159,14 @@ class EpiDataCall:
         cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        fan_out: str | None = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
         self._api_version = api_version
         self._post_filter = post_filter
+        self._fan_out = fan_out
         self._session = session
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
@@ -258,6 +261,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            fan_out=self._fan_out,
         )
 
     def with_session(self, session: Session) -> EpiDataCall:
@@ -272,6 +276,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            fan_out=self._fan_out,
         )
 
     def _call(
@@ -284,6 +289,33 @@ class EpiDataCall:
         if extra_params:
             params = {**params, **extra_params}
         return _request_with_retry(url, params, self._session, stream, api_version=self._api_version)
+
+    def _fan_out_values(self) -> list[str | None]:
+        """Values of the fan-out parameter, one request each; `[None]` when not fanning out."""
+        if self._fan_out is None or self._params.get(self._fan_out) is None:
+            return [None]
+        raw = format_list(cast("EpiRangeParam", self._params[self._fan_out]))
+        values = list(dict.fromkeys(v.strip() for v in raw.split(",") if v.strip()))
+        return cast("list[str | None]", values) or [None]
+
+    def _fetch_cast_csv(
+        self,
+        fields: Sequence[str] | None,
+        columns: Sequence[str],
+        fan_out_value: str | None,
+    ) -> DataFrame:
+        # CAST endpoints only speak CSV.
+        extra_params = {"format": "csv"}
+        if fan_out_value is not None and self._fan_out is not None:
+            extra_params[self._fan_out] = fan_out_value
+        body = self._call(fields, extra_params=extra_params).text
+        if not body.strip():
+            return DataFrame(columns=columns or None)
+        df = read_csv(StringIO(body), dtype=str)
+        # Keep only fields in meta that exist in the response, in meta order.
+        df_cols = set(df.columns)
+        cols_in_df = [c for c in columns if c in df_cols]
+        return df[cols_in_df] if cols_in_df else df
 
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"
@@ -351,17 +383,9 @@ class EpiDataCall:
         pred = fields_to_predicate(fields)
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
         if self._api_version == "cast":
-            # CAST endpoints only speak CSV.
-            response = self._call(fields, extra_params={"format": "csv"})
-            body = response.text
-            if body.strip():
-                df = read_csv(StringIO(body), dtype=str)
-                # Keep only fields in meta that exist in the response, in meta order.
-                df_cols = set(df.columns)
-                cols_in_df = [c for c in columns if c in df_cols]
-                df = df[cols_in_df] if cols_in_df else df
-            else:
-                df = DataFrame(columns=columns or None)
+            frames = [self._fetch_cast_csv(fields, columns, fan_out_value) for fan_out_value in self._fan_out_values()]
+            non_empty = [f for f in frames if len(f) > 0]
+            df = concat(non_empty, ignore_index=True) if non_empty else frames[0]
         else:
             json = self.classic(fields, disable_type_parsing=True)
             rows = json.get("epidata", [])

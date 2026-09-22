@@ -1,14 +1,49 @@
 """Offline tests for how EpiDataContext builds cast-API requests."""
 
+from collections.abc import Callable, Mapping
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
 
+from .conftest import FakeServer
+
+CSV_HEADER = "signal,report_time,geo_type,geo_value,fill_method,reference_time,value"
+
 
 def _params(url: str) -> dict[str, list[str]]:
     return parse_qs(urlparse(url).query)
+
+
+def _csv_rows(geo_type: str, signals: str) -> str:
+    rows = [f"{s},2025-10-16T00:00:00Z,{geo_type},{geo_type}-x,source,2025-10-01,1.5" for s in signals.split(",")]
+    return "\n".join([CSV_HEADER, *rows])
+
+
+def test_multiple_geo_types_fan_out(fake_server: Callable[..., FakeServer]) -> None:
+    def responder(url: str, params: Mapping[str, str]) -> str:
+        return _csv_rows(params["geo_type"], params["signal"])
+
+    server = fake_server(responder)
+    df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "b"], ["state", "hhs", "state"]).df()
+    assert [p["geo_type"] for _, p in server.requests] == ["state", "hhs"]
+    assert all(p["signal"] == "a,b" for _, p in server.requests)
+    assert sorted(df["geo_type"].unique()) == ["hhs", "state"]
+    assert len(df) == 4
+
+
+def test_comma_joined_geo_type_string_fans_out(fake_server: Callable[..., FakeServer]) -> None:
+    server = fake_server(lambda url, params: _csv_rows(params["geo_type"], params["signal"]))
+    df = EpiDataContext(use_cache=False).epidata_archive("nssp", "a", "state,nation").df()
+    assert [p["geo_type"] for _, p in server.requests] == ["state", "nation"]
+    assert len(df) == 2
+
+
+def test_single_geo_type_is_one_request(fake_server: Callable[..., FakeServer]) -> None:
+    server = fake_server(lambda url, params: _csv_rows(params["geo_type"], params["signal"]))
+    EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
+    assert len(server.requests) == 1
 
 
 def test_snapshot_request_params() -> None:

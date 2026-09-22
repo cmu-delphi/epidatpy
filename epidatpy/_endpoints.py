@@ -123,6 +123,7 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        fan_out: str | None = None,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -136,6 +137,7 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
+            fan_out=fan_out,
         )
 
     def epidata_meta(self, source: str | None = None) -> Any:
@@ -1774,7 +1776,7 @@ class EpiDataContext:
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
@@ -1782,6 +1784,11 @@ class EpiDataContext:
         limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared at `snapshot_date`.
+
+        `signals` and `geo_type` each accept one or more values (a sequence or
+        a comma-joined string). Signals are sent comma-joined in a single
+        request; the server takes one geo type per request, so the call issues
+        one request per geo type and concatenates the results.
 
         `snapshot_date` accepts a date (``date``, ``YYYY-MM-DD``, ``YYYYMMDD``)
         or an instant (``datetime`` or a UTC timestamp string such as
@@ -1802,7 +1809,7 @@ class EpiDataContext:
             {
                 "source": source,
                 "signal": signal_str,
-                "geo_type": geo_type,
+                "geo_type": format_list(geo_type),
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
                 "limit": _validate_limit(limit),
@@ -1810,13 +1817,14 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            fan_out="geo_type",
         )
 
     def epidata_archive(
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
@@ -1824,6 +1832,11 @@ class EpiDataContext:
         limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
+
+        `signals` and `geo_type` each accept one or more values (a sequence or
+        a comma-joined string). Signals are sent comma-joined in a single
+        request; the server takes one geo type per request, so the call issues
+        one request per geo type and concatenates the results.
 
         `report_time` filters on the `report_time` column. It accepts a
         comparison string (``<``, ``<=``, ``>``, ``>=`` followed by a date or a
@@ -1848,7 +1861,7 @@ class EpiDataContext:
             {
                 "source": source,
                 "signal": signal_str,
-                "geo_type": geo_type,
+                "geo_type": format_list(geo_type),
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
                 "limit": _validate_limit(limit),
@@ -1856,13 +1869,14 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            fan_out="geo_type",
         )
 
     def epidata(
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
