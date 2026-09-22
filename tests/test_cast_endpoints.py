@@ -244,7 +244,11 @@ class TestCastEndpoints:
         assert (snap["report_time"] <= _bound("2025-01-01", snap["report_time"])).all()
 
         lt = ctx.epidata_archive(
-            source="nssp", signals="pct_ed_visits_influenza", geo_type="state", report_time="<2025-06-01"
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time="<2025-06-01",
+            limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(lt) > 0
         assert (lt["report_time"] < _bound("2025-06-01", lt["report_time"])).all()
@@ -256,6 +260,7 @@ class TestCastEndpoints:
             signals="pct_ed_visits_influenza",
             geo_type="state",
             report_time=EpiRange(one_day, one_day),
+            limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(eq) > 0
         assert (eq["report_time"].dt.date == one_day).all()
@@ -266,6 +271,7 @@ class TestCastEndpoints:
             signals="pct_ed_visits_influenza",
             geo_type="state",
             report_time=EpiRange("2025-01-01", "2025-06-01"),
+            limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(rng) > 0
         assert (rng["report_time"] >= _bound("2025-01-01", rng["report_time"])).all()
