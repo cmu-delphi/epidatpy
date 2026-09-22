@@ -56,3 +56,16 @@ def test_pub_covidcast_meta_filters() -> None:
     assert _params(ctx.pub_covidcast_meta().request_url()) == {}
     p = _params(ctx.pub_covidcast_meta(signals=["a:b", "c:d"], time_type="day", geo_type="state").request_url())
     assert p == {"signals": ["a:b,c:d"], "time_types": ["day"], "geo_types": ["state"]}
+
+
+@pytest.mark.filterwarnings("ignore:`pub_covidcast` uses the V4 Epidata API")
+def test_pub_covidcast_validation() -> None:
+    ctx = EpiDataContext()
+    with pytest.raises(InvalidArgumentException, match="time_type"):
+        ctx.pub_covidcast("nssp", "pct_ed_visits_covid", "state", "month")  # type: ignore[arg-type]
+    with pytest.raises(InvalidArgumentException, match="nssp"):
+        ctx.pub_covidcast("nssp", "pct_ed_visits_covid", "state", "day")
+    with pytest.raises(InvalidArgumentException, match="nchs-mortality"):
+        ctx.pub_covidcast("nchs-mortality", "deaths_covid_incidence_num", "state", "day")
+    url = ctx.pub_covidcast("nssp", "pct_ed_visits_covid", "hsa_nci", "week").request_url()
+    assert _params(url)["geo_type"] == ["hsa_nci"]
