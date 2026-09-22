@@ -3,14 +3,18 @@
 # ruff: noqa: DTZ007
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING, Literal
 
 from epiweeks import Week
 
 if TYPE_CHECKING:
     from ._model import EpiRange
+
+# cast-API UTC timestamp bound, e.g. "2025-10-16T13:45:00Z" or "...:45:00.123Z".
+_UTC_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?Z$")
 
 
 def parse_api_date(value: str | float | None) -> date | None:
@@ -80,45 +84,73 @@ def parse_user_date_or_week(
     raise ValueError(f"Cannot parse date or week from {value}")
 
 
-def validate_report_time_query(report_time: str | int | date | Week | EpiRange | None) -> str | None:
-    """Format the `report_time` argument for the CAST API `report_time` parameter.
+def format_report_time_bound(value: str | int | date | datetime | Week) -> str | None:
+    """Format a date or UTC timestamp bound for cast-API queries.
 
-    Accepts an exact date, an operator-prefixed string (e.g. ``"<2025-10-16"``),
-    or an :class:`EpiRange` (upper bound becomes ``"<to"``; the lower bound is
-    filtered locally). Returns ``None`` for ``None`` / ``"*"``.
+    Returns None for invalid timestamp strings.
     """
-    from ._model import EpiRange  # avoid circular import
+    if isinstance(value, str) and _UTC_TIMESTAMP_RE.match(value):
+        return value
+    if isinstance(value, str) and "T" in value:
+        return None
+    if isinstance(value, datetime):
+        aware = value.astimezone(timezone.utc) if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return aware.strftime("%Y-%m-%dT%H:%M:%SZ")
+    if isinstance(value, Week):
+        value = value.startdate()
+    parsed = value if isinstance(value, date) else parse_api_date(value)
+    return parsed.strftime("%Y-%m-%d") if parsed is not None else None
+
+
+def validate_report_time_query(report_time: str | int | date | datetime | Week | EpiRange | None) -> str | None:
+    """Format the `report_time` argument for the CAST API `report_time_query` parameter.
+
+    Accepts an operator-prefixed string (e.g. ``"<2025-10-16"``,
+    ``">=2025-10-16T13:45:00Z"``) or an :class:`EpiRange` (dates only), which
+    maps to an inclusive server-side range (``"from:to"``). Bare dates and the
+    ``"="`` operator are rejected
+    Returns ``None`` for ``None`` / ``"*"``.
+    """
+    from ._model import EpiRange, InvalidArgumentException  # avoid circular import
 
     if report_time is None or report_time == "*":
         return None
 
-    operator = "="
-    raw: str | int | date | Week
-    if isinstance(report_time, str) and report_time[:2] in ("<=", ">="):
-        operator = report_time[:2]
-        raw = report_time[2:]
-    elif isinstance(report_time, str) and report_time[:1] in ("<", ">", "="):
-        operator = report_time[0]
-        raw = report_time[1:]
-    elif isinstance(report_time, EpiRange):
-        operator = "<"
-        raw = report_time.end
-    else:
-        raw = report_time
+    if isinstance(report_time, EpiRange):
+        start = report_time.start.startdate() if isinstance(report_time.start, Week) else report_time.start
+        end = report_time.end.startdate() if isinstance(report_time.end, Week) else report_time.end
+        return f"{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}"
 
-    parsed: date | None
-    if isinstance(raw, date):
-        parsed = raw
-    elif isinstance(raw, Week):
-        parsed = raw.startdate()
-    else:
-        parsed = parse_api_date(raw)
-    if parsed is None:
-        raise ValueError(
-            "Invalid `report_time` format. Must be a single date, an `EpiRange`, "
-            "or a string with an operator (e.g., '<2025-10-16')."
+    operator: str | None = None
+    raw: str | int | date | datetime | Week = report_time
+    if isinstance(report_time, str):
+        for op in ("<=", ">=", "<", ">", "="):
+            if report_time.startswith(op):
+                operator = op
+                raw = report_time[len(op) :]
+                break
+
+    if operator is None:
+        raise InvalidArgumentException(
+            "A bare date is not a valid `report_time` value. Use a comparison "
+            "operator (e.g. '<2025-10-16') or an `EpiRange`. For data as it "
+            "appeared on a specific date, use `snapshot_date` instead."
         )
-    return f"{operator}{parsed.strftime('%Y-%m-%d')}"
+    if operator == "=":
+        raise InvalidArgumentException(
+            "The `=` operator is not supported for `report_time`. Use a "
+            "comparison operator (e.g. '<2025-10-16') or an `EpiRange`. For "
+            "data as it appeared on a specific date, use `snapshot_date` instead."
+        )
+
+    formatted = format_report_time_bound(raw)
+    if formatted is None:
+        raise InvalidArgumentException(
+            "Invalid `report_time` format. Must be a comparison string with an "
+            "operator (e.g., '<2025-10-16', '>=2025-10-16', or "
+            "'<=2025-10-16T13:45:00Z') or an `EpiRange`."
+        )
+    return f"{operator}{formatted}"
 
 
 def fields_to_predicate(

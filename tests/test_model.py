@@ -1,6 +1,6 @@
 import datetime
 
-from epidatpy._model import EpiRange, format_item, format_list
+from epidatpy._model import EpiRange, format_item, format_list, split_list
 
 
 def test_epirange() -> None:
@@ -30,3 +30,12 @@ def test_format_list() -> None:
     assert format_list(["a", "b"]) == "a,b"
     assert format_list(("a", "b")) == "a,b"
     assert format_list(["a", 1]) == "a,1"
+
+
+def test_split_list() -> None:
+    assert split_list("a") == ["a"]
+    assert split_list("a,b") == ["a", "b"]
+    assert split_list(["a", "b"]) == ["a", "b"]
+    assert split_list(["a,b", "c"]) == ["a", "b", "c"]
+    # de-duplicates, preserving first-seen order
+    assert split_list(["a,b", "b,a"]) == ["a", "b"]

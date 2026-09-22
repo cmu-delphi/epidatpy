@@ -20,7 +20,7 @@ from epiweeks import Week
 
 from ._parse import parse_user_date_or_week
 
-GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
+GeoType = Literal["nation", "msa", "hrr", "hhs", "hsa_nci", "dma", "state", "county"]
 TimeType = Literal["day", "week"]
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
@@ -71,6 +71,15 @@ def format_list(values: EpiRangeParam) -> str:
     return format_item(values)
 
 
+def split_list(values: StringParam) -> list[str]:
+    """Split a `StringParam` into its unique items, preserving order.
+
+    Accepts a single comma-joined string, a sequence of strings, or a
+    sequence of comma-joined strings (e.g. `"a,b"`, `["a", "b"]`, or `["a,b"]`).
+    """
+    return list(dict.fromkeys(format_list(values).split(",")))
+
+
 class EpiRange:
     """Range object for dates/epiweeks"""
 
@@ -98,6 +107,10 @@ class OnlySupportsClassicFormatException(Exception):
     """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
 
+class EmptyResultWarning(UserWarning):
+    """A cast-API query returned no rows, or the local filters dropped them all."""
+
+
 class EpidataFieldType(Enum):
     """field type"""
 
@@ -109,6 +122,7 @@ class EpidataFieldType(Enum):
     categorical = 5
     bool = 6
     date_or_epiweek = 7
+    epoch_seconds = 8
 
 
 @dataclass
@@ -130,11 +144,10 @@ def add_endpoint_to_url(url: str, endpoint: str) -> str:
 
 ApiVersion = Literal["classic", "cast"]
 
-# (geo_values, reference_time, report_time) — passed straight to cast_filter.
+# (geo_values, reference_time) — passed straight to cast_filter.
 CastPostFilter = tuple[
     Union[str, Sequence[str]],
     Union[str, "EpiRangeParam"],
-    Union[str, "EpiRange", None],
 ]
 
 
@@ -142,12 +155,11 @@ def cast_filter(
     df: DataFrame,
     geo_values: str | Sequence[str] = "*",
     reference_time: str | EpiRangeParam = "*",
-    report_time: str | EpiRange | None = None,
 ) -> DataFrame:
     """Local post-filter for CAST-API responses.
 
     The CAST endpoints return data that's only weakly filtered server-side.
-    Apply geo, reference_time, and EpiRange report_time-lower-bound filters locally.
+    Apply geo and reference_time filters locally.
     """
     from pandas import to_datetime
 
@@ -163,9 +175,6 @@ def cast_filter(
 
     if reference_time != "*" and "reference_time" in df.columns:
         df = _filter_by_timeset(df, "reference_time", reference_time, to_datetime)
-
-    if isinstance(report_time, EpiRange) and "report_time" in df.columns:
-        df = _filter_by_timeset(df, "report_time", report_time, to_datetime)
 
     return df
 

@@ -5,14 +5,28 @@ Gated on `DELPHI_EPIDATA_KEY` so it only runs against the live server when
 a key is present.
 """
 
+from __future__ import annotations
+
 import os
+from collections.abc import Mapping
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 
 from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy._constants import CAST_BASE_URL
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
+# Mirrors epidatr's EPIDATR_CAST_BASE_URL: point the live cast tests at a
+# non-default server (e.g. dev) without touching the classic endpoints.
+cast_base_url = os.environ.get("EPIDATPY_CAST_BASE_URL") or CAST_BASE_URL
+
+# Rows are capped with `limit` so a query that happens to cover a large geo
+# type stays a smoke test rather than a bulk download. The cap is not a filter:
+# the query has no stable sort order, so which rows come back varies per call.
+CAST_QUERY_LIMIT = 500
 
 # (source, signal, geo_type) — kept in sync with R's `cast_queries`.
 # Commented-out rows mirror the R suite's TODOs; uncomment when server-side
@@ -20,17 +34,97 @@ auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
 CAST_QUERIES = [
     ("nssp", "pct_ed_visits_influenza", "state"),
     ("nssp", "pct_ed_visits_influenza", "hhs"),
-    # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: row limit
-    # ("nhsn", "confirmed_admissions_flu_ew", "state"),  # ignored: no data
-    # ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
-    # ("nhsn", "confirmed_admissions_flu_ew", "national"),
+    ("nssp", "pct_ed_visits_covid", "nation"),
+    # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: server times out, even with `limit`
+    ("nhsn", "confirmed_admissions_flu_ew", "state"),
+    ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
+    ("nhsn", "confirmed_admissions_flu_ew", "nation"),
     ("pophive", "flu_pct_ed", "state"),
     ("pophive", "flu_pct_ed", "hhs"),
     ("pophive", "flu_n_ed", "state"),
     ("pophive", "flu_n_ed", "hhs"),
     ("pophive", "flu_n_ed", "nation"),
     ("nwss", "covid_avg_conc", "sewershed"),
+    ("nwss", "flu_avg_conc", "sewershed"),
+    # Sources carrying ci_lower/ci_upper, so the confidence bounds get parsed:
+    ("nickel_beta", "covid_ed", "state"),
+    ("sleepcycle", "pct_cough_2_plus_7dav", "state"),
+    # Weekly surveillance sources:
+    ("fluview_ilinet", "ili", "state"),
+    ("fluview_resp_lab_clinical", "pct_positive", "hhs"),
+    ("nchs_mortality", "deaths_covid_incidence_num", "state"),
 ]
+
+
+def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
+    """Mirrors epidatr's "epidata_snapshot sends multiple signals comma-joined
+    in a single request" and "...one call per geo_type, signals comma-joined"
+    tests: signals stay comma-joined per request, one request is issued per
+    geo_type, and the results are combined."""
+    seen: list[Mapping[str, str]] = []
+
+    def fake_request(url: str, params: Mapping[str, str], *_args: Any, **_kwargs: Any) -> MagicMock:
+        seen.append(dict(params))
+        resp = MagicMock()
+        resp.raise_for_status = lambda: None
+        g = params["geo_type"]
+        rows = [f"{sig},{g},ca,2024-01-01,2024-01-02,1.0" for sig in params["signal"].split(",")]
+        resp.text = "\n".join(["signal,geo_type,geo_value,reference_time,report_time,value", *rows]) + "\n"
+        return resp
+
+    with patch("epidatpy._call._request_with_retry", fake_request):
+        df = (
+            EpiDataContext()
+            .epidata_snapshot(source="nssp", signals=["sig1", "sig2"], geo_type=["state", "nation"])
+            .df()
+        )
+
+    assert [p["geo_type"] for p in seen] == ["state", "nation"]
+    assert all(p["signal"] == "sig1,sig2" for p in seen)
+    assert sorted(df["geo_type"].unique()) == ["nation", "state"]
+
+
+def test_epidata_archive_report_time_epirange_is_inclusive_range() -> None:
+    """EpiRange maps to a server-side "from:to" range query."""
+    call = EpiDataContext().epidata_archive(
+        source="nssp", signals="sig1", geo_type="state", report_time=EpiRange("2024-01-02", "2024-01-05")
+    )
+    _, params = call.request_arguments()
+    assert params["report_time_query"] == "2024-01-02:2024-01-05"
+
+
+def test_epidata_snapshot_snapshot_date_accepts_utc_timestamp() -> None:
+    call = EpiDataContext().epidata_snapshot(
+        source="nssp", signals="sig1", geo_type="state", snapshot_date="2024-01-02T13:45:00Z"
+    )
+    _, params = call.request_arguments()
+    assert params["snapshot_date"] == "2024-01-02T13:45:00Z"
+
+
+def _assert_cast_frame(ctx: EpiDataContext, source: str, df: pd.DataFrame) -> None:
+    """Shared contract for a snapshot/archive result: non-empty, parsed times,
+    and no missing key values.
+
+    The key columns come from the source's own `metadata/` declaration (nwss
+    adds `nwss_source`/`sample_index`, pophive adds `age_group`), so a schema
+    change surfaces here instead of drifting past a hardcoded list. A row with
+    a missing key value can't be identified, so it's unusable.
+    """
+    assert len(df) > 0
+    assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
+    assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+
+    keys = ctx.epidata_meta(source=source)["key_columns"]
+    absent = [c for c in keys if c not in df.columns]
+    assert not absent, f"{source}: declared key columns absent from result: {absent}"
+    na = df[keys].isna().sum()
+    assert not na.any(), f"{source}: missing values in key columns: {na[na > 0].to_dict()}"
+
+
+def _bound(value: str, series: pd.Series) -> pd.Timestamp:
+    """`value` as a UTC instant, matched to the series' tz-awareness."""
+    ts = pd.Timestamp(value, tz="UTC")
+    return ts if series.dt.tz is not None else ts.tz_localize(None)
 
 
 @pytest.mark.live
@@ -47,23 +141,33 @@ class TestCastEndpoints:
         ctx = EpiDataContext()
         for src in sorted({q[0] for q in CAST_QUERIES}):
             source_meta = ctx.epidata_meta(source=src)
-            assert isinstance(source_meta, dict)
+            assert isinstance(source_meta, dict), f"metadata response missing source {src!r}"
             assert len(source_meta.get("signals", [])) > 0
             assert len(source_meta.get("geo_types", [])) > 0
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
-        df = EpiDataContext().epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
-        assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        ctx = EpiDataContext()
+        df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
+        _assert_cast_frame(ctx, source, df)
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
-        df = EpiDataContext().epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
+        ctx = EpiDataContext()
+        df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
+        _assert_cast_frame(ctx, source, df)
+
+    def test_epidata_snapshot_multiple_geo_types(self) -> None:
+        # nssp has data for both "state" and "hhs"; one request is issued per
+        # geo_type and the results are combined into a single DataFrame.
+        df = (
+            EpiDataContext()
+            .epidata_snapshot(source="nssp", signals="pct_ed_visits_influenza", geo_type=["state", "hhs"])
+            .df()
+        )
         assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        assert set(df["geo_type"].unique()).issubset({"state", "hhs"})
+        assert {"state", "hhs"}.issubset(set(df["geo_type"].unique()))
 
     def test_epidata_router_dispatch(self) -> None:
         # `snapshot_date="*"` routes to archive (no report_time sent);
@@ -122,3 +226,53 @@ class TestCastEndpoints:
         assert isinstance(merged, pd.DataFrame)
         assert len(merged) == len(base)
         assert set(base.columns).issubset(set(merged.columns))
+        # Must actually bring aux columns in: the assertions above all hold when
+        # the merge silently no-ops and returns `base` itself.
+        assert set(merged.columns) - set(base.columns)
+        assert merged["population_served"].notna().any()
+
+    def test_cast_versioning_args_reach_the_server(self) -> None:
+        """Mirrors epidatr's "cast versioning args reach the server": the
+        `snapshot_date` / `report_time` bounds are applied server-side, not
+        silently dropped."""
+        ctx = EpiDataContext(cast_base_url=cast_base_url)
+
+        snap = ctx.epidata_snapshot(
+            source="nssp", signals="pct_ed_visits_influenza", geo_type="state", snapshot_date="2025-01-01"
+        ).df()
+        assert len(snap) > 0
+        assert (snap["report_time"] <= _bound("2025-01-01", snap["report_time"])).all()
+
+        lt = ctx.epidata_archive(
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time="<2025-06-01",
+            limit=CAST_QUERY_LIMIT,
+        ).df()
+        assert len(lt) > 0
+        assert (lt["report_time"] < _bound("2025-06-01", lt["report_time"])).all()
+
+        # A single-day EpiRange pins report_time to that one day.
+        one_day = lt["report_time"].max().date()
+        eq = ctx.epidata_archive(
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time=EpiRange(one_day, one_day),
+            limit=CAST_QUERY_LIMIT,
+        ).df()
+        assert len(eq) > 0
+        assert (eq["report_time"].dt.date == one_day).all()
+
+        # Both bounds go server-side as an inclusive "from:to" range.
+        rng = ctx.epidata_archive(
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            report_time=EpiRange("2025-01-01", "2025-06-01"),
+            limit=CAST_QUERY_LIMIT,
+        ).df()
+        assert len(rng) > 0
+        assert (rng["report_time"] >= _bound("2025-01-01", rng["report_time"])).all()
+        assert (rng["report_time"] <= _bound("2025-06-01", rng["report_time"])).all()
