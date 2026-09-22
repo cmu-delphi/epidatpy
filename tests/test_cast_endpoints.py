@@ -219,7 +219,13 @@ class TestCastEndpoints:
         assert set(df["sample_index"].unique()) == {"5886455"}
 
     def test_epidata_aux_merge_onto_snapshot(self) -> None:
-        base = EpiDataContext().epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed").df()
+        # One sewershed keeps the base to a few sample sites, so the merge's
+        # inferred key filters keep the aux pull small.
+        base = (
+            EpiDataContext()
+            .epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed", geo_values="135")
+            .df()
+        )
         if len(base) == 0:
             pytest.skip("no nwss snapshot data available to merge onto")
         merged = EpiDataContext().epidata_aux(base)
