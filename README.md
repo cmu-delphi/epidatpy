@@ -4,80 +4,141 @@
 
 The Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
 
+The Delphi Epidata API provides real-time access to epidemiological
+surveillance data for influenza, COVID-19, and other diseases from official
+government sources such as the [CDC](https://www.cdc.gov/) and from private
+partners. It is built and maintained by the Carnegie Mellon University
+[Delphi Research Group](https://delphi.cmu.edu/).
+
+`epidatpy` streamlines downloading data from the API into pandas data frames.
+It can fetch the latest values of a signal, the values as they were known on a
+past date, or the full revision history of a signal, which is what you need to
+backtest forecasting models honestly. The R equivalent is
+[`epidatr`](https://cmu-delphi.github.io/epidatr/).
+
 ## Install
 
-Install with the following commands:
-
 ```sh
-# Latest dev version
-pip install "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
-
 # PyPI version
 pip install epidatpy
+
+# Latest dev version
+pip install "git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"
 ```
+
+### API keys
+
+The Delphi Epidata API requires a (free) API key for full functionality. To
+generate your key, register for a pseudo-anonymous account
+[here](https://api.delphi.cmu.edu/epidata/admin/registration_form) and see more
+discussion on the [general API
+website](https://cmu-delphi.github.io/delphi-epidata/api/api_keys.html).
+`epidatpy` reads the key from the `DELPHI_EPIDATA_KEY` environment variable. We
+recommend keeping it in a `.env` file loaded with
+[python-dotenv](https://github.com/theskumar/python-dotenv), and adding `.env`
+to your `.gitignore`.
+
+Note that for the time being, the private endpoints (those prefixed with
+`pvt_`) require a separate key that is passed as an argument.
 
 ## Usage
 
-```py
-from epidatpy import CovidcastEpidata, EpiDataContext, EpiRange
-
-# All calls using the `epidata` object will now be cached for 7 days
-epidata = EpiDataContext(use_cache=True, cache_max_age_days=7)
-
-# Obtain a DataFrame of the most up-to-date version of the smoothed covid-like illness (CLI)
-# signal from the COVID-19 Trends and Impact survey for the US
-epidata.pub_covidcast(
-    data_source="jhu-csse",
-    signals="confirmed_cumulative_num",
-    geo_type="nation",
-    time_type="day",
-    geo_values="us",
-    time_values=EpiRange(20210405, 20210410),
-).df()
-```
-
-### CAST API (snapshot / archive)
-
-The CAST API exposes versioned signals (NSSP, pophive, NWSS, ...). Use
-`epidata_snapshot` for a single as-of view, `epidata_archive` for the full
-report-time history, or `epidata` to dispatch between them.
+To get started, see the [Getting started
+guide](https://cmu-delphi.github.io/epidatpy/getting_started.html).
 
 ```py
 from epidatpy import EpiDataContext, EpiRange
 
 epidata = EpiDataContext()
 
-# Source-level metadata (signals, geo_types, available date ranges).
-epidata.epidata_meta(source="nssp")
+# Discover what a source offers: signals, geo types, and date ranges.
+meta = epidata.epidata_meta(source="nssp")
+meta["signals"]
 
-# Latest snapshot of a signal (omit `snapshot_date` to fetch the newest version).
+# Fetch the latest snapshot of NSSP influenza ED visit percentages by state.
+flu = epidata.epidata_snapshot(
+    source="nssp",
+    signals="pct_ed_visits_influenza",
+    geo_type="state",
+).df()
+
+# Data as it was known on a past date, for two states and a date range.
 epidata.epidata_snapshot(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
-    geo_values="ca,ny",
+    geo_values=["ca", "ny"],
     reference_time=EpiRange("2025-01-01", "2025-06-01"),
+    snapshot_date="2025-06-15",
 ).df()
 
-# Full report-time history, filtered to report_times on or before 2025-10-16.
+# Full revision history, restricted to reports published before 2025-10-16.
 epidata.epidata_archive(
     source="nssp",
     signals="pct_ed_visits_influenza",
     geo_type="state",
     report_time="<2025-10-16",
 ).df()
-
-# Router: pass `report_time` (or `snapshot_date="*"`) for archive, `snapshot_date` for snapshot.
-epidata.epidata(
-    source="nssp",
-    signals="pct_ed_visits_influenza",
-    geo_type="state",
-    report_time=EpiRange("2025-01-01", "2025-10-16"),
-).df()
 ```
 
-`geo_values`, `reference_time`, and an `EpiRange` `report_time` lower
-bound are filtered locally after the request.
+`report_time` is a UTC timestamp column. `geo_values` and `reference_time` are
+filtered locally after the request; `report_time` filters are applied
+server-side and take a comparison string or an `EpiRange`.
+
+This is just a glimpse of what `epidatpy` can do. See the
+[documentation](https://cmu-delphi.github.io/epidatpy/) for walkthroughs of
+specific tasks (finding signals, understanding versioned data, migrating from
+`pub_covidcast`) and for the full reference of methods and their arguments.
+
+## Which endpoint has my data?
+
+The Delphi Epidata API has three generations of endpoints, and this package has
+client methods for all of them:
+
+- **V5 (current):** `epidata_snapshot()`, `epidata_archive()`, and
+  `epidata_meta()`. Start here; sources are moving to V5 one at a time.
+- **V4 (covidcast):** `pub_covidcast()`. Still carries the sources that have
+  not moved to V5 yet.
+- **V3 (legacy):** the many other `pub_*` methods (e.g. `pub_fluview()`,
+  `pub_gft()`), one per dataset. Most of these datasets are static or no
+  longer updated; they remain available for historical work.
+
+## Migrating to the V5 API
+
+`pub_covidcast()` and the other V3/V4 methods are being deprecated as of
+October 2026, and calling them now emits a warning. New code should use the V5
+methods, reserving `pub_covidcast()` for sources that have not yet
+transitioned. The [migration
+guide](https://cmu-delphi.github.io/epidatpy/migration_guide.html) maps
+`pub_covidcast()` arguments and columns onto the V5 methods.
+
+## Get updates
+
+**You should consider subscribing to the [API mailing
+list](https://lists.andrew.cmu.edu/mailman/listinfo/delphi-covidcast-api)** to
+be notified of package updates, new data sources, corrections, and more.
+
+## Usage terms and citation
+
+If you use data that originated from the COVIDcast project (whether accessed
+via V5 endpoints or `pub_covidcast()`), please include the [COVIDcast
+citation](https://cmu-delphi.github.io/covidcast/covidcastR/authors.html#citation).
+
+Certain data sources have specific attribution and licensing terms. See the
+[Epidata data licensing
+documentation](https://cmu-delphi.github.io/delphi-epidata/api/README.html#data-licensing)
+and the [COVIDcast licensing
+documentation](https://cmu-delphi.github.io/delphi-epidata/api/covidcast_licensing.html)
+for information about citing specific datasets.
+
+**Warning:** If you use data from the Epidata API to power a product,
+dashboard, app, or other service, please download the data you need and store
+it centrally rather than making API requests for every user. Our server
+resources are limited and cannot support high-volume interactive use.
+
+See also the [Terms of Use](https://delphi.cmu.edu/covidcast/terms-of-use/),
+noting that the data is a research product and not warranted for a particular
+purpose.
 
 ## Development
 
