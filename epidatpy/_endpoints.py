@@ -159,6 +159,7 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -172,6 +173,7 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
+            return_empty=return_empty,
         )
 
     def epidata_meta(self, source: str | None = None) -> Any:
@@ -1840,6 +1842,7 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1848,6 +1851,12 @@ class EpiDataContext:
         are sent comma-joined in a single request per `geo_type` (the cast-API
         only accepts one geo type per request); results across geo types are
         combined.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
 
         `limit` caps the number of rows the server returns; ``None`` (default)
         or ``-1`` means no limit. The underlying query has no stable sort
@@ -1875,6 +1884,7 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata_archive(
@@ -1887,6 +1897,7 @@ class EpiDataContext:
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
@@ -1897,6 +1908,12 @@ class EpiDataContext:
         dates and the ``"="`` operator are rejected.
         `geo_values` and `reference_time` are
         filtered locally after the API call.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
 
         `limit` caps the number of rows the server returns; ``None`` (default)
         or ``-1`` means no limit. The underlying query has no stable sort
@@ -1920,6 +1937,7 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata(
@@ -1933,6 +1951,7 @@ class EpiDataContext:
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 
@@ -1954,6 +1973,7 @@ class EpiDataContext:
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
                 limit=limit,
+                return_empty=return_empty,
             )
         return self.epidata_snapshot(
             source=source,
@@ -1964,6 +1984,7 @@ class EpiDataContext:
             fill_method=fill_method,
             snapshot_date=snapshot_date,
             limit=limit,
+            return_empty=return_empty,
         )
 
     def epidata_aux(

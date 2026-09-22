@@ -107,6 +107,10 @@ class OnlySupportsClassicFormatException(Exception):
     """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
 
+class EmptyResultWarning(UserWarning):
+    """A cast-API query returned no rows, or the local filters dropped them all."""
+
+
 class EpidataFieldType(Enum):
     """field type"""
 

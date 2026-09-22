@@ -26,10 +26,12 @@ from ._constants import HTTP_HEADERS
 from ._model import (
     ApiVersion,
     CastPostFilter,
+    EmptyResultWarning,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiDataResponse,
     EpiRangeParam,
+    InvalidArgumentException,
     OnlySupportsClassicFormatException,
     StringParam,
     add_endpoint_to_url,
@@ -132,6 +134,7 @@ class EpiDataCall:
     _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
+    _return_empty: Final[bool]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
@@ -150,12 +153,14 @@ class EpiDataCall:
         cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        return_empty: bool = False,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
         self._api_version = api_version
         self._post_filter = post_filter
+        self._return_empty = return_empty
         self._session = session
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
@@ -250,6 +255,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty,
         )
 
     def with_session(self, session: Session) -> EpiDataCall:
@@ -264,9 +270,10 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty,
         )
 
-    def _with_param(self, key: str, value: EpiRangeParam | None) -> EpiDataCall:
+    def _with_param(self, key: str, value: EpiRangeParam | None, *, return_empty: bool | None = None) -> EpiDataCall:
         return EpiDataCall(
             self._base_url,
             self._session,
@@ -278,6 +285,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
+            return_empty=self._return_empty if return_empty is None else return_empty,
         )
 
     def _call(
@@ -290,6 +298,78 @@ class EpiDataCall:
         if extra_params:
             params = {**params, **extra_params}
         return _request_with_retry(url, params, self._session, stream, api_version=self._api_version)
+
+    def _requested_values(self, name: str) -> list[str]:
+        """The distinct comma-separated values of a request parameter, in order."""
+        value = self._params.get(name)
+        if value is None:
+            return []
+        return list(dict.fromkeys(v.strip() for v in format_list(value).split(",") if v.strip()))
+
+    def _cast_source_meta(self, source: str) -> Mapping[str, Any] | None:
+        try:
+            res = _request_with_retry(
+                add_endpoint_to_url(self._base_url, "metadata/"),
+                {"source": source},
+                self._session,
+                False,
+                api_version="cast",
+            ).json()
+        except Exception:  # noqa: BLE001 - diagnostics must never mask the real result
+            return None
+        entry = res.get(source) if isinstance(res, dict) else None
+        return entry if isinstance(entry, dict) else None
+
+    def _unknown_cast_keys(self, source: str, signals: list[str], geo_types: list[str]) -> list[str]:
+        """Sentences naming the requested signals and geo types that `source`'s metadata does not list."""
+        meta = self._cast_source_meta(source) if signals or geo_types else None
+        if meta is None:
+            return []
+        problems = []
+        for kind, requested in (("signals", signals), ("geo_types", geo_types)):
+            known = meta.get(kind, [])
+            unknown = [v for v in requested if v not in known]
+            if unknown:
+                problems.append(f"For source {source!r}, {kind} {unknown} are not available (known: {known}).")
+        return problems
+
+    def _check_cast_empty(self, fetched: DataFrame, result: DataFrame) -> None:
+        """Warn about empty or partially empty cast results, the way epidatr does.
+
+        Signals or geo types missing from the source's metadata are an error
+        only when nothing came back at all; alongside real data they are
+        mentioned in the warning instead.
+        """
+        source = format_list(cast("EpiRangeParam", self._params.get("source", "")))
+        signals = self._requested_values("signal")
+        geo_types = self._requested_values("geo_type")
+        returned_signals = set(fetched["signal"]) if "signal" in fetched.columns else set()
+        returned_geo_types = set(fetched["geo_type"]) if "geo_type" in fetched.columns else set()
+        empty_signals = [s for s in signals if s not in returned_signals]
+        empty_geo_types = [g for g in geo_types if g not in returned_geo_types]
+        if not empty_signals and not empty_geo_types and len(result) > 0:
+            return
+
+        unknown = self._unknown_cast_keys(source, empty_signals, empty_geo_types)
+        if len(result) == 0 and unknown:
+            raise InvalidArgumentException(" ".join(unknown))
+
+        if len(fetched) == 0:
+            message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
+        elif len(result) == 0:
+            message = (
+                f"The server returned {len(fetched)} rows but the local `geo_values`/`reference_time` "
+                "filter dropped them all."
+            )
+        else:
+            parts = [f"signals {empty_signals}"] if empty_signals else []
+            parts += [f"geo_types {empty_geo_types}"] if empty_geo_types else []
+            message = f"No data returned for {' and '.join(parts)} from source {source!r}."
+        warnings.warn(
+            " ".join([message, *unknown, "Pass return_empty=True to silence this."]),
+            EmptyResultWarning,
+            stacklevel=3,
+        )
 
     def _get_cache_key(self, method: str) -> str:
         cache_key = f"{self._endpoint} | {self._api_version} | {method}"
@@ -359,11 +439,18 @@ class EpiDataCall:
             geo_types = split_list(cast(StringParam, self._params.get("geo_type") or ""))
             if len(geo_types) > 1:
                 frames = [
-                    self._with_param("geo_type", g).df(fields, disable_date_parsing=disable_date_parsing)
+                    self._with_param("geo_type", g, return_empty=True).df(
+                        fields, disable_date_parsing=disable_date_parsing
+                    )
                     for g in geo_types
                 ]
                 combined = concat(frames, ignore_index=True)
                 combined.attrs = frames[0].attrs
+                if not self._return_empty:
+                    # Per-request frames are already locally filtered, so the
+                    # combined frame stands in for both the fetched and the
+                    # filtered result here.
+                    self._check_cast_empty(combined, combined)
                 return combined
 
         if self.use_cache:
@@ -374,6 +461,7 @@ class EpiDataCall:
 
         pred = fields_to_predicate(fields)
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
+        fetched: DataFrame | None = None
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
             response = self._call(fields, extra_params={"format": "csv"})
@@ -388,6 +476,7 @@ class EpiDataCall:
                 df = df[cols_in_df + extras]
             else:
                 df = DataFrame(columns=columns or None)
+            fetched = df
         else:
             json = self.classic(fields, disable_type_parsing=True)
             rows = json.get("epidata", [])
@@ -460,6 +549,9 @@ class EpiDataCall:
         if self._post_filter is not None:
             geo_values, reference_time = self._post_filter
             df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
+
+        if fetched is not None and not self._return_empty:
+            self._check_cast_empty(fetched, df)
 
         if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
             # Lets `EpiDataContext.epidata_aux()` recover the source/kind from a
