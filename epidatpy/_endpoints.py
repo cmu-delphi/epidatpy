@@ -142,7 +142,6 @@ class EpiDataContext:
             stream=False,
             api_version="cast",
         )
-        response.raise_for_status()
         return response.json()
 
     def pvt_cdc(

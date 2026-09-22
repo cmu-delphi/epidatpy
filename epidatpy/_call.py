@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import warnings
 from collections.abc import Mapping, Sequence
 from datetime import date, datetime
@@ -26,6 +27,7 @@ from ._model import (
     CastPostFilter,
     EpidataFieldInfo,
     EpidataFieldType,
+    EpiDataHTTPError,
     EpiDataResponse,
     EpiRangeParam,
     OnlySupportsClassicFormatException,
@@ -51,7 +53,44 @@ if environ.get("USE_EPIDATPY_CACHE", None):
     )
 
 
-@retry(reraise=True, stop=stop_after_attempt(2))
+def _error_body_message(response: Response) -> str | None:
+    """Extract the server's error message from a JSON or HTML error body."""
+    content_type = response.headers.get("Content-Type", "").split(";")[0].strip()
+    try:
+        if content_type == "application/json":
+            body = response.json()
+            if not isinstance(body, dict):
+                return None
+            # Either {"message": "..."} or FastAPI's validation errors under "detail".
+            message = body.get("message")
+            if isinstance(message, str):
+                return message
+            detail = body.get("detail")
+            if isinstance(detail, str):
+                return detail
+            if isinstance(detail, list) and detail:
+                return "; ".join(
+                    d.get("msg", "invalid value")
+                    if isinstance(d, dict) and isinstance(d.get("msg"), str)
+                    else "invalid value"
+                    for d in detail
+                )
+            return None
+        if content_type == "text/html":
+            paragraphs = re.findall(r"<p[^>]*>(.*?)</p>", response.text, flags=re.S)
+            text = " ".join(re.sub(r"<[^>]+>", "", p).strip() for p in paragraphs).strip()
+            return text or None
+    except ValueError:
+        return None
+    return None
+
+
+def _check_response(response: Response) -> Response:
+    if response.status_code >= 400:
+        raise EpiDataHTTPError(response.status_code, _error_body_message(response), response.url)
+    return response
+
+
 def _request_with_retry(
     url: str,
     params: Mapping[str, str],
@@ -59,7 +98,18 @@ def _request_with_retry(
     stream: bool = False,
     api_version: ApiVersion = "classic",
 ) -> Response:
-    """Make request with a retry if an exception is thrown."""
+    """Make a request, retrying once on connection failure, and raise on an error status."""
+    return _check_response(_request_impl(url, params, session, stream, api_version))
+
+
+@retry(reraise=True, stop=stop_after_attempt(2))
+def _request_impl(
+    url: str,
+    params: Mapping[str, str],
+    session: Session | None = None,
+    stream: bool = False,
+    api_version: ApiVersion = "classic",
+) -> Response:
     key = _get_api_key()
     if api_version == "cast":
         # CAST API uses a token header instead of HTTP basic auth.
@@ -303,7 +353,6 @@ class EpiDataCall:
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
             response = self._call(fields, extra_params={"format": "csv"})
-            response.raise_for_status()
             body = response.text
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)

@@ -4,6 +4,7 @@
 __all__ = [
     "CovidcastEpidata",
     "EpiDataContext",
+    "EpiDataHTTPError",
     "EpiRange",
     "InvalidArgumentException",
     "__version__",
@@ -13,5 +14,5 @@ __author__ = "Delphi Research Group"
 
 
 from ._constants import __version__
-from ._model import EpiRange, InvalidArgumentException
+from ._model import EpiDataHTTPError, EpiRange, InvalidArgumentException
 from .request import CovidcastEpidata, EpiDataContext, available_endpoints

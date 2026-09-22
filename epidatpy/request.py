@@ -27,9 +27,7 @@ def CovidcastEpidata(
     cache_max_age_days: int | None = None,
 ) -> CovidcastDataSources:
     url = add_endpoint_to_url(base_url, "covidcast/meta")
-    meta_data_res = _request_with_retry(url, {}, session, False)
-    meta_data_res.raise_for_status()
-    meta_data = meta_data_res.json()
+    meta_data = _request_with_retry(url, {}, session, False).json()
 
     def create_call(
         params: Mapping[str, EpiRangeParam | None],

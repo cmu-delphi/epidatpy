@@ -94,6 +94,17 @@ class InvalidArgumentException(Exception):
     """exception for an invalid argument"""
 
 
+class EpiDataHTTPError(Exception):
+    """The API returned an error status; `message` is what the server said."""
+
+    def __init__(self, status_code: int, message: str | None, url: str) -> None:
+        self.status_code = status_code
+        self.message = message
+        self.url = url
+        detail = f": {message}" if message else ""
+        super().__init__(f"Epidata API request failed with HTTP {status_code}{detail} ({url})")
+
+
 class OnlySupportsClassicFormatException(Exception):
     """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
