@@ -23,13 +23,19 @@ auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
 # non-default server (e.g. dev) without touching the classic endpoints.
 cast_base_url = os.environ.get("EPIDATPY_CAST_BASE_URL") or CAST_BASE_URL
 
+# Rows are capped with `limit` so a query that happens to cover a large geo
+# type stays a smoke test rather than a bulk download. The cap is not a filter:
+# the query has no stable sort order, so which rows come back varies per call.
+CAST_QUERY_LIMIT = 500
+
 # (source, signal, geo_type) — kept in sync with R's `cast_queries`.
 # Commented-out rows mirror the R suite's TODOs; uncomment when server-side
 # row limits / data backfills allow.
 CAST_QUERIES = [
     ("nssp", "pct_ed_visits_influenza", "state"),
     ("nssp", "pct_ed_visits_influenza", "hhs"),
-    # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: row limit
+    ("nssp", "pct_ed_visits_covid", "nation"),
+    # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: server times out, even with `limit`
     ("nhsn", "confirmed_admissions_flu_ew", "state"),
     ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
     ("nhsn", "confirmed_admissions_flu_ew", "nation"),
@@ -39,6 +45,14 @@ CAST_QUERIES = [
     ("pophive", "flu_n_ed", "hhs"),
     ("pophive", "flu_n_ed", "nation"),
     ("nwss", "covid_avg_conc", "sewershed"),
+    ("nwss", "flu_avg_conc", "sewershed"),
+    # Sources carrying ci_lower/ci_upper, so the confidence bounds get parsed:
+    ("nickel_beta", "covid_ed", "state"),
+    ("sleepcycle", "pct_cough_2_plus_7dav", "state"),
+    # Weekly surveillance sources:
+    ("fluview_ilinet", "ili", "state"),
+    ("fluview_resp_lab_clinical", "pct_positive", "hhs"),
+    ("nchs_mortality", "deaths_covid_incidence_num", "state"),
 ]
 
 
@@ -100,7 +114,7 @@ def _assert_cast_frame(ctx: EpiDataContext, source: str, df: pd.DataFrame) -> No
     assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
     assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
 
-    keys = ctx.epidata_meta(source=source)[source]["key_columns"]
+    keys = ctx.epidata_meta(source=source)["key_columns"]
     absent = [c for c in keys if c not in df.columns]
     assert not absent, f"{source}: declared key columns absent from result: {absent}"
     na = df[keys].isna().sum()
@@ -134,13 +148,13 @@ class TestCastEndpoints:
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
         ctx = EpiDataContext()
-        df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
+        df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
         ctx = EpiDataContext()
-        df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
+        df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
 
     def test_epidata_snapshot_multiple_geo_types(self) -> None:
