@@ -57,6 +57,11 @@ homepage = "https://github.com/cmu-delphi/epidatpy"
 repository = "https://github.com/cmu-delphi/epidatpy"
 
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["epidatpy*"]
+
+
 [tool.ruff]
 target-version = "py39"
 line-length = 120

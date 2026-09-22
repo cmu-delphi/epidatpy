@@ -14,6 +14,7 @@ The current API. Sources are moving here from the covidcast endpoint; see the
 .. automethod:: epidatpy.EpiDataContext.epidata_meta
 .. automethod:: epidatpy.EpiDataContext.epidata_snapshot
 .. automethod:: epidatpy.EpiDataContext.epidata_archive
+.. automethod:: epidatpy.EpiDataContext.epidata_aux
 .. automethod:: epidatpy.EpiDataContext.epidata
 
 Query the covidcast endpoint (V4)
@@ -85,5 +86,4 @@ Configuration and utilities
 .. autoclass:: epidatpy.EpiRange
 
 .. autoexception:: epidatpy.InvalidArgumentException
-.. autoexception:: epidatpy.EpiDataHTTPError
 .. autoexception:: epidatpy.EmptyResultWarning

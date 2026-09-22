@@ -13,8 +13,9 @@ partners. It is built and maintained by the Carnegie Mellon University
 `epidatpy` streamlines downloading data from the API into pandas data frames.
 It can fetch the latest values of a signal, the values as they were known on a
 past date, or the full revision history of a signal, which is what you need to
-backtest forecasting models honestly. The R equivalent is
-[`epidatr`](https://cmu-delphi.github.io/epidatr/).
+backtest forecasting models honestly. It can also fetch accessory data associated
+with a signal, such as source-specific metadata, via `epidata_aux()`. The R equivalent
+is [`epidatr`](https://cmu-delphi.github.io/epidatr/).
 
 ## Install
 
@@ -103,6 +104,10 @@ client methods for all of them:
   `pub_gft()`), one per dataset. Most of these datasets are static or no
   longer updated; they remain available for historical work.
 
+If you have existing `pub_covidcast()` code, see the
+[migration guide](https://cmu-delphi.github.io/epidatpy/migration_guide.html)
+for the argument and column mapping to the V5 methods.
+
 ## Migrating from covidcast and to the V5 API
 
 If you are migrating existing workflows, there are two transitions to keep in
@@ -129,9 +134,11 @@ be notified of package updates, new data sources, corrections, and more.
 
 ## Usage terms and citation
 
-If you use data that originated from the COVIDcast project (whether accessed
-via V5 endpoints or `pub_covidcast()`), please include the [COVIDcast
-citation](https://cmu-delphi.github.io/covidcast/covidcastR/authors.html#citation).
+If you use `epidatpy` or data from the Delphi Epidata API in your work, please
+cite the package. If you use data that originated from the COVIDcast project
+(whether accessed via V5 endpoints or `pub_covidcast()`), please include the
+[COVIDcast citation](https://cmu-delphi.github.io/covidcast/covidcastR/authors.html#citation)
+as well.
 
 Certain data sources have specific attribution and licensing terms. See the
 [Epidata data licensing

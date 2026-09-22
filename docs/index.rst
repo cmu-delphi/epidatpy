@@ -29,10 +29,10 @@ Install from PyPI using pip:
    pip install epidatpy
 
 The Delphi Epidata API has three generations of endpoints. Start with the V5
-methods (``epidata_snapshot``, ``epidata_archive``, ``epidata_meta``); the
-covidcast (V4) and legacy (V3) methods remain for sources that have not moved
-yet and are being deprecated as of October 2026. See the :doc:`migration guide
-<migration_guide>` for how to update covidcast queries.
+methods (``epidata_snapshot``, ``epidata_archive``, ``epidata_aux``,
+``epidata_meta``); the covidcast (V4) and legacy (V3) methods remain for sources
+that have not moved yet and are being deprecated as of October 2026. See the
+:doc:`migration guide <migration_guide>` for how to update covidcast queries.
 
 Documentation Contents
 ======================
