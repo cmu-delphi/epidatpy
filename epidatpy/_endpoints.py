@@ -88,6 +88,15 @@ def _warn_v4_sunset(fn_name: str) -> None:
     )
 
 
+def _validate_limit(limit: int | None) -> int | None:
+    """Normalize the cast-API `limit`: None or -1 means no limit; otherwise a positive int."""
+    if limit is None or limit == -1:
+        return None
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise InvalidArgumentException("`limit` must be -1 (no limit) or a positive integer")
+    return limit
+
+
 def _note_frozen_endpoint(fn_name: str) -> None:
     warnings.warn(
         f"`{fn_name}` covers a data source that is no longer updated. Historical "
@@ -1797,6 +1806,7 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1805,6 +1815,11 @@ class EpiDataContext:
         are sent comma-joined in a single request per `geo_type` (the cast-API
         only accepts one geo type per request); results across geo types are
         combined.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         if snapshot_date is None:
             snapshot_date_str: str | None = None
@@ -1822,6 +1837,7 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -1837,6 +1853,7 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
@@ -1847,6 +1864,11 @@ class EpiDataContext:
         dates and the ``"="`` operator are rejected.
         `geo_values` and `reference_time` are
         filtered locally after the API call.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1860,6 +1882,7 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -1876,13 +1899,14 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 
         Dispatches to :meth:`epidata_archive` when ``report_time`` is
         supplied or ``snapshot_date == "*"``; otherwise to
         :meth:`epidata_snapshot`. ``report_time`` and ``snapshot_date``
-        are mutually exclusive.
+        are mutually exclusive. See those methods for the argument details.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
@@ -1896,6 +1920,7 @@ class EpiDataContext:
                 reference_time=reference_time,
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
+                limit=limit,
             )
         return self.epidata_snapshot(
             source=source,
@@ -1905,6 +1930,7 @@ class EpiDataContext:
             reference_time=reference_time,
             fill_method=fill_method,
             snapshot_date=snapshot_date,
+            limit=limit,
         )
 
     def epidata_aux(
