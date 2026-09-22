@@ -1792,7 +1792,7 @@ class EpiDataContext:
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
@@ -1801,7 +1801,10 @@ class EpiDataContext:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
         `snapshot_date=None` returns the latest available version. `geo_values`
-        and `reference_time` are filtered locally after the API call.
+        and `reference_time` are filtered locally after the API call. `signals`
+        are sent comma-joined in a single request per `geo_type` (the cast-API
+        only accepts one geo type per request); results across geo types are
+        combined.
         """
         if snapshot_date is None:
             snapshot_date_str: str | None = None
@@ -1832,7 +1835,7 @@ class EpiDataContext:
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
@@ -1871,7 +1874,7 @@ class EpiDataContext:
         self,
         source: str,
         signals: StringParam,
-        geo_type: str,
+        geo_type: StringParam,
         geo_values: StringParam = "*",
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,

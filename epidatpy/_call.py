@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 
 from appdirs import user_cache_dir
 from diskcache import Cache
-from pandas import CategoricalDtype, DataFrame, Series, read_csv, to_datetime
+from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
@@ -29,9 +29,11 @@ from ._model import (
     EpiDataResponse,
     EpiRangeParam,
     OnlySupportsClassicFormatException,
+    StringParam,
     add_endpoint_to_url,
     cast_filter,
     format_list,
+    split_list,
 )
 from ._parse import (
     fields_to_predicate,
@@ -221,6 +223,20 @@ class EpiDataCall:
             post_filter=self._post_filter,
         )
 
+    def _with_param(self, key: str, value: EpiRangeParam | None) -> EpiDataCall:
+        return EpiDataCall(
+            self._base_url,
+            self._session,
+            self._endpoint,
+            {**self._params, key: value},
+            meta=self.meta,
+            only_supports_classic=self.only_supports_classic,
+            use_cache=self.use_cache,
+            cache_max_age_days=self.cache_max_age_days,
+            api_version=self._api_version,
+            post_filter=self._post_filter,
+        )
+
     def _call(
         self,
         fields: Sequence[str] | None = None,
@@ -288,6 +304,21 @@ class EpiDataCall:
         """Request and parse epidata as a pandas data frame"""
         if self.only_supports_classic:
             raise OnlySupportsClassicFormatException()
+
+        if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
+            # The cast-API accepts only one geo_type per request; signals are
+            # already comma-joined into one request each. Fetch one request
+            # per geo_type and combine, mirroring epidatr's `epidata_snapshot`/
+            # `epidata_archive`.
+            geo_types = split_list(cast(StringParam, self._params.get("geo_type") or ""))
+            if len(geo_types) > 1:
+                frames = [
+                    self._with_param("geo_type", g).df(fields, disable_date_parsing=disable_date_parsing)
+                    for g in geo_types
+                ]
+                combined = concat(frames, ignore_index=True)
+                combined.attrs = frames[0].attrs
+                return combined
 
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:
