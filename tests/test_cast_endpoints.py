@@ -88,6 +88,26 @@ def test_epidata_snapshot_snapshot_date_accepts_utc_timestamp() -> None:
     assert params["snapshot_date"] == "2024-01-02T13:45:00Z"
 
 
+def _assert_cast_frame(ctx: EpiDataContext, source: str, df: pd.DataFrame) -> None:
+    """Shared contract for a snapshot/archive result: non-empty, parsed times,
+    and no missing key values.
+
+    The key columns come from the source's own `metadata/` declaration (nwss
+    adds `nwss_source`/`sample_index`, pophive adds `age_group`), so a schema
+    change surfaces here instead of drifting past a hardcoded list. A row with
+    a missing key value can't be identified, so it's unusable.
+    """
+    assert len(df) > 0
+    assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
+    assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+
+    keys = ctx.epidata_meta(source=source)[source]["key_columns"]
+    absent = [c for c in keys if c not in df.columns]
+    assert not absent, f"{source}: declared key columns absent from result: {absent}"
+    na = df[keys].isna().sum()
+    assert not na.any(), f"{source}: missing values in key columns: {na[na > 0].to_dict()}"
+
+
 def _bound(value: str, series: pd.Series) -> pd.Timestamp:
     """`value` as a UTC instant, matched to the series' tz-awareness."""
     ts = pd.Timestamp(value, tz="UTC")
@@ -111,17 +131,15 @@ class TestCastEndpoints:
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
-        df = EpiDataContext().epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
-        assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        ctx = EpiDataContext()
+        df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type).df()
+        _assert_cast_frame(ctx, source, df)
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
-        df = EpiDataContext().epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
-        assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        ctx = EpiDataContext()
+        df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type).df()
+        _assert_cast_frame(ctx, source, df)
 
     def test_epidata_snapshot_multiple_geo_types(self) -> None:
         # nssp has data for both "state" and "hhs"; one request is issued per
