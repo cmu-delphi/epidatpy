@@ -20,7 +20,7 @@ from epiweeks import Week
 
 from ._parse import parse_user_date_or_week
 
-GeoType = Literal["nation", "msa", "hrr", "hhs", "state", "county"]
+GeoType = Literal["nation", "msa", "hrr", "hhs", "hsa_nci", "dma", "state", "county"]
 TimeType = Literal["day", "week"]
 EpiDateLike = Union[int, str, date, Week]
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})

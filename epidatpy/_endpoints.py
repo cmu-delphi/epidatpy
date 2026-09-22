@@ -6,6 +6,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    get_args,
 )
 
 from epiweeks import Week
@@ -753,8 +754,11 @@ class EpiDataContext:
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
-        if data_source == "nchs-mortality" and time_type != "week":
-            raise InvalidArgumentException("nchs-mortality data source only supports the week time type.")
+        if time_type not in get_args(TimeType):
+            raise InvalidArgumentException(f"`time_type` must be one of {get_args(TimeType)}, got {time_type!r}.")
+
+        if data_source in ("nchs-mortality", "nssp") and time_type != "week":
+            raise InvalidArgumentException(f"The {data_source} data source only supports the week time type.")
 
         return self._create_call(
             "covidcast/",
