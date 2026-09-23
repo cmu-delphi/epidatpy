@@ -71,6 +71,15 @@ def format_list(values: EpiRangeParam) -> str:
     return format_item(values)
 
 
+def split_list(values: StringParam) -> list[str]:
+    """Split a `StringParam` into its unique items, preserving order.
+
+    Accepts a single comma-joined string, a sequence of strings, or a
+    sequence of comma-joined strings (e.g. `"a,b"`, `["a", "b"]`, or `["a,b"]`).
+    """
+    return list(dict.fromkeys(format_list(values).split(",")))
+
+
 class EpiRange:
     """Range object for dates/epiweeks"""
 

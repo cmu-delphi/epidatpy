@@ -5,7 +5,12 @@ Gated on `DELPHI_EPIDATA_KEY` so it only runs against the live server when
 a key is present.
 """
 
+from __future__ import annotations
+
 import os
+from collections.abc import Mapping
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -31,6 +36,33 @@ CAST_QUERIES = [
     ("pophive", "flu_n_ed", "nation"),
     ("nwss", "covid_avg_conc", "sewershed"),
 ]
+
+
+def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
+    """Mirrors epidatr's "epidata_snapshot sends multiple signals comma-joined
+    in a single request" and "...one call per geo_type, signals comma-joined"
+    tests: signals stay comma-joined per request, one request is issued per
+    geo_type, and the results are combined."""
+    seen: list[Mapping[str, str]] = []
+
+    def fake_request(url: str, params: Mapping[str, str], *_args: Any, **_kwargs: Any) -> MagicMock:
+        seen.append(dict(params))
+        resp = MagicMock()
+        resp.raise_for_status = lambda: None
+        g = params["geo_type"]
+        resp.text = f"signal,geo_type,geo_value,reference_time,report_time,value\nsig1,{g},ca,2024-01-01,2024-01-02,1.0\n"
+        return resp
+
+    with patch("epidatpy._call._request_with_retry", fake_request):
+        df = (
+            EpiDataContext()
+            .epidata_snapshot(source="nssp", signals=["sig1", "sig2"], geo_type=["state", "nation"])
+            .df()
+        )
+
+    assert [p["geo_type"] for p in seen] == ["state", "nation"]
+    assert all(p["signal"] == "sig1,sig2" for p in seen)
+    assert sorted(df["geo_type"].unique()) == ["nation", "state"]
 
 
 @pytest.mark.live
@@ -61,6 +93,18 @@ class TestCastEndpoints:
         assert len(df) > 0
         assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
         assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+
+    def test_epidata_snapshot_multiple_geo_types(self) -> None:
+        # nssp has data for both "state" and "hhs"; one request is issued per
+        # geo_type and the results are combined into a single DataFrame.
+        df = (
+            EpiDataContext()
+            .epidata_snapshot(source="nssp", signals="pct_ed_visits_influenza", geo_type=["state", "hhs"])
+            .df()
+        )
+        assert len(df) > 0
+        assert set(df["geo_type"].unique()).issubset({"state", "hhs"})
+        assert {"state", "hhs"}.issubset(set(df["geo_type"].unique()))
 
     def test_epidata_router_dispatch(self) -> None:
         # `snapshot_date="*"` routes to archive (no report_time sent);
