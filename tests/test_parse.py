@@ -43,7 +43,7 @@ def test_validate_report_time_query_rejects_equality_operator() -> None:
 
 
 def test_validate_report_time_query_invalid() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidArgumentException):
         validate_report_time_query("<garbage")
     # Malformed timestamp string.
     with pytest.raises(InvalidArgumentException):
@@ -68,3 +68,6 @@ def test_format_report_time_bound() -> None:
 
     # Malformed timestamp returns None.
     assert format_report_time_bound("2025-10-16T13:45") is None
+    # Unparseable date strings return None.
+    assert format_report_time_bound("garbage") is None
+    assert format_report_time_bound("2025-13-01") is None

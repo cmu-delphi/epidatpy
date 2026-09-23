@@ -95,6 +95,12 @@ def test_snapshot_request_params() -> None:
     assert "limit" not in p
 
 
+@pytest.mark.parametrize("snapshot_date", ["latest", "garbage", "2025-13-01"])
+def test_snapshot_invalid_snapshot_date_raises(snapshot_date: str) -> None:
+    with pytest.raises(InvalidArgumentException, match="snapshot_date"):
+        EpiDataContext().epidata_snapshot("nssp", "a", "state", snapshot_date=snapshot_date)
+
+
 def test_archive_request_params() -> None:
     url = EpiDataContext().epidata_archive("nssp", "a", "state", report_time=EpiRange(20250101, 20250201)).request_url()
     assert _params(url)["report_time_query"] == ["2025-01-01:2025-02-01"]
