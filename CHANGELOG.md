@@ -10,9 +10,9 @@
   for point-in-time data.
 - `EpiRange` values for `report_time` are now sent to the server as an
   inclusive `from:to` range; the local lower-bound filter is gone.
-- The `report_time` column is now a UTC timestamp (`datetime64[ns, UTC]`)
-  rather than a date, matching the server, which now reports publication
-  instants (e.g. `2025-10-16T13:45:00Z`).
+- The `report_time` column is now a UTC timestamp (a timezone-aware
+  `datetime64` column) rather than a date, matching the server, which now
+  reports publication instants (e.g. `2025-10-16T13:45:00Z`).
 - `epidata_meta(source=...)` returns that source's entry directly instead of a
   one-key dict.
 - `pub_covidcast_meta()` returns `last_update` as a UTC datetime instead of an
@@ -22,8 +22,8 @@
 
 - `snapshot_date` and `report_time` bounds accept a `datetime` or a UTC
   timestamp string with a trailing `Z`, in addition to dates.
-- Failed requests raise `EpiDataHTTPError` carrying the server's own error
-  message (JSON `message`/`detail`, or the text of an HTML error page).
+- Failed requests raise `requests.HTTPError` with the server's own error
+  message appended (JSON `message`/`detail`, or the text of an HTML error page).
 - `epidata_snapshot()`, `epidata_archive()`, and `epidata()` gain `limit`, a
   cap on the rows the server returns. `None` or `-1` means no limit. The query
   has no stable sort order, so use it only to preview or debug a query.
@@ -36,6 +36,11 @@
   exist, the call raises `InvalidArgumentException` instead, matching epidatr.
   `return_empty=True` silences this.
 - Cast responses parse `ci_lower` and `ci_upper` when present.
+- `epidata_aux()` fetches a cast source's auxiliary data (e.g. nwss
+  sample-site descriptors) from `/aux_data/`, with key filters passed as
+  keyword arguments. Passing it a DataFrame from `epidata_snapshot()` or
+  `epidata_archive()` instead merges the auxiliary data onto each row, as of
+  that row's version.
 - `pub_covidcast_meta()` gains `signals`, `time_type`, and `geo_type` arguments
   for server-side filtering, and now returns the `geo_type` column.
 - `pub_covidcast()` validates `time_type`, requires `time_type="week"` for
