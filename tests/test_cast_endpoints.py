@@ -66,7 +66,7 @@ def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
     def fake_request(url: str, params: Mapping[str, str], *_args: Any, **_kwargs: Any) -> MagicMock:
         seen.append(dict(params))
         resp = MagicMock()
-        resp.raise_for_status = lambda: None
+        resp.status_code = 200
         g = params["geo_type"]
         rows = [f"{sig},{g},ca,2024-01-01,2024-01-02,1.0" for sig in params["signal"].split(",")]
         resp.text = "\n".join(["signal,geo_type,geo_value,reference_time,report_time,value", *rows]) + "\n"

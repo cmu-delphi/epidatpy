@@ -19,11 +19,10 @@ META_PAYLOAD = {
 
 
 class _FakeResponse:
+    status_code = 200
+
     def __init__(self, payload: Any) -> None:
         self._payload = payload
-
-    def raise_for_status(self) -> None:
-        pass
 
     def json(self) -> Any:
         return self._payload

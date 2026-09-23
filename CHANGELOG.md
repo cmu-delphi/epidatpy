@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### New features
+
+- Failed requests raise `EpiDataHTTPError`, a `requests.HTTPError` subclass,
+  so existing handlers keep working. It exposes the server's message as
+  `.message`, plus `.status_code` and `.url`.
+
 ## 0.7.0
 
 ### Breaking changes

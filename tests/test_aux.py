@@ -74,7 +74,7 @@ def test_epidata_aux_df_keeps_undeclared_value_columns() -> None:
 
     def fake_request(url: str, params: Any, *_a: Any, **_k: Any) -> Any:
         resp = MagicMock()
-        resp.raise_for_status = lambda: None
+        resp.status_code = 200
         resp.text = csv
         return resp
 
