@@ -10,9 +10,9 @@ validation errors.
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -65,6 +65,36 @@ def test_epidata_aux_base_pull_snapshot_date() -> None:
     call = ctx.epidata_aux("nwss", snapshot_date="2024-06-01")
     _, params = call.request_arguments()
     assert params["snapshot_date"] == "2024-06-01"
+    assert "report_time_query" not in params
+
+
+def test_epidata_aux_df_keeps_undeclared_value_columns() -> None:
+    """Ensure aux value columns survive df() even if undeclared in _aux_fields()."""
+    csv = (
+        "report_time,geo_value,pcr_target,population_served,county_fips\n"
+        "2024-05-20,ca,sars-cov-2,1000,06001\n"
+    )
+
+    def fake_request(url: str, params: Any, *_a: Any, **_k: Any) -> Any:
+        resp = MagicMock()
+        resp.raise_for_status = lambda: None
+        resp.text = csv
+        return resp
+
+    with patch("epidatpy._call._request_with_retry", fake_request):
+        df = EpiDataContext().epidata_aux("nwss", report_time="<2024-06-01").df()
+
+    assert "population_served" in df.columns
+    assert "county_fips" in df.columns
+    assert df["population_served"].iloc[0] == "1000"
+
+
+def test_epidata_aux_base_pull_snapshot_date_latest() -> None:
+    """snapshot_date="latest" resolves to today's date."""
+    ctx = EpiDataContext()
+    call = ctx.epidata_aux("nwss", snapshot_date="latest")
+    _, params = call.request_arguments()
+    assert params["snapshot_date"] == datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
     assert "report_time_query" not in params
 
 
@@ -274,9 +304,7 @@ def test_epidata_aux_merge_infers_and_forwards_multi_value_filters() -> None:
 
 
 def test_epidata_aux_merge_forwards_explicit_filters_and_caps_report_time() -> None:
-    """Mirrors epidatr's "dry_run cap/forwarding" test: explicit `**key_filters`
-    are forwarded as-is, and the recursive pull is capped at the base's newest
-    report_time (max + 1 day) so it never fetches aux versions the base can't use."""
+    """Explicit key filters are forwarded and report_time is capped at base's max."""
     base = pd.DataFrame(
         {
             "geo_value": ["ca", "ca"],
@@ -300,13 +328,11 @@ def test_epidata_aux_merge_forwards_explicit_filters_and_caps_report_time() -> N
 
     assert len(calls) == 1
     assert calls[0]["pcr_target"] == "x"
-    assert calls[0]["report_time"] == "<2024-05-21"
+    assert calls[0]["report_time"] == "<=2024-05-20T00:00:00Z"
 
 
 def test_epidata_aux_merge_snapshot_base_requests_snapshot_date() -> None:
-    """A snapshot base asks the server for the single as-of row per key via
-    `snapshot_date` (the base's newest report_time), not a report_time-bounded
-    pull -- mirrors epidatr's snapshot branch in `epidata_aux.data.frame`."""
+    """Snapshot base queries snapshot_date using the base's max report_time."""
     base = pd.DataFrame(
         {
             "geo_value": ["ca", "ca"],

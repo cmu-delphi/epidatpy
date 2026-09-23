@@ -335,10 +335,11 @@ class EpiDataCall:
             body = response.text
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
-                # Keep only fields in meta that exist in the response, in meta order.
-                df_cols = set(df.columns)
-                cols_in_df = [c for c in columns if c in df_cols]
-                df = df[cols_in_df] if cols_in_df else df
+                # Keep meta columns in order, plus any undeclared response columns (e.g. aux values).
+                meta_names = {info.name for info in self.meta}
+                cols_in_df = [c for c in columns if c in df.columns]
+                extras = [c for c in df.columns if c not in meta_names and pred(c)]
+                df = df[cols_in_df + extras]
             else:
                 df = DataFrame(columns=columns or None)
         else:
@@ -405,8 +406,8 @@ class EpiDataCall:
                 cache.set(cache_key, df, expire=self.cache_max_age_days * 24 * 60 * 60)
 
         if self._post_filter is not None:
-            geo_values, reference_time, report_time = self._post_filter
-            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time, report_time=report_time)
+            geo_values, reference_time = self._post_filter
+            df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
 
         if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
             # Lets `EpiDataContext.epidata_aux()` recover the source/kind from a
