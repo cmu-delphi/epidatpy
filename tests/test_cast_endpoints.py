@@ -157,6 +157,22 @@ class TestCastEndpoints:
         df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
 
+    def test_epidata_snapshot_key_filters(self) -> None:
+        # Extra key filters are applied server-side via `extra_keys`.
+        df = (
+            EpiDataContext()
+            .epidata_snapshot(
+                source="nwss",
+                signals="covid_avg_conc",
+                geo_type="sewershed",
+                limit=CAST_QUERY_LIMIT,
+                nwss_source="State_Territory",
+            )
+            .df()
+        )
+        assert len(df) > 0
+        assert set(df["nwss_source"]) == {"State_Territory"}
+
     def test_epidata_snapshot_multiple_geo_types(self) -> None:
         # nssp has data for both "state" and "hhs"; one request is issued per
         # geo_type and the results are combined into a single DataFrame.
