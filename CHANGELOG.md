@@ -10,6 +10,10 @@
 - `epidata_snapshot()`, `epidata_archive()`, and `epidata()` accept named
   filters on the source's extra key columns as keyword arguments (e.g.
   `pcr_target="sars-cov-2"`), sent server-side as `extra_keys`.
+- When a cast query returns nothing, the `EmptyResultWarning` also gives the
+  source's `reference_time` range.
+- Cast snapshot/archive responses with columns the client doesn't declare
+  warn, like epidatr; those columns are kept as strings.
 
 ## 0.7.0
 
