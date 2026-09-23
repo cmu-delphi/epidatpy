@@ -17,7 +17,7 @@ from urllib.parse import urlencode
 from appdirs import user_cache_dir
 from diskcache import Cache
 from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
-from requests import HTTPError, Response, Session
+from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
@@ -29,6 +29,7 @@ from ._model import (
     EmptyResultWarning,
     EpidataFieldInfo,
     EpidataFieldType,
+    EpiDataHTTPError,
     EpiDataResponse,
     EpiRangeParam,
     InvalidArgumentException,
@@ -101,7 +102,7 @@ def _error_body_message(response: Response) -> str | None:
             message = body.get("message") or body.get("detail")
             if isinstance(message, list):
                 # FastAPI validation errors: a list of {"loc", "msg", ...} objects.
-                message = "; ".join(d.get("msg", "invalid value") if isinstance(d, dict) else str(d) for d in message)
+                message = "; ".join(d["msg"] for d in message if isinstance(d, dict) and isinstance(d.get("msg"), str))
         elif content_type.startswith("text/html"):
             # grab the error information out of the returned HTML document
             message = " ".join(
@@ -116,14 +117,9 @@ def _error_body_message(response: Response) -> str | None:
 
 
 def _raise_for_status(response: Response) -> None:
-    """``Response.raise_for_status()``, with the server's own message appended."""
-    try:
-        response.raise_for_status()
-    except HTTPError as e:
-        message = _error_body_message(response)
-        if message:
-            raise HTTPError(f"{e}: {message}", response=response) from None
-        raise
+    """Raise `EpiDataHTTPError`, carrying the server's own message, on an HTTP error status."""
+    if response.status_code >= 400:
+        raise EpiDataHTTPError(response, _error_body_message(response))
 
 
 class EpiDataCall:
