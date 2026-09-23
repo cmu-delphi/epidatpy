@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Understanding and accessing versioned data &#8212; epidatpy 0.7.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <script src="_static/documentation_options.js?v=fe7df9b0"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="V3/V4 to V5 migration guide" href="migration_guide.html" />
+    <link rel="prev" title="Finding data sources and signals of interest" href="signal_discovery.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="understanding-and-accessing-versioned-data">
+<h1>Understanding and accessing versioned data<a class="headerlink" href="#understanding-and-accessing-versioned-data" title="Link to this heading">¶</a></h1>
+<p>The Delphi Epidata API records not just each signal’s estimate for a given
+location on a given day, but also <em>when</em> that estimate was made, and all updates
+to that estimate. This is particularly relevant for data sources that have
+updates or additional information coming in, due to reporting and data flow
+processes.</p>
+<p>For example, let’s look at the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/nssp.html">emergency department visits
+signal</a>
+from the <code class="docutils literal notranslate"><span class="pre">nssp</span></code> source, which estimates the percentage of emergency department
+visits that are influenza-related. Consider a result row with <code class="docutils literal notranslate"><span class="pre">reference_time</span></code>
+2024-12-07 for <code class="docutils literal notranslate"><span class="pre">geo_values=&quot;pa&quot;</span></code>. This is an estimate for Pennsylvania on
+December 7, 2024. That estimate was first <em>reported</em> (published) on December
+13, 2024, the delay coming from a combination of:</p>
+<ul class="simple">
+<li><p>time taken by our data partner to aggregate and collect the data</p></li>
+<li><p>time taken by the Delphi Epidata API to ingest the data provided.</p></li>
+</ul>
+<p>Later, the estimate for December 7th was updated, as additional visit data from
+December 7th arrived at our source and was reported to us. This constitutes a
+new <em>version</em> of the data. Let’s walk through how to look at that below.</p>
+<section id="data-known-as-of-a-specific-date">
+<h2>Data known “as of” a specific date<a class="headerlink" href="#data-known-as-of-a-specific-date" title="Link to this heading">¶</a></h2>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">epidata_snapshot</span></code> fetches the most recent data available. This is
+the best option for users who simply want to graph the latest data or construct
+dashboards. But if we are interested in knowing <em>when</em> data was reported, we
+can request the data that was available <em>as of</em> a specific date, using the
+<code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> argument:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EpiDataContext</span><span class="p">,</span> <span class="n">EpiRange</span>
+
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">EpiDataContext</span><span class="p">(</span><span class="n">use_cache</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># The percent of ED visits due to influenza from the NSSP source, for</span>
+<span class="c1"># 2024-12-07, as of 2024-12-14</span>
+<span class="n">past_snapshot</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">snapshot_date</span><span class="o">=</span><span class="s2">"2024-12-14"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">past_snapshot</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>4080</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.55</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>This shows the estimate that was known as of December 14. If we don’t specify
+<code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code>, we get the most recent estimate available:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">latest_snapshot</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">latest_snapshot</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>7026</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"as of 2024-12-14: </span><span class="si">{</span><span class="n">past_snapshot</span><span class="p">[</span><span class="s1">'value'</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"latest:           </span><span class="si">{</span><span class="n">latest_snapshot</span><span class="p">[</span><span class="s1">'value'</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>as of 2024-12-14: 0.55%
+latest:           0.57%
+</pre></div>
+</div>
+</div>
+</div>
+<p>Note the change in the estimate, reflecting new data that became available
+after December 14 about visits <em>occurring on</em> December 7. This illustrates the
+importance of version tracking, particularly for forecasting tasks. <strong>To
+backtest a forecasting model on past data, it is important to use the data that
+would have been available <em>at the time</em> the model was or would have been fit,
+not data that arrived much later.</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> accepts a date (<code class="docutils literal notranslate"><span class="pre">&quot;2024-12-14&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">20241214</span></code>, or a
+<code class="docutils literal notranslate"><span class="pre">datetime.date</span></code>) or an exact instant: a <code class="docutils literal notranslate"><span class="pre">datetime</span></code> or a UTC timestamp string
+such as <code class="docutils literal notranslate"><span class="pre">&quot;2024-12-14T13:45:00Z&quot;</span></code>.</p>
+</section>
+<section id="multiple-versions-and-revision-histories">
+<h2>Multiple versions and revision histories<a class="headerlink" href="#multiple-versions-and-revision-histories" title="Link to this heading">¶</a></h2>
+<p>Unlike <code class="docutils literal notranslate"><span class="pre">epidata_snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">epidata_archive</span></code> does not default to the latest
+data: by using it with the <code class="docutils literal notranslate"><span class="pre">report_time</span></code> argument, we can request all versions
+reported in a certain time period, and if <code class="docutils literal notranslate"><span class="pre">report_time</span></code> is omitted entirely, we
+get every version ever reported.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># All versions of the percent of ED visits due to influenza from the NSSP</span>
+<span class="c1"># source, for 2024-12-07, reported between 2024-12-01 and 2025-01-15</span>
+<span class="n">archive_data</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-12-01"</span><span class="p">,</span> <span class="s2">"2025-01-15"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">archive_data</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15329</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.55</td>
+    </tr>
+    <tr>
+      <th>21079</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>27220</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>32861</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-03 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>38762</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-10 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>This estimate was updated several times as new data for December 7th arrived.</p>
+<p>Note that these results include only data reported between (inclusive)
+2024-12-01 and 2025-01-15. If a value was first reported outside this range and
+never updated, a query for reports between 2024-12-01 and 2025-01-15 will not
+include that value among its results.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">report_time</span></code> column is a timezone-aware UTC timestamp
+(<code class="docutils literal notranslate"><span class="pre">datetime64[ns,</span> <span class="pre">UTC]</span></code>), since the API records the instant at which each
+version was published.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">report_time</span></code> argument also accepts comparison operators (<code class="docutils literal notranslate"><span class="pre">&lt;</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;=</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&gt;=</span></code>), each followed by a date or a UTC timestamp like
+<code class="docutils literal notranslate"><span class="pre">&quot;&lt;=2025-01-01T13:45:00Z&quot;</span></code>. Bare dates and the <code class="docutils literal notranslate"><span class="pre">=</span></code> operator are rejected: if
+you need data as of a single date, use <code class="docutils literal notranslate"><span class="pre">epidata_snapshot(snapshot_date=...)</span></code>
+instead.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Versions reported strictly before 2025-01-01</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="s2">"&lt;2025-01-01"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>104640</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.55</td>
+    </tr>
+    <tr>
+      <th>110362</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>116481</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Versions reported strictly after 2024-12-13</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="s2">"&gt;2024-12-13"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>4406</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>10243</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>16130</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-03 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>22067</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-10 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>28054</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-17 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>889141</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-12 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>899022</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-17 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>908878</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-19 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>918797</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-24 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>928449</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+  </tbody>
+</table>
+<p>116 rows × 7 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="calculating-reporting-lag">
+<h2>Calculating reporting lag<a class="headerlink" href="#calculating-reporting-lag" title="Link to this heading">¶</a></h2>
+<p>In the V5 API, reporting lag is computed directly as the difference between
+<code class="docutils literal notranslate"><span class="pre">report_time</span></code> (the publication date) and <code class="docutils literal notranslate"><span class="pre">reference_time</span></code> (the observation
+date). Since <code class="docutils literal notranslate"><span class="pre">report_time</span></code> is timezone-aware and <code class="docutils literal notranslate"><span class="pre">reference_time</span></code> is not, drop
+the timezone before subtracting:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">archive_with_lag</span> <span class="o">=</span> <span class="n">archive_data</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+    <span class="n">lag_days</span><span class="o">=</span><span class="p">(</span><span class="n">archive_data</span><span class="p">[</span><span class="s2">"report_time"</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span> <span class="o">-</span> <span class="n">archive_data</span><span class="p">[</span><span class="s2">"reference_time"</span><span class="p">])</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">days</span>
+<span class="p">)[[</span><span class="s2">"signal"</span><span class="p">,</span> <span class="s2">"reference_time"</span><span class="p">,</span> <span class="s2">"report_time"</span><span class="p">,</span> <span class="s2">"lag_days"</span><span class="p">,</span> <span class="s2">"value"</span><span class="p">]]</span>
+<span class="n">archive_with_lag</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>reference_time</th>
+      <th>report_time</th>
+      <th>lag_days</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15329</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>6</td>
+      <td>0.55</td>
+    </tr>
+    <tr>
+      <th>21079</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>13</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>27220</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>20</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>32861</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2025-01-03 00:00:00+00:00</td>
+      <td>27</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>38762</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2025-01-10 00:00:00+00:00</td>
+      <td>34</td>
+      <td>0.56</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>If your analysis requires filtering data to a specific maximum reporting lag
+(for example, simulating data available with at most a 14-day delay), filter by
+<code class="docutils literal notranslate"><span class="pre">lag_days</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">archive_with_lag</span><span class="p">[</span><span class="n">archive_with_lag</span><span class="p">[</span><span class="s2">"lag_days"</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">14</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>reference_time</th>
+      <th>report_time</th>
+      <th>lag_days</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15329</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>6</td>
+      <td>0.55</td>
+    </tr>
+    <tr>
+      <th>21079</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-07</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>13</td>
+      <td>0.56</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="plotting-a-revision-history">
+<h2>Plotting a revision history<a class="headerlink" href="#plotting-a-revision-history" title="Link to this heading">¶</a></h2>
+<p>Fetching the archive for a range of reference dates lets us see how the whole
+time series was revised from one report to the next:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">revisions</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-11-01"</span><span class="p">,</span> <span class="s2">"2024-12-28"</span><span class="p">),</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-11-15"</span><span class="p">,</span> <span class="s2">"2025-01-15"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">revisions</span><span class="p">[</span><span class="s2">"report_date"</span><span class="p">]</span> <span class="o">=</span> <span class="n">revisions</span><span class="p">[</span><span class="s2">"report_time"</span><span class="p">]</span><span class="o">.</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">revisions</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">"reference_time"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"report_date"</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="s2">"Reference date"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"</span><span class="si">% E</span><span class="s2">D visits (influenza)"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"Reported on"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"NSSP influenza ED visits in PA, by report date"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/67d3a488c912b949d5106a89b42f5ee197b68d6ee3b3dbe05fc34c233c760351.png" src="_images/67d3a488c912b949d5106a89b42f5ee197b68d6ee3b3dbe05fc34c233c760351.png" />
+</div>
+</div>
+<p>For sources that have not yet transitioned from the legacy V4 API, versioning
+is specified differently (<code class="docutils literal notranslate"><span class="pre">as_of</span></code>, <code class="docutils literal notranslate"><span class="pre">issues</span></code>, and <code class="docutils literal notranslate"><span class="pre">lag</span></code> on <code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code>). See
+the <a class="reference internal" href="migration_guide.html"><span class="std std-doc">migration guide</span></a> for the argument and column
+mappings between V4 and V5.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="signal_discovery.html">Finding data sources and signals of interest</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Understanding and accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_guide.html">V3/V4 to V5 migration guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="signal_discovery.html" title="previous chapter">Finding data sources and signals of interest</a></li>
+      <li>Next: <a href="migration_guide.html" title="next chapter">V3/V4 to V5 migration guide</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/versioned_data.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

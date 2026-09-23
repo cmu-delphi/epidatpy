@@ -1,0 +1,346 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "922aa693",
+   "metadata": {},
+   "source": [
+    "# Understanding and accessing versioned data\n",
+    "\n",
+    "The Delphi Epidata API records not just each signal's estimate for a given\n",
+    "location on a given day, but also *when* that estimate was made, and all updates\n",
+    "to that estimate. This is particularly relevant for data sources that have\n",
+    "updates or additional information coming in, due to reporting and data flow\n",
+    "processes.\n",
+    "\n",
+    "For example, let's look at the [emergency department visits\n",
+    "signal](https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/nssp.html)\n",
+    "from the `nssp` source, which estimates the percentage of emergency department\n",
+    "visits that are influenza-related. Consider a result row with `reference_time`\n",
+    "2024-12-07 for `geo_values=\"pa\"`. This is an estimate for Pennsylvania on\n",
+    "December 7, 2024. That estimate was first *reported* (published) on December\n",
+    "13, 2024, the delay coming from a combination of:\n",
+    "\n",
+    "- time taken by our data partner to aggregate and collect the data\n",
+    "- time taken by the Delphi Epidata API to ingest the data provided.\n",
+    "\n",
+    "Later, the estimate for December 7th was updated, as additional visit data from\n",
+    "December 7th arrived at our source and was reported to us. This constitutes a\n",
+    "new *version* of the data. Let's walk through how to look at that below."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "36651cf9",
+   "metadata": {
+    "tags": [
+     "remove-cell"
+    ]
+   },
+   "outputs": [],
+   "source": [
+    "# Hidden cell (set in the metadata for this cell)\n",
+    "import pandas as pd\n",
+    "\n",
+    "# Set common options and context\n",
+    "pd.set_option(\"display.max_columns\", None)\n",
+    "pd.set_option(\"display.max_rows\", 10)\n",
+    "pd.set_option(\"display.width\", 1000)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4fbcbbca",
+   "metadata": {},
+   "source": [
+    "## Data known \"as of\" a specific date\n",
+    "\n",
+    "By default, `epidata_snapshot` fetches the most recent data available. This is\n",
+    "the best option for users who simply want to graph the latest data or construct\n",
+    "dashboards. But if we are interested in knowing *when* data was reported, we\n",
+    "can request the data that was available *as of* a specific date, using the\n",
+    "`snapshot_date` argument:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "76c4f77d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from epidatpy import EpiDataContext, EpiRange\n",
+    "\n",
+    "epidata = EpiDataContext(use_cache=False)\n",
+    "\n",
+    "# The percent of ED visits due to influenza from the NSSP source, for\n",
+    "# 2024-12-07, as of 2024-12-14\n",
+    "past_snapshot = epidata.epidata_snapshot(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=\"2024-12-07\",\n",
+    "    snapshot_date=\"2024-12-14\",\n",
+    ").df()\n",
+    "past_snapshot"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "69f344bc",
+   "metadata": {},
+   "source": [
+    "This shows the estimate that was known as of December 14. If we don't specify\n",
+    "`snapshot_date`, we get the most recent estimate available:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4f4b1602",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "latest_snapshot = epidata.epidata_snapshot(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=\"2024-12-07\",\n",
+    ").df()\n",
+    "latest_snapshot"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ba664d0a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(f\"as of 2024-12-14: {past_snapshot['value'].iloc[0]:.2f}%\")\n",
+    "print(f\"latest:           {latest_snapshot['value'].iloc[0]:.2f}%\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "37d281b1",
+   "metadata": {},
+   "source": [
+    "Note the change in the estimate, reflecting new data that became available\n",
+    "after December 14 about visits *occurring on* December 7. This illustrates the\n",
+    "importance of version tracking, particularly for forecasting tasks. **To\n",
+    "backtest a forecasting model on past data, it is important to use the data that\n",
+    "would have been available *at the time* the model was or would have been fit,\n",
+    "not data that arrived much later.**\n",
+    "\n",
+    "`snapshot_date` accepts a date (`\"2024-12-14\"`, `20241214`, or a\n",
+    "`datetime.date`) or an exact instant: a `datetime` or a UTC timestamp string\n",
+    "such as `\"2024-12-14T13:45:00Z\"`."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e7698e00",
+   "metadata": {},
+   "source": [
+    "## Multiple versions and revision histories\n",
+    "\n",
+    "Unlike `epidata_snapshot`, `epidata_archive` does not default to the latest\n",
+    "data: by using it with the `report_time` argument, we can request all versions\n",
+    "reported in a certain time period, and if `report_time` is omitted entirely, we\n",
+    "get every version ever reported."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9b276372",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# All versions of the percent of ED visits due to influenza from the NSSP\n",
+    "# source, for 2024-12-07, reported between 2024-12-01 and 2025-01-15\n",
+    "archive_data = epidata.epidata_archive(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=\"2024-12-07\",\n",
+    "    report_time=EpiRange(\"2024-12-01\", \"2025-01-15\"),\n",
+    ").df()\n",
+    "archive_data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0f3dbca2",
+   "metadata": {},
+   "source": [
+    "This estimate was updated several times as new data for December 7th arrived.\n",
+    "\n",
+    "Note that these results include only data reported between (inclusive)\n",
+    "2024-12-01 and 2025-01-15. If a value was first reported outside this range and\n",
+    "never updated, a query for reports between 2024-12-01 and 2025-01-15 will not\n",
+    "include that value among its results.\n",
+    "\n",
+    "The `report_time` column is a timezone-aware UTC timestamp\n",
+    "(`datetime64[ns, UTC]`), since the API records the instant at which each\n",
+    "version was published.\n",
+    "\n",
+    "The `report_time` argument also accepts comparison operators (`<`, `<=`, `>`,\n",
+    "`>=`), each followed by a date or a UTC timestamp like\n",
+    "`\"<=2025-01-01T13:45:00Z\"`. Bare dates and the `=` operator are rejected: if\n",
+    "you need data as of a single date, use `epidata_snapshot(snapshot_date=...)`\n",
+    "instead."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4a292a2e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Versions reported strictly before 2025-01-01\n",
+    "epidata.epidata_archive(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=\"2024-12-07\",\n",
+    "    report_time=\"<2025-01-01\",\n",
+    ").df()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "50bb5b01",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Versions reported strictly after 2024-12-13\n",
+    "epidata.epidata_archive(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=\"2024-12-07\",\n",
+    "    report_time=\">2024-12-13\",\n",
+    ").df()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "03cb49da",
+   "metadata": {},
+   "source": [
+    "## Calculating reporting lag\n",
+    "\n",
+    "In the V5 API, reporting lag is computed directly as the difference between\n",
+    "`report_time` (the publication date) and `reference_time` (the observation\n",
+    "date). Since `report_time` is timezone-aware and `reference_time` is not, drop\n",
+    "the timezone before subtracting:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "17810bfe",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "archive_with_lag = archive_data.assign(\n",
+    "    lag_days=(archive_data[\"report_time\"].dt.tz_localize(None) - archive_data[\"reference_time\"]).dt.days\n",
+    ")[[\"signal\", \"reference_time\", \"report_time\", \"lag_days\", \"value\"]]\n",
+    "archive_with_lag"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5e3ca7ba",
+   "metadata": {},
+   "source": [
+    "If your analysis requires filtering data to a specific maximum reporting lag\n",
+    "(for example, simulating data available with at most a 14-day delay), filter by\n",
+    "`lag_days`:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ed72ef45",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "archive_with_lag[archive_with_lag[\"lag_days\"] <= 14]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "470570f4",
+   "metadata": {},
+   "source": [
+    "## Plotting a revision history\n",
+    "\n",
+    "Fetching the archive for a range of reference dates lets us see how the whole\n",
+    "time series was revised from one report to the next:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "11a92cda",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "revisions = epidata.epidata_archive(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=EpiRange(\"2024-11-01\", \"2024-12-28\"),\n",
+    "    report_time=EpiRange(\"2024-11-15\", \"2025-01-15\"),\n",
+    ").df()\n",
+    "revisions[\"report_date\"] = revisions[\"report_time\"].dt.date\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(8, 4))\n",
+    "revisions.pivot_table(values=\"value\", index=\"reference_time\", columns=\"report_date\").plot(\n",
+    "    ax=ax, xlabel=\"Reference date\", ylabel=\"% ED visits (influenza)\", linewidth=1.5\n",
+    ")\n",
+    "ax.legend(title=\"Reported on\", fontsize=8)\n",
+    "ax.set_title(\"NSSP influenza ED visits in PA, by report date\")\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "565e7a32",
+   "metadata": {},
+   "source": [
+    "For sources that have not yet transitioned from the legacy V4 API, versioning\n",
+    "is specified differently (`as_of`, `issues`, and `lag` on `pub_covidcast`). See\n",
+    "the [migration guide](migration_guide.ipynb) for the argument and column\n",
+    "mappings between V4 and V5."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

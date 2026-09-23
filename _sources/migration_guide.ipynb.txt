@@ -1,0 +1,491 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "7a09674c",
+   "metadata": {},
+   "source": [
+    "# V3/V4 to V5 migration guide\n",
+    "\n",
+    "The legacy Epidata APIs, including the V4 main endpoint (`pub_covidcast()`)\n",
+    "and the V3 endpoints (`pub_fluview()`, `pub_flusurv()`, `pub_wiki()`, and so\n",
+    "on), are transitioning to the V5 API, served by `epidata_snapshot()`,\n",
+    "`epidata_archive()`, and `epidata_meta()`. The transition is happening source\n",
+    "by source. All V3 and V4 sources keep working until the migration is complete\n",
+    "(tentatively October 2026), and endpoints that are no longer updated remain\n",
+    "accessible on V3/V4. For new work, start on V5 and fall back to a legacy\n",
+    "method only for a source that is not yet available there.\n",
+    "\n",
+    "Starting in October 2026, the V4 methods are tentatively deprecated in favor\n",
+    "of the V5 API, and calling them raises a `UserWarning` pointing back to this\n",
+    "guide.\n",
+    "\n",
+    "For the current list of sources and indicators available on the new API, see\n",
+    "the [V5 signals documentation](https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html).\n",
+    "\n",
+    "This guide walks through the transition from `pub_covidcast()` and the other\n",
+    "legacy methods. `pub_covidcast()` is the most widely used, but the V3 methods\n",
+    "differ in their names and argument conventions, so the tables below compare\n",
+    "both V4 (`pub_covidcast()`) and V3 (using `pub_fluview()` as the example) to\n",
+    "their V5 equivalents."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2417adce",
+   "metadata": {
+    "tags": [
+     "remove-cell"
+    ]
+   },
+   "outputs": [],
+   "source": [
+    "# Hidden cell (set in the metadata for this cell)\n",
+    "import pandas as pd\n",
+    "\n",
+    "# Set common options and context\n",
+    "pd.set_option(\"display.max_columns\", None)\n",
+    "pd.set_option(\"display.max_rows\", 10)\n",
+    "pd.set_option(\"display.width\", 1000)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "64a3bb10",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from epidatpy import EpiDataContext, EpiRange\n",
+    "\n",
+    "epidata = EpiDataContext()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4c46bef2",
+   "metadata": {},
+   "source": [
+    "## Endpoint mapping\n",
+    "\n",
+    "The legacy endpoints split into several purpose-built V5 routes determined by\n",
+    "the kind of query. The \"V3 (other endpoints)\" column gives examples\n",
+    "(`pub_fluview()`, `pub_flusurv()`, `pub_wiki()`) to illustrate how much the\n",
+    "legacy endpoints differ from each other; check each method's reference page\n",
+    "for its own behavior.\n",
+    "\n",
+    "| Task | V4 (`pub_covidcast`) | V3 (other endpoints) | V5 equivalent |\n",
+    "|---|---|---|---|\n",
+    "| Fetch the latest data, or a snapshot as of a past date | `pub_covidcast()` (default, or with `as_of`) | Endpoint-specific (`pub_fluview()` has no `as_of`) | `epidata_snapshot()` |\n",
+    "| Fetch the full revision history of a signal | `pub_covidcast(issues=...)` | Supported by some (`pub_fluview()`, `pub_flusurv()` with `issues`) | `epidata_archive()` |\n",
+    "| Discover sources, signals, geo types, and date ranges | `pub_covidcast_meta()`, `CovidcastEpidata()` | Shared meta for some (`pub_fluview_meta()`) | `epidata_meta()` |\n",
+    "| Filter by publication lag | `pub_covidcast(lag=...)` | Supported by some (`pub_fluview()`, `pub_flusurv()`) | none (compute `report_time - reference_time`) |\n",
+    "\n",
+    "`epidata()` is a convenience wrapper that routes to `epidata_archive()` if you\n",
+    "pass `report_time`, or to `epidata_snapshot()` if you pass `snapshot_date` (or\n",
+    "neither).\n",
+    "\n",
+    "## Argument changes\n",
+    "\n",
+    "Most `pub_covidcast()` arguments carry over to V5 under the same name, but\n",
+    "some have been renamed, dropped, or added. The V3 methods do not share\n",
+    "argument names with `pub_covidcast()`; `pub_fluview()` is shown as an example.\n",
+    "\n",
+    "| V4 argument (`pub_covidcast`) | V3 (`pub_fluview`) | V5 argument | Notes |\n",
+    "|---|---|---|---|\n",
+    "| `data_source` | not exposed (implied by the method name) | `source` | Identifies the source dataset in V5. |\n",
+    "| `signals` | none (implied by the endpoint) | `signals` | One or more signal names within the source, sent in a single request. |\n",
+    "| `geo_type` | not exposed (`pub_fluview()` only has `regions`) | `geo_type` | Geographic resolution (e.g. `state`, `county`, `hhs`, `nation`). Accepts several values; one request is made per value. |\n",
+    "| `geo_values` | `regions` | `geo_values` | The server returns all locations for the requested `geo_type`; `geo_values` is filtered locally after the fetch. |\n",
+    "| `time_type` | not exposed (`pub_fluview()` is always weekly) | none | Dropped. All V5 endpoints use calendar dates. |\n",
+    "| `time_values` | `epiweeks` | `reference_time` | Accepts dates or an `EpiRange`. Filtered locally after the fetch. |\n",
+    "| `as_of` | none | `snapshot_date` | `epidata_snapshot()` only. A date, a `datetime`, or a UTC timestamp string such as `\"2025-10-16T13:45:00Z\"`. `None` returns the latest data. |\n",
+    "| `issues` | `issues` (where supported) | `report_time` | `epidata_archive()` only. A comparison string such as `\"<2025-10-16\"` or `\">=2025-10-16T13:45:00Z\"`, or an `EpiRange` for an inclusive range, both applied server-side. Bare dates and `\"=\"` are rejected: use `snapshot_date` for point-in-time data. |\n",
+    "| `lag` | `lag` (where supported) | none | Compute it yourself from `epidata_archive()` output as `report_time - reference_time`; see [below](#lag). |\n",
+    "| none | none | `fill_method` | New in V5. Selects the imputation variant (`\"source\"`, `\"fill_ave\"`, or `\"fill_zero\"`); see [below](#fill-method). |\n",
+    "| none | none | `limit` | New in V5. Caps the rows returned, for previewing a query. The query has no stable sort order, so it is not a filter. |\n",
+    "\n",
+    "(fill-method)=\n",
+    "\n",
+    "The new methods also add `fill_method`, which has no covidcast equivalent.\n",
+    "Some sources publish several variants of the same signal that differ in how\n",
+    "nulls were handled during geographic aggregation:\n",
+    "\n",
+    "- `\"source\"` is the raw source data, with no imputation\n",
+    "- `\"fill_ave\"` has null values filled with the average of neighboring values\n",
+    "- `\"fill_zero\"` has null values filled with zero\n",
+    "\n",
+    "The default `None` returns all variants, so filter on this column (or pass a\n",
+    "value to the argument) if you want exactly one time series per location.\n",
+    "\n",
+    "## Column changes\n",
+    "\n",
+    "Response fields follow a similar pattern. `pub_fluview()` again serves as the\n",
+    "V3 example; column names vary across legacy endpoints (`pub_wiki()`, for\n",
+    "instance, returns `article`, `count`, and `hour`).\n",
+    "\n",
+    "| V4 column (`pub_covidcast`) | V3 (`pub_fluview`) | V5 column | Notes |\n",
+    "|---|---|---|---|\n",
+    "| `source` | not returned | dropped | You queried by source; add it back with `.assign()` if you concatenate results across sources. |\n",
+    "| `signal` | none (implied by the endpoint) | `signal` | The signal name. |\n",
+    "| `value` | endpoint-specific columns (e.g. `num_ili`, `wili`, `ili`) | `value` | One standardized value column across all V5 sources. |\n",
+    "| not returned | not returned | `geo_type` | Included in V5 responses. |\n",
+    "| `geo_value` | `region` | `geo_value` | Standardized location identifier. |\n",
+    "| `time_value` | `epiweek` | `reference_time` | The date the value describes. Always a date. |\n",
+    "| `issue` | `issue` (where returned) | `report_time` | When the value was published. A UTC timestamp (`datetime64[ns, UTC]`), present in both snapshot and archive output. |\n",
+    "| `lag` | `lag` (where returned) | dropped | Compute as `report_time - reference_time`; see [calculating reporting lag](versioned_data.ipynb#calculating-reporting-lag). |\n",
+    "| `direction` | none | dropped | Was already deprecated in the covidcast API. |\n",
+    "| `stderr`, `sample_size` | none | `ci_lower`, `ci_upper` | Uncertainty is now expressed as confidence-interval bounds on `value`, for the sources that publish them. See [below](#uncertainty-columns). |\n",
+    "| `missing_value`, `missing_stderr`, `missing_sample_size` | none | dropped | Missingness is now expressed through `fill_method` variants and plain `NaN`s. |\n",
+    "| none | none | `fill_method` | Which null-handling variant of the signal this row belongs to. See [above](#fill-method). |\n",
+    "\n",
+    "Some sources also carry extra columns in the new API, for example `age_group`\n",
+    "([pophive](https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/epic-cosmos.html))\n",
+    "and `nwss_source`, `sample_index`, `pcr_target`\n",
+    "([nwss](https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/nwss.html)).\n",
+    "Each source's documentation page lists its extra columns.\n",
+    "\n",
+    "### Uncertainty columns\n",
+    "\n",
+    "The covidcast columns `stderr` and `sample_size` have no fixed replacement.\n",
+    "The shared schema carries only `value`; a source that quantifies uncertainty\n",
+    "adds its own columns, such as `ci_lower` and `ci_upper`. Use the metadata or\n",
+    "the [documentation](https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html)\n",
+    "to see which value columns a source returns:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f0c97a6e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta_sleepcycle = epidata.epidata_meta(source=\"sleepcycle\")\n",
+    "meta_sleepcycle[\"value_columns\"]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "cd277e07",
+   "metadata": {},
+   "source": [
+    "## A query, before and after\n",
+    "\n",
+    "### V4 example: NSSP through covidcast\n",
+    "\n",
+    "Fetching NSSP influenza ED visit percentages for two states, as the data\n",
+    "looked on January 1, 2025:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a352e1a7",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "old = epidata.pub_covidcast(\n",
+    "    data_source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    time_type=\"week\",\n",
+    "    geo_values=[\"pa\", \"ca\"],\n",
+    "    time_values=EpiRange(202440, 202501),\n",
+    "    as_of=20250101,\n",
+    ").df()\n",
+    "old.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "001bcb62",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "new = epidata.epidata_snapshot(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=[\"pa\", \"ca\"],\n",
+    "    reference_time=EpiRange(\"2024-10-01\", \"2025-01-01\"),\n",
+    "    snapshot_date=\"2025-01-01\",\n",
+    ").df()\n",
+    "new.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e62f6b50",
+   "metadata": {},
+   "source": [
+    "Both queries return the same signal, just with renamed and reshaped columns:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "58af14da",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(list(old.columns))\n",
+    "print(list(new.columns))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "884cde37",
+   "metadata": {},
+   "source": [
+    "### V3 example: FluView\n",
+    "\n",
+    "For V3 endpoints like `pub_fluview()`, metrics that used to be separate\n",
+    "columns (`num_ili`, `ili`, `wili`, ...) become individual signal names that\n",
+    "you request through `signals`, and the results land in the single `value`\n",
+    "column:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a0d3ca5c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "old_flu = epidata.pub_fluview(\n",
+    "    regions=\"nat\",\n",
+    "    epiweeks=EpiRange(202440, 202445),\n",
+    ").df()\n",
+    "old_flu[[\"release_date\", \"region\", \"epiweek\", \"wili\", \"ili\"]].head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "eaff8e78",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "new_flu = epidata.epidata_snapshot(\n",
+    "    source=\"fluview_ilinet\",\n",
+    "    signals=\"wili\",\n",
+    "    geo_type=\"nation\",\n",
+    "    geo_values=\"us\",\n",
+    "    reference_time=EpiRange(\"2024-10-01\", \"2024-11-15\"),\n",
+    ").df()\n",
+    "new_flu.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "5284da02",
+   "metadata": {},
+   "source": [
+    "## Revision history queries\n",
+    "\n",
+    "Where you passed `issues` to `pub_covidcast()`, use `epidata_archive()` with\n",
+    "`report_time`:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b06ff1ba",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "old_revisions = epidata.pub_covidcast(\n",
+    "    data_source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    time_type=\"week\",\n",
+    "    geo_values=\"pa\",\n",
+    "    time_values=EpiRange(202440, 202501),\n",
+    "    issues=EpiRange(202440, 202522),\n",
+    ").df()\n",
+    "old_revisions.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "ce2420be",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "revisions = epidata.epidata_archive(\n",
+    "    source=\"nssp\",\n",
+    "    signals=\"pct_ed_visits_influenza\",\n",
+    "    geo_type=\"state\",\n",
+    "    geo_values=\"pa\",\n",
+    "    reference_time=EpiRange(\"2024-10-01\", \"2025-01-01\"),\n",
+    "    report_time=\"<2025-06-01\",\n",
+    ").df()\n",
+    "revisions.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "832b71aa",
+   "metadata": {},
+   "source": [
+    "(lag)=\n",
+    "\n",
+    "If you filtered by `lag`, fetch the archive and filter afterwards. Because\n",
+    "`report_time` is a timezone-aware timestamp and `reference_time` a naive date,\n",
+    "drop the timezone before subtracting:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "57681924",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "lag_days = (revisions[\"report_time\"].dt.tz_localize(None) - revisions[\"reference_time\"]).dt.days\n",
+    "\n",
+    "# For an exact lag (e.g. 7 days):\n",
+    "revisions[lag_days == 7].head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3e959568",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Or for maximum latency (e.g. at most 7 days of delay):\n",
+    "revisions[lag_days <= 7].head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "ea5c31de",
+   "metadata": {},
+   "source": [
+    "## Checking whether a source is available\n",
+    "\n",
+    "Use `epidata_meta()` to see what a source offers in the new API. It returns\n",
+    "the signals, geo types, and the available `reference_time` and `report_time`\n",
+    "ranges:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4e03e23d",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta = epidata.epidata_meta(source=\"nssp\")\n",
+    "\n",
+    "# All the fields available for this source\n",
+    "list(meta)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4a3779ed",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta[\"signals\"]  # available signal names"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "c9b6b618",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta[\"geo_types\"]  # supported geography levels"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "dcfc71da",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta[\"reference_time_range\"]  # earliest/latest reference_time available"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9fbce3b8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "meta[\"report_time_range\"]  # earliest/latest report_time (publication instant, UTC) available"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b4d59b39",
+   "metadata": {},
+   "source": [
+    "Called with no argument, `epidata_meta()` returns the entries for every\n",
+    "available source, keyed by source name.\n",
+    "\n",
+    "If `epidata_meta()` does not know the source yet, keep using\n",
+    "`pub_covidcast()` (or the relevant `pub_*`/`pvt_*` method) for it and check\n",
+    "back after package updates. The [API mailing\n",
+    "list](https://lists.andrew.cmu.edu/mailman/listinfo/delphi-covidcast-api)\n",
+    "announces sources as they move.\n",
+    "\n",
+    "## Endpoints kept for historical reference\n",
+    "\n",
+    "Not every V4 endpoint is moving to V5. The methods below cover data sources\n",
+    "whose collection has already ended (e.g. Google Flu Trends, the HealthTweets\n",
+    "signal, the various nowcasts). They are not part of the V4-to-V5 transition,\n",
+    "so they are not deprecated and will keep working. The historical data they\n",
+    "return is frozen and will remain available. They will just no longer receive\n",
+    "new data.\n",
+    "\n",
+    "| Method | Data source |\n",
+    "|---|---|\n",
+    "| `pvt_cdc()` | CDC total and by-topic webpage visits |\n",
+    "| `pub_covid_hosp_facility_lookup()` | COVID hospitalization facility lookup |\n",
+    "| `pub_covid_hosp_facility()` | COVID hospitalizations by facility |\n",
+    "| `pub_covid_hosp_state_timeseries()` | COVID hospitalizations by state |\n",
+    "| `pub_delphi()` | Delphi's ILINet outpatient doctor visits forecasts |\n",
+    "| `pub_dengue_nowcast()` | Delphi's PAHO dengue nowcasts (Americas) |\n",
+    "| `pvt_dengue_sensors()` | PAHO dengue digital surveillance sensors (Americas) |\n",
+    "| `pub_ecdc_ili()` | ECDC ILI incidence (Europe) |\n",
+    "| `pub_gft()` | Google Flu Trends flu search volume |\n",
+    "| `pvt_ght()` | Google Health Trends health topics search volume |\n",
+    "| `pub_kcdc_ili()` | KCDC ILI incidence (Korea) |\n",
+    "| `pvt_meta_norostat()` | Metadata for the NoroSTAT endpoint |\n",
+    "| `pub_nidss_dengue()` | NIDSS dengue cases (Taiwan) |\n",
+    "| `pub_nidss_flu()` | NIDSS flu doctor visits (Taiwan) |\n",
+    "| `pvt_norostat()` | CDC NoroSTAT norovirus outbreaks |\n",
+    "| `pub_nowcast()` | Delphi's ILI Nearby nowcasts |\n",
+    "| `pub_paho_dengue()` | PAHO dengue data (Americas) |\n",
+    "| `pvt_sensors()` | Influenza and dengue digital surveillance sensors |\n",
+    "| `pvt_twitter()` | HealthTweets total and influenza-related tweets |\n",
+    "| `pub_wiki()` | Wikipedia webpage counts by article |"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

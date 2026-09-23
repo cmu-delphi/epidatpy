@@ -1,0 +1,2196 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Getting started &#8212; epidatpy 0.7.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <script src="_static/documentation_options.js?v=fe7df9b0"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Finding data sources and signals of interest" href="signal_discovery.html" />
+    <link rel="prev" title="epidatpy" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="getting-started">
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<p>The epidatpy package provides access to all the endpoints of the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/">Delphi Epidata
+API</a>, and can be used to make
+requests for specific signals on specific dates and in select geographic
+regions. It is widely used in epidemiological research, real-time forecasting
+models, and public health dashboards.</p>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h2>
+<section id="installation">
+<h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
+<p>Install the stable version from PyPI:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>epidatpy
+</pre></div>
+</div>
+<p>Or, for the development version, install from GitHub:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"git+https://github.com/cmu-delphi/epidatpy.git#egg=epidatpy"</span>
+</pre></div>
+</div>
+</section>
+<section id="api-keys">
+<h3>API keys<a class="headerlink" href="#api-keys" title="Link to this heading">¶</a></h3>
+<p>The Delphi API requires a (free) API key for full functionality. While most
+endpoints are available without one, there are
+<a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/api_keys.html">limits on API usage for anonymous users</a>,
+including a rate limit.</p>
+<p>To generate your key,
+<a class="reference external" href="https://api.delphi.cmu.edu/epidata/admin/registration_form">register for a pseudo-anonymous account</a>.
+<code class="docutils literal notranslate"><span class="pre">epidatpy</span></code> reads the key from the <code class="docutils literal notranslate"><span class="pre">DELPHI_EPIDATA_KEY</span></code> environment variable. We
+recommend storing it in a <code class="docutils literal notranslate"><span class="pre">.env</span></code> file, loading it with
+<a class="reference external" href="https://github.com/theskumar/python-dotenv">python-dotenv</a>, and adding <code class="docutils literal notranslate"><span class="pre">.env</span></code>
+to your <code class="docutils literal notranslate"><span class="pre">.gitignore</span></code>.</p>
+</section>
+</section>
+<section id="the-delphi-v5-api">
+<h2>The Delphi V5 API<a class="headerlink" href="#the-delphi-v5-api" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">epidatpy</span></code> allows three categories of data access to the Delphi V5 API:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code> provides a specific view of how a dataset looked at a
+point in time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code> fetches all versions of a dataset across time,
+representing the full revision history.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">epidata_aux()</span></code> accesses source-specific auxiliary tables containing
+metadata, laboratory protocols, or additional static keys (such as NWSS
+wastewater facility descriptions).</p></li>
+</ul>
+<p>Additionally, <code class="docutils literal notranslate"><span class="pre">epidata_meta()</span></code> provides access to system metadata to list
+available sources, signals, geographic granularities, and date ranges.
+<code class="docutils literal notranslate"><span class="pre">epidata()</span></code> is a convenience wrapper that routes to <code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code> if you
+pass <code class="docutils literal notranslate"><span class="pre">report_time</span></code>, or to <code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code> if you pass <code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> (or
+neither).</p>
+<p>The older V4 (<code class="docutils literal notranslate"><span class="pre">pub_covidcast</span></code>) and V3 (<code class="docutils literal notranslate"><span class="pre">pub_fluview</span></code>, <code class="docutils literal notranslate"><span class="pre">pub_flusurv</span></code>, …)
+endpoints still work, but starting in October 2026 they are tentatively
+deprecated in favor of V5. New code should start on V5; see the
+<a class="reference internal" href="migration_guide.html"><span class="std std-doc">migration guide</span></a> for how to move existing code.</p>
+</section>
+<section id="basic-usage">
+<h2>Basic usage<a class="headerlink" href="#basic-usage" title="Link to this heading">¶</a></h2>
+<p>To make a request of a particular data source at a specific point in time, we
+use <code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code>. This function needs the source name, signal name, and a
+geographic level in order to complete a query.</p>
+<p>Suppose we are interested in the <code class="docutils literal notranslate"><span class="pre">nssp</span></code> source, which provides access to a
+<a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/v5-signals/nssp.html">wide range of</a>
+emergency department visits data. <code class="docutils literal notranslate"><span class="pre">epidata_meta()</span></code> tells us which signals and
+geographic levels the source offers, and the range of dates available:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.max_columns"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.max_rows"</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">"display.width"</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EpiDataContext</span><span class="p">,</span> <span class="n">EpiRange</span>
+
+<span class="n">epidata</span> <span class="o">=</span> <span class="n">EpiDataContext</span><span class="p">()</span>
+
+<span class="n">meta</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_meta</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"signals"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"geo_types"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"reference_time_range"</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">meta</span><span class="p">[</span><span class="s2">"report_time_range"</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>['pct_ed_visits_ari', 'pct_ed_visits_combined', 'pct_ed_visits_covid', 'pct_ed_visits_influenza', 'pct_ed_visits_rsv', 'smoothed_pct_ed_visits_combined', 'smoothed_pct_ed_visits_covid', 'smoothed_pct_ed_visits_influenza', 'smoothed_pct_ed_visits_rsv']
+['census_division', 'census_region', 'county', 'hhs', 'hrr', 'hsa_nci', 'msa', 'nation', 'state']
+{'latest': '2026-09-19', 'first': '2022-10-01'}
+{'latest': '2026-09-23T00:00:00Z', 'first': '2024-04-18T00:00:00Z'}
+</pre></div>
+</div>
+</div>
+</div>
+<p>All of the fetch functions return an <code class="docutils literal notranslate"><span class="pre">EpiDataCall</span></code>, a not-yet-executed query
+that you can inspect (<code class="docutils literal notranslate"><span class="pre">.request_url()</span></code> shows the underlying API request) and
+then execute with <code class="docutils literal notranslate"><span class="pre">.df()</span></code> to obtain a pandas DataFrame:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain the latest snapshot of the influenza ED-visit percentage</span>
+<span class="c1"># from the NSSP source for the US</span>
+<span class="n">apicall</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"nation"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">apicall</span><span class="p">)</span>
+
+<span class="n">us_flu</span> <span class="o">=</span> <span class="n">apicall</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">us_flu</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>EpiDataCall(endpoint=snapshot/, params={'source': 'nssp', 'signal': 'pct_ed_visits_influenza', 'geo_type': 'nation'})
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2022-10-01</td>
+      <td>0.48</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2022-10-08</td>
+      <td>0.67</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2022-10-15</td>
+      <td>0.9</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2022-10-22</td>
+      <td>1.29</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2022-10-29</td>
+      <td>2.47</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>203</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-09 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2024-09-07</td>
+      <td>0.18</td>
+    </tr>
+    <tr>
+      <th>204</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-09 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2026-08-29</td>
+      <td>0.16</td>
+    </tr>
+    <tr>
+      <th>205</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-16 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2026-09-05</td>
+      <td>0.2</td>
+    </tr>
+    <tr>
+      <th>206</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2026-09-12</td>
+      <td>0.26</td>
+    </tr>
+    <tr>
+      <th>207</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.31</td>
+    </tr>
+  </tbody>
+</table>
+<p>208 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p>Each row represents one observation for the US on one date. The location is
+given in the <code class="docutils literal notranslate"><span class="pre">geo_value</span></code> column, the date it describes in the <code class="docutils literal notranslate"><span class="pre">reference_time</span></code>
+column, the value of the requested signal in <code class="docutils literal notranslate"><span class="pre">value</span></code>, and the publication time
+in <code class="docutils literal notranslate"><span class="pre">report_time</span></code> (a UTC timestamp).</p>
+<p>The Delphi V5 API makes signals available at different geographic levels,
+depending on the source. To request signals for all states instead of the
+entire US, we change the <code class="docutils literal notranslate"><span class="pre">geo_type</span></code> argument. This automatically returns all
+available data for that geo type:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain the latest snapshot of the influenza ED-visit percentage</span>
+<span class="c1"># from the NSSP source across all available dates and states</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>source</td>
+      <td>2022-10-01</td>
+      <td>0.14</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>source</td>
+      <td>2022-10-08</td>
+      <td>0.24</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>source</td>
+      <td>2022-10-15</td>
+      <td>0.32</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>source</td>
+      <td>2022-10-22</td>
+      <td>0.76</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ak</td>
+      <td>source</td>
+      <td>2022-10-29</td>
+      <td>1.16</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>10602</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>state</td>
+      <td>va</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.22</td>
+    </tr>
+    <tr>
+      <th>10603</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ny</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.16</td>
+    </tr>
+    <tr>
+      <th>10604</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>state</td>
+      <td>in</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.12</td>
+    </tr>
+    <tr>
+      <th>10605</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>state</td>
+      <td>mi</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.1</td>
+    </tr>
+    <tr>
+      <th>10606</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-09-23 00:00:00+00:00</td>
+      <td>state</td>
+      <td>wy</td>
+      <td>source</td>
+      <td>2026-09-19</td>
+      <td>0.54</td>
+    </tr>
+  </tbody>
+</table>
+<p>10607 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p>You can query multiple signals in a single request by passing a list to
+<code class="docutils literal notranslate"><span class="pre">signals</span></code>, and narrow the result with <code class="docutils literal notranslate"><span class="pre">geo_values</span></code> and a <code class="docutils literal notranslate"><span class="pre">reference_time</span></code> range
+(both are filtered locally after the request):</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain both influenza and COVID-19 ED-visit percentages in a single query</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="p">[</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span> <span class="s2">"pct_ed_visits_covid"</span><span class="p">],</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-12-01"</span><span class="p">,</span> <span class="s2">"2024-12-15"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>14013</th>
+      <td>pct_ed_visits_covid</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.75</td>
+    </tr>
+    <tr>
+      <th>14014</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.57</td>
+    </tr>
+    <tr>
+      <th>14015</th>
+      <td>pct_ed_visits_covid</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-14</td>
+      <td>0.82</td>
+    </tr>
+    <tr>
+      <th>14016</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-14</td>
+      <td>0.87</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>Alternatively, we can fetch the time series for a subset of states and reference
+dates by listing out the desired locations in <code class="docutils literal notranslate"><span class="pre">geo_values</span></code> and using a range in
+<code class="docutils literal notranslate"><span class="pre">reference_time</span></code>:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain the data from January 1st, 2024 to January 1st, 2025</span>
+<span class="c1"># of the influenza ED-visit percentage from the NSSP source for</span>
+<span class="c1"># Pennsylvania, California, and Florida</span>
+<span class="n">states_flu</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="p">[</span><span class="s2">"pa"</span><span class="p">,</span> <span class="s2">"ca"</span><span class="p">,</span> <span class="s2">"fl"</span><span class="p">],</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-01-01"</span><span class="p">,</span> <span class="s2">"2025-01-01"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">states_flu</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>762</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-02-03</td>
+      <td>1.31</td>
+    </tr>
+    <tr>
+      <th>763</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-02-17</td>
+      <td>0.99</td>
+    </tr>
+    <tr>
+      <th>764</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-03-02</td>
+      <td>0.76</td>
+    </tr>
+    <tr>
+      <th>765</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-03-09</td>
+      <td>0.65</td>
+    </tr>
+    <tr>
+      <th>766</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-03-16</td>
+      <td>0.65</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>9881</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-08-05 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-12-28</td>
+      <td>6.7</td>
+    </tr>
+    <tr>
+      <th>10100</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-08-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-02-24</td>
+      <td>0.89</td>
+    </tr>
+    <tr>
+      <th>10101</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-08-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-03-23</td>
+      <td>0.62</td>
+    </tr>
+    <tr>
+      <th>10115</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-08-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-01-27</td>
+      <td>1.54</td>
+    </tr>
+    <tr>
+      <th>10118</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-08-26 00:00:00+00:00</td>
+      <td>state</td>
+      <td>ca</td>
+      <td>source</td>
+      <td>2024-01-13</td>
+      <td>2.05</td>
+    </tr>
+  </tbody>
+</table>
+<p>156 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">geo_type</span></code> also accepts several values. The server handles one geographic level
+per request, so <code class="docutils literal notranslate"><span class="pre">epidatpy</span></code> issues one request per level and concatenates the
+results:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="p">[</span><span class="s2">"nation"</span><span class="p">,</span> <span class="s2">"hhs"</span><span class="p">],</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>nation</td>
+      <td>us</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>1.07</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>1</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>0.44664</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>10</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>1.46845</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>2</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>0.541555</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>3</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>0.564572</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-07-08 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>5</td>
+      <td>ave</td>
+      <td>2024-12-07</td>
+      <td>0.527951</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-07-29 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>4</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>1.294944</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-07-29 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>9</td>
+      <td>ave</td>
+      <td>2024-12-07</td>
+      <td>1.943976</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-07-29 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>9</td>
+      <td>zero</td>
+      <td>2024-12-07</td>
+      <td>1.943976</td>
+    </tr>
+    <tr>
+      <th>20</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2026-07-29 00:00:00+00:00</td>
+      <td>hhs</td>
+      <td>4</td>
+      <td>ave</td>
+      <td>2024-12-07</td>
+      <td>1.294944</td>
+    </tr>
+  </tbody>
+</table>
+<p>21 rows × 7 columns</p>
+</div></div></div>
+</div>
+</section>
+<section id="getting-versioned-data">
+<h2>Getting versioned data<a class="headerlink" href="#getting-versioned-data" title="Link to this heading">¶</a></h2>
+<p>The Delphi V5 API stores a historical record of all data, including corrections
+and updates, which is particularly useful for accurately backtesting forecasting
+models. To retrieve versioned data in <code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code>, we use the
+<code class="docutils literal notranslate"><span class="pre">snapshot_date</span></code> argument, which fetches the data as it was known on a specific
+date (a <code class="docutils literal notranslate"><span class="pre">date</span></code>, a <code class="docutils literal notranslate"><span class="pre">YYYY-MM-DD</span></code> string, or a <code class="docutils literal notranslate"><span class="pre">datetime</span></code> for an exact instant):</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Obtain the influenza ED-visit percentage from NSSP for Pennsylvania</span>
+<span class="c1"># as it was known on 2025-01-01</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">snapshot_date</span><span class="o">=</span><span class="s2">"2025-01-01"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>4056</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-09-09</td>
+      <td>0.08</td>
+    </tr>
+    <tr>
+      <th>4057</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-09-16</td>
+      <td>0.08</td>
+    </tr>
+    <tr>
+      <th>4058</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-09-23</td>
+      <td>0.09</td>
+    </tr>
+    <tr>
+      <th>4059</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-09-30</td>
+      <td>0.07</td>
+    </tr>
+    <tr>
+      <th>4060</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-10-07</td>
+      <td>0.06</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>4678</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-08-05</td>
+      <td>0.05</td>
+    </tr>
+    <tr>
+      <th>4679</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-08-12</td>
+      <td>0.03</td>
+    </tr>
+    <tr>
+      <th>4680</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-08-19</td>
+      <td>0.05</td>
+    </tr>
+    <tr>
+      <th>4681</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-08-26</td>
+      <td>0.05</td>
+    </tr>
+    <tr>
+      <th>4682</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2023-09-02</td>
+      <td>0.06</td>
+    </tr>
+  </tbody>
+</table>
+<p>117 rows × 7 columns</p>
+</div></div></div>
+</div>
+<p>To request all versions of the data issued within a specific time range, we use
+<code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code> with the <code class="docutils literal notranslate"><span class="pre">report_time</span></code> argument. It accepts a comparison
+string (such as <code class="docutils literal notranslate"><span class="pre">&quot;&lt;2025-01-15&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;&gt;=2024-12-01&quot;</span></code>) or an <code class="docutils literal notranslate"><span class="pre">EpiRange</span></code> for an
+inclusive range of report dates. A bare date is not accepted: for the data as it
+looked on a single date, use <code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code> instead.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># See how the estimate for a SINGLE reference date (2024-12-07) evolved</span>
+<span class="c1"># by fetching all reports issued in December 2024 and early January 2025</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-12-01"</span><span class="p">,</span> <span class="s2">"2025-01-15"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>15276</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.55</td>
+    </tr>
+    <tr>
+      <th>21007</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-20 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>26986</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-27 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>32897</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-03 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+    <tr>
+      <th>38589</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2025-01-10 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.56</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Everything reported strictly before 2024-12-15 for the same reference date</span>
+<span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="s2">"2024-12-07"</span><span class="p">,</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="s2">"&lt;2024-12-15"</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>104950</th>
+      <td>pct_ed_visits_influenza</td>
+      <td>2024-12-13 00:00:00+00:00</td>
+      <td>state</td>
+      <td>pa</td>
+      <td>source</td>
+      <td>2024-12-07</td>
+      <td>0.55</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>See the <a class="reference internal" href="versioned_data.html"><span class="std std-doc">versioned data</span></a> notebook for details and more
+ways to specify versioned data.</p>
+</section>
+<section id="auxiliary-data">
+<h2>Auxiliary data<a class="headerlink" href="#auxiliary-data" title="Link to this heading">¶</a></h2>
+<p>Some sources carry extra columns alongside the signal data, such as the
+population served by each NWSS sewershed or its site metadata.
+<code class="docutils literal notranslate"><span class="pre">epidata_aux()</span></code> retrieves that auxiliary data, either on its own or merged
+onto a signal pull.</p>
+<p>To pull it directly by source, pass named filters on the source’s key
+columns as keyword arguments; <code class="docutils literal notranslate"><span class="pre">columns</span></code> selects specific fields. To see
+which key columns a source has, consult its page in the <a class="reference external" href="https://cmu-delphi.github.io/delphi-epidata/api/v5_signals.html">V5 signals
+documentation</a>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">aux_data</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_aux</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nwss"</span><span class="p">,</span>
+    <span class="n">pcr_target</span><span class="o">=</span><span class="s2">"sars-cov-2"</span><span class="p">,</span>
+    <span class="n">sample_index</span><span class="o">=</span><span class="p">[</span><span class="s2">"92012"</span><span class="p">,</span> <span class="s2">"92013"</span><span class="p">],</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">aux_data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>report_time</th>
+      <th>geo_value</th>
+      <th>reference_time</th>
+      <th>nwss_source</th>
+      <th>sample_index</th>
+      <th>pcr_target</th>
+      <th>report_ts_nominal_end</th>
+      <th>state_territory</th>
+      <th>county_fips</th>
+      <th>counties_served</th>
+      <th>population_served</th>
+      <th>sample_type</th>
+      <th>sample_matrix</th>
+      <th>sample_location</th>
+      <th>flow_rate</th>
+      <th>concentration_method</th>
+      <th>pasteurized</th>
+      <th>pcr_type</th>
+      <th>extraction_method</th>
+      <th>major_lab_method</th>
+      <th>inhibition_detect</th>
+      <th>inhibition_adjust</th>
+      <th>ntc_amplify</th>
+      <th>pcr_gene_target_agg</th>
+      <th>pcr_target_units</th>
+      <th>lod_sewage</th>
+      <th>hum_frac_target_mic</th>
+      <th>hum_frac_mic_conc</th>
+      <th>hum_frac_mic_unit</th>
+      <th>rec_eff_percent</th>
+      <th>rec_eff_target_name</th>
+      <th>rec_eff_spike_matrix</th>
+      <th>rec_eff_spike_conc</th>
+      <th>pipeline_run_id</th>
+      <th>report_ts_actual</th>
+      <th>comments</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>162</td>
+      <td>2026-01-27</td>
+      <td>CDC_Verily</td>
+      <td>92012</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06079</td>
+      <td>San Luis Obispo</td>
+      <td>14465</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>0.45</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>153424325.78462</td>
+      <td>copies/l wastewater</td>
+      <td>40.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2026-06-19 00:00:00+00:00</td>
+      <td>162</td>
+      <td>2026-01-27</td>
+      <td>CDC_Verily</td>
+      <td>92012</td>
+      <td>sars-cov-2</td>
+      <td>2026-06-26 00:00:00</td>
+      <td>ca</td>
+      <td>06079</td>
+      <td>San Luis Obispo</td>
+      <td>14465</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>0.45</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>153424325.78462</td>
+      <td>copies/l wastewater</td>
+      <td>40.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7895</td>
+      <td>2026-06-26 21:02:14</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2026-06-12 00:00:00+00:00</td>
+      <td>162</td>
+      <td>2026-01-27</td>
+      <td>CDC_Verily</td>
+      <td>92012</td>
+      <td>sars-cov-2</td>
+      <td>2026-06-19 00:00:00</td>
+      <td>ca</td>
+      <td>06079</td>
+      <td>San Luis Obispo</td>
+      <td>14465</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>0.45</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>153424325.78462</td>
+      <td>copies/l wastewater</td>
+      <td>40.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7879</td>
+      <td>2026-06-26 21:00:39</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2026-06-05 00:00:00+00:00</td>
+      <td>162</td>
+      <td>2026-01-27</td>
+      <td>CDC_Verily</td>
+      <td>92012</td>
+      <td>sars-cov-2</td>
+      <td>2026-06-12 00:00:00</td>
+      <td>ca</td>
+      <td>06079</td>
+      <td>San Luis Obispo</td>
+      <td>14465</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>0.45</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>153424325.78462</td>
+      <td>copies/l wastewater</td>
+      <td>40.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7868</td>
+      <td>2026-06-26 20:59:33</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2026-05-30 00:00:00+00:00</td>
+      <td>162</td>
+      <td>2026-01-27</td>
+      <td>CDC_Verily</td>
+      <td>92012</td>
+      <td>sars-cov-2</td>
+      <td>2026-06-05 00:00:00</td>
+      <td>ca</td>
+      <td>06079</td>
+      <td>San Luis Obispo</td>
+      <td>14465</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>0.45</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>153424325.78462</td>
+      <td>copies/l wastewater</td>
+      <td>40.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7858</td>
+      <td>2026-06-26 20:58:46</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p>You can also attach the auxiliary columns to a signal pull by passing the
+result of <code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code> or <code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code> straight to
+<code class="docutils literal notranslate"><span class="pre">epidata_aux()</span></code>. It fetches the matching auxiliary data and left-joins it on
+the shared key columns; the key filters are inferred from the base dataset,
+so you don’t have to repeat them.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fetch signal data for a specific sewershed</span>
+<span class="n">nwss_data</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nwss"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"covid_avg_conc"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"sewershed"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"128"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-12-01"</span><span class="p">,</span> <span class="s2">"2025-01-01"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="n">nwss_data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+      <th>nwss_source</th>
+      <th>sample_index</th>
+      <th>pcr_target</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>132</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-19</td>
+      <td>9637.31731</td>
+      <td>CDC_Verily</td>
+      <td>13733</td>
+      <td>sars-cov-2</td>
+    </tr>
+    <tr>
+      <th>8871</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-03</td>
+      <td>29207.79037</td>
+      <td>CDC_Verily</td>
+      <td>161629</td>
+      <td>sars-cov-2</td>
+    </tr>
+    <tr>
+      <th>135477</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-17</td>
+      <td>4783.68406</td>
+      <td>CDC_Verily</td>
+      <td>159055</td>
+      <td>sars-cov-2</td>
+    </tr>
+    <tr>
+      <th>136396</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-12</td>
+      <td>21858.78966</td>
+      <td>CDC_Verily</td>
+      <td>244078</td>
+      <td>sars-cov-2</td>
+    </tr>
+    <tr>
+      <th>159055</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-10</td>
+      <td>32843.66936</td>
+      <td>CDC_Verily</td>
+      <td>111700</td>
+      <td>sars-cov-2</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Attach auxiliary metadata</span>
+<span class="n">nwss_merged</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_aux</span><span class="p">(</span><span class="n">nwss_data</span><span class="p">)</span>
+<span class="n">nwss_merged</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>signal</th>
+      <th>report_time</th>
+      <th>geo_type</th>
+      <th>geo_value</th>
+      <th>fill_method</th>
+      <th>reference_time</th>
+      <th>value</th>
+      <th>nwss_source</th>
+      <th>sample_index</th>
+      <th>pcr_target</th>
+      <th>report_ts_nominal_end</th>
+      <th>state_territory</th>
+      <th>county_fips</th>
+      <th>counties_served</th>
+      <th>population_served</th>
+      <th>sample_type</th>
+      <th>sample_matrix</th>
+      <th>sample_location</th>
+      <th>flow_rate</th>
+      <th>concentration_method</th>
+      <th>pasteurized</th>
+      <th>pcr_type</th>
+      <th>extraction_method</th>
+      <th>major_lab_method</th>
+      <th>inhibition_detect</th>
+      <th>inhibition_adjust</th>
+      <th>ntc_amplify</th>
+      <th>pcr_gene_target_agg</th>
+      <th>pcr_target_units</th>
+      <th>lod_sewage</th>
+      <th>hum_frac_target_mic</th>
+      <th>hum_frac_mic_conc</th>
+      <th>hum_frac_mic_unit</th>
+      <th>rec_eff_percent</th>
+      <th>rec_eff_target_name</th>
+      <th>rec_eff_spike_matrix</th>
+      <th>rec_eff_spike_conc</th>
+      <th>pipeline_run_id</th>
+      <th>report_ts_actual</th>
+      <th>comments</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>132</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-19</td>
+      <td>9637.31731</td>
+      <td>CDC_Verily</td>
+      <td>13733</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06053</td>
+      <td>Monterey</td>
+      <td>16000</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>1.105</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>80597468.45538</td>
+      <td>copies/l wastewater</td>
+      <td>50.1</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>8871</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-03</td>
+      <td>29207.79037</td>
+      <td>CDC_Verily</td>
+      <td>161629</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06053</td>
+      <td>Monterey</td>
+      <td>16000</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>1.105</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>112079214.25231</td>
+      <td>copies/l wastewater</td>
+      <td>77.4</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>135477</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-17</td>
+      <td>4783.68406</td>
+      <td>CDC_Verily</td>
+      <td>159055</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06053</td>
+      <td>Monterey</td>
+      <td>16000</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>1.105</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>72279799.23692</td>
+      <td>copies/l wastewater</td>
+      <td>36.9</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>136396</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-12</td>
+      <td>21858.78966</td>
+      <td>CDC_Verily</td>
+      <td>244078</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06053</td>
+      <td>Monterey</td>
+      <td>16000</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>1.105</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>113049569.94462</td>
+      <td>copies/l wastewater</td>
+      <td>61.8</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>159055</th>
+      <td>covid_avg_conc</td>
+      <td>2026-06-26 00:00:00+00:00</td>
+      <td>sewershed</td>
+      <td>128</td>
+      <td>source</td>
+      <td>2024-12-10</td>
+      <td>32843.66936</td>
+      <td>CDC_Verily</td>
+      <td>111700</td>
+      <td>sars-cov-2</td>
+      <td>NaN</td>
+      <td>ca</td>
+      <td>06053</td>
+      <td>Monterey</td>
+      <td>16000</td>
+      <td>24-hr time-weighted composite</td>
+      <td>post grit removal</td>
+      <td>wwtp</td>
+      <td>1.105</td>
+      <td>ceres nanotrap</td>
+      <td>f</td>
+      <td>ddpcr</td>
+      <td>thermo magmax viral/pathogen nucleic acid isol...</td>
+      <td>2</td>
+      <td>f</td>
+      <td>f</td>
+      <td>f</td>
+      <td>n</td>
+      <td>copies/l wastewater</td>
+      <td>1500</td>
+      <td>pepper mild mottle virus</td>
+      <td>201488131.00308</td>
+      <td>copies/l wastewater</td>
+      <td>74.7</td>
+      <td>bcov vaccine</td>
+      <td>clarified sample</td>
+      <td>5</td>
+      <td>7914</td>
+      <td>2026-06-26 21:04:11</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+</section>
+<section id="advanced-queries">
+<h2>Advanced queries<a class="headerlink" href="#advanced-queries" title="Link to this heading">¶</a></h2>
+<section id="dry-runs">
+<h3>Dry runs<a class="headerlink" href="#dry-runs" title="Link to this heading">¶</a></h3>
+<p>To inspect the API request a query would make without fetching anything,
+build the call and read its <code class="docutils literal notranslate"><span class="pre">request_url()</span></code>. This works for
+<code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code>, <code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code>, and <code class="docutils literal notranslate"><span class="pre">epidata_aux()</span></code>, since each
+returns an <code class="docutils literal notranslate"><span class="pre">EpiDataCall</span></code> that only contacts the server once you call <code class="docutils literal notranslate"><span class="pre">.df()</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dry_run_call</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_snapshot</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">dry_run_call</span><span class="o">.</span><span class="n">request_url</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>'https://delphi.cmu.edu/epidata/v5/snapshot/?source=nssp&amp;signal=pct_ed_visits_influenza&amp;geo_type=state'
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="plotting">
+<h2>Plotting<a class="headerlink" href="#plotting" title="Link to this heading">¶</a></h2>
+<p>Because the output data is a standard pandas DataFrame, we can easily plot it
+using any of the available Python libraries:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">"figure.dpi"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">150</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="p">(</span>
+    <span class="n">states_flu</span><span class="o">.</span><span class="n">pivot_table</span><span class="p">(</span><span class="n">values</span><span class="o">=</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s2">"reference_time"</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="s2">"geo_value"</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">xlabel</span><span class="o">=</span><span class="s2">"Date"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"</span><span class="si">% o</span><span class="s2">f ED visits"</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Influenza ED visits from NSSP, 2024"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/33d5270dd392ed167980e9aff174c462ec30458c52fbad83873bd466ad775a36.png" src="_images/33d5270dd392ed167980e9aff174c462ec30458c52fbad83873bd466ad775a36.png" />
+</div>
+</div>
+<section id="plotting-revision-histories">
+<h3>Plotting revision histories<a class="headerlink" href="#plotting-revision-histories" title="Link to this heading">¶</a></h3>
+<p>We can also visualize revision histories from <code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code>. Each line
+shows what the time series looked like as of a different publication date:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fetch revision history for Pennsylvania influenza ED visits</span>
+<span class="n">pa_revisions</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_archive</span><span class="p">(</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">"nssp"</span><span class="p">,</span>
+    <span class="n">signals</span><span class="o">=</span><span class="s2">"pct_ed_visits_influenza"</span><span class="p">,</span>
+    <span class="n">geo_type</span><span class="o">=</span><span class="s2">"state"</span><span class="p">,</span>
+    <span class="n">geo_values</span><span class="o">=</span><span class="s2">"pa"</span><span class="p">,</span>
+    <span class="n">reference_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-10-01"</span><span class="p">,</span> <span class="s2">"2024-12-01"</span><span class="p">),</span>
+    <span class="n">report_time</span><span class="o">=</span><span class="n">EpiRange</span><span class="p">(</span><span class="s2">"2024-11-01"</span><span class="p">,</span> <span class="s2">"2025-01-01"</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">report_time</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">pa_revisions</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"report_time"</span><span class="p">):</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"reference_time"</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="s2">"reference_time"</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="s2">"value"</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">report_time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">"</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"Revisions of NSSP influenza ED visits in Pennsylvania"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"Observation date"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"</span><span class="si">% o</span><span class="s2">f ED visits"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">"Report date"</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">ncol</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/0c3b56b6ec4559d195f87490f38c9494ccdf3ef512abe325f19e014d1f23caed.png" src="_images/0c3b56b6ec4559d195f87490f38c9494ccdf3ef512abe325f19e014d1f23caed.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="available-data-sources-and-endpoints">
+<h2>Available data sources and endpoints<a class="headerlink" href="#available-data-sources-and-endpoints" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">epidatpy</span></code> provides access to a broad ecosystem of epidemiological data streams:</p>
+<ul class="simple">
+<li><p><strong>V5 sources</strong> provide access to active surveillance data queried via
+<code class="docutils literal notranslate"><span class="pre">epidata_snapshot()</span></code> and <code class="docutils literal notranslate"><span class="pre">epidata_archive()</span></code>. Discover them programmatically
+with <code class="docutils literal notranslate"><span class="pre">epidata_meta()</span></code> (no <code class="docutils literal notranslate"><span class="pre">source</span></code> argument lists every source) or
+interactively on the <a class="reference external" href="https://delphi.cmu.edu/epiportal/">Delphi EpiPortal</a>.</p></li>
+<li><p><strong>Migrating endpoints</strong> are legacy endpoints (such as <code class="docutils literal notranslate"><span class="pre">pub_covidcast()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pub_fluview()</span></code>, <code class="docutils literal notranslate"><span class="pre">pub_flusurv()</span></code>, and <code class="docutils literal notranslate"><span class="pre">pub_meta()</span></code>) transitioning to V5. See
+the <a class="reference internal" href="migration_guide.html"><span class="std std-doc">migration guide</span></a> for argument mappings.</p></li>
+<li><p><strong>Historical endpoints</strong> provide access to datasets whose collection has
+ended (such as Google Flu Trends, Wikipedia article views, and historical
+hospitalization series), kept for retrospective analysis via <code class="docutils literal notranslate"><span class="pre">pub_*</span></code>
+functions.</p>
+<ul>
+<li><p><strong>International endpoints</strong> are a subset of historical datasets that focus
+on surveillance outside the United States (e.g., PAHO dengue with
+<code class="docutils literal notranslate"><span class="pre">pub_paho_dengue()</span></code> and ECDC ILI with <code class="docutils literal notranslate"><span class="pre">pub_ecdc_ili()</span></code>).</p></li>
+<li><p><strong>Private endpoints</strong> are restricted streams (e.g., CDC web metrics with
+<code class="docutils literal notranslate"><span class="pre">pvt_cdc()</span></code> and digital sensors with <code class="docutils literal notranslate"><span class="pre">pvt_sensors()</span></code>) that require dedicated
+secret authentication keys.</p></li>
+</ul>
+</li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">all_meta</span> <span class="o">=</span> <span class="n">epidata</span><span class="o">.</span><span class="n">epidata_meta</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_meta</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>['claims_inpatient', 'claims_outpatient', 'flusurv', 'fluview_ilinet', 'fluview_resp_lab_clinical', 'fluview_resp_lab_ph', 'nchs_mortality', 'nhsn', 'nickel_beta', 'nssp', 'nwss', 'pophive', 'rvdss', 'sleepcycle', 'va_respiratory']
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">epidatpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">available_endpoints</span>
+
+<span class="n">available_endpoints</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Endpoint</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>pub_covid_hosp_facility</td>
+      <td>Fetch COVID hospitalizations by facility.</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>pub_covid_hosp_facility_lookup</td>
+      <td>Helper for finding COVID hospitalization facil...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>pub_covid_hosp_state_timeseries</td>
+      <td>Fetch COVID hospitalizations by state.</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>pub_covidcast</td>
+      <td>Fetch Delphi's COVID-19 Surveillance Streams.</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>pub_covidcast_meta</td>
+      <td>Fetch COVIDcast surveillance stream metadata.</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>23</th>
+      <td>pvt_meta_norostat</td>
+      <td>Fetch NoroSTAT metadata.</td>
+    </tr>
+    <tr>
+      <th>24</th>
+      <td>pvt_norostat</td>
+      <td>Fetch NoroSTAT data (point data, no min/max).</td>
+    </tr>
+    <tr>
+      <th>25</th>
+      <td>pvt_quidel</td>
+      <td>Fetch Quidel data.</td>
+    </tr>
+    <tr>
+      <th>26</th>
+      <td>pvt_sensors</td>
+      <td>Fetch Delphi's digital surveillance sensors.</td>
+    </tr>
+    <tr>
+      <th>27</th>
+      <td>pvt_twitter</td>
+      <td>Fetch HealthTweets data.</td>
+    </tr>
+  </tbody>
+</table>
+<p>28 rows × 2 columns</p>
+</div></div></div>
+</div>
+<p>See the <a class="reference internal" href="signal_discovery.html"><span class="std std-doc">signal discovery</span></a> notebook for an in-depth
+guide to discovering signals, browsing metadata, and querying datasets across
+all these categories.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">epidatpy</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="signal_discovery.html">Finding data sources and signals of interest</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versioned_data.html">Understanding and accessing versioned data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration_guide.html">V3/V4 to V5 migration guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="epidatpy.html">epidatpy Reference</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="https://delphi.cmu.edu/">Delphi Research Group</a></li>
+    
+    <li class="toctree-l1"><a href="https://cmu-delphi.github.io/delphi-epidata">Delphi Epidata API</a></li>
+    
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">epidatpy</a></li>
+      <li>Next: <a href="signal_discovery.html" title="next chapter">Finding data sources and signals of interest</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Delphi Research Group.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/getting_started.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
