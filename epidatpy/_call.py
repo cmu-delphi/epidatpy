@@ -123,6 +123,20 @@ def _raise_for_status(response: Response) -> None:
         raise EpiDataHTTPError(response, _error_body_message(response))
 
 
+def fetch_cast_meta(base_url: str, session: Session | None, source: str | None = None) -> Any:
+    """Fetch cast-API metadata: every source keyed by name, or `source`'s own entry.
+
+    If the response has no entry for `source`, it is returned as is.
+    """
+    params = {"source": source} if source is not None else {}
+    response = _request_with_retry(add_endpoint_to_url(base_url, "metadata/"), params, session, api_version="cast")
+    _raise_for_status(response)
+    res = response.json()
+    if source is not None and isinstance(res, dict) and source in res:
+        return res[source]
+    return res
+
+
 class EpiDataCall:
     """epidata call representation"""
 
@@ -307,17 +321,11 @@ class EpiDataCall:
 
     def _cast_source_meta(self, source: str) -> Mapping[str, Any] | None:
         try:
-            res = _request_with_retry(
-                add_endpoint_to_url(self._base_url, "metadata/"),
-                {"source": source},
-                self._session,
-                False,
-                api_version="cast",
-            ).json()
+            entry = fetch_cast_meta(self._base_url, self._session, source)
         except Exception:  # noqa: BLE001 - diagnostics must never mask the real result
             return None
-        entry = res.get(source) if isinstance(res, dict) else None
-        return entry if isinstance(entry, dict) else None
+        # An unknown source comes back as the raw response, not its entry.
+        return entry if isinstance(entry, dict) and "signals" in entry else None
 
     def _unknown_cast_keys(self, source: str, signals: list[str], geo_types: list[str]) -> list[str]:
         """Sentences naming the requested signals and geo types that `source`'s metadata does not list."""
