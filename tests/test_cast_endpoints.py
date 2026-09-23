@@ -50,7 +50,8 @@ def test_multiple_geo_types_fan_out_one_request_each_and_combine() -> None:
         resp = MagicMock()
         resp.raise_for_status = lambda: None
         g = params["geo_type"]
-        resp.text = f"signal,geo_type,geo_value,reference_time,report_time,value\nsig1,{g},ca,2024-01-01,2024-01-02,1.0\n"
+        rows = [f"{sig},{g},ca,2024-01-01,2024-01-02,1.0" for sig in params["signal"].split(",")]
+        resp.text = "\n".join(["signal,geo_type,geo_value,reference_time,report_time,value", *rows]) + "\n"
         return resp
 
     with patch("epidatpy._call._request_with_retry", fake_request):

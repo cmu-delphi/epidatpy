@@ -7,6 +7,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    get_args,
 )
 
 from epiweeks import Week
@@ -158,6 +159,7 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -171,6 +173,7 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
+            return_empty=return_empty,
         )
 
     def epidata_meta(self, source: str | None = None) -> Any:
@@ -593,7 +596,12 @@ class EpiDataContext:
             ],
         )
 
-    def pub_covidcast_meta(self) -> EpiDataCall:
+    def pub_covidcast_meta(
+        self,
+        signals: StringParam | None = None,
+        time_type: TimeType | None = None,
+        geo_type: GeoType | None = None,
+    ) -> EpiDataCall:
         """Fetch COVIDcast surveillance stream metadata.
 
         This is a V4 endpoint. Starting in October 2026, it is tentatively
@@ -613,6 +621,16 @@ class EpiDataContext:
         documentation
         <https://cmu-delphi.github.io/delphi-epidata/api/covidcast_signals.html>`_
         for descriptions of the available sources.
+
+        Parameters
+        ----------
+        signals : StringParam, optional
+            Restrict to these ``source:signal`` pairs (e.g. ``"jhu-csse:confirmed_cumulative_num"``),
+            filtered server-side. Defaults to all.
+        time_type : TimeType, optional
+            Restrict to this temporal resolution ("day" or "week"). Defaults to all.
+        geo_type : GeoType, optional
+            Restrict to this geographic level. Defaults to all.
 
         Returns
         -------
@@ -676,7 +694,11 @@ class EpiDataContext:
 
         return self._create_call(
             "covidcast_meta/",
-            {},
+            {
+                "signals": signals,
+                "time_types": time_type,
+                "geo_types": geo_type,
+            },
             [
                 EpidataFieldInfo("data_source", EpidataFieldType.text),
                 EpidataFieldInfo("signal", EpidataFieldType.text),
@@ -685,6 +707,7 @@ class EpiDataContext:
                     EpidataFieldType.categorical,
                     categories=["week", "day"],
                 ),
+                EpidataFieldInfo("geo_type", EpidataFieldType.text),
                 EpidataFieldInfo("min_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("max_time", EpidataFieldType.date_or_epiweek),
                 EpidataFieldInfo("num_locations", EpidataFieldType.int),
@@ -692,7 +715,7 @@ class EpiDataContext:
                 EpidataFieldInfo("max_value", EpidataFieldType.float),
                 EpidataFieldInfo("mean_value", EpidataFieldType.float),
                 EpidataFieldInfo("stdev_value", EpidataFieldType.float),
-                EpidataFieldInfo("last_update", EpidataFieldType.int),
+                EpidataFieldInfo("last_update", EpidataFieldType.epoch_seconds),
                 EpidataFieldInfo("max_issue", EpidataFieldType.date),
                 EpidataFieldInfo("min_lag", EpidataFieldType.int),
                 EpidataFieldInfo("max_lag", EpidataFieldType.int),
@@ -765,8 +788,11 @@ class EpiDataContext:
         if sum([issues is not None, lag is not None, as_of is not None]) > 1:
             raise InvalidArgumentException("`issues`, `lag`, and `as_of` are mutually exclusive.")
 
-        if data_source == "nchs-mortality" and time_type != "week":
-            raise InvalidArgumentException("nchs-mortality data source only supports the week time type.")
+        if time_type not in get_args(TimeType):
+            raise InvalidArgumentException(f"`time_type` must be one of {get_args(TimeType)}, got {time_type!r}.")
+
+        if data_source in ("nchs-mortality", "nssp") and time_type != "week":
+            raise InvalidArgumentException(f"The {data_source} data source only supports the week time type.")
 
         return self._create_call(
             "covidcast/",
@@ -1816,6 +1842,7 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1824,6 +1851,12 @@ class EpiDataContext:
         are sent comma-joined in a single request per `geo_type` (the cast-API
         only accepts one geo type per request); results across geo types are
         combined.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
 
         `limit` caps the number of rows the server returns; ``None`` (default)
         or ``-1`` means no limit. The underlying query has no stable sort
@@ -1851,6 +1884,7 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata_archive(
@@ -1863,6 +1897,7 @@ class EpiDataContext:
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
@@ -1873,6 +1908,12 @@ class EpiDataContext:
         dates and the ``"="`` operator are rejected.
         `geo_values` and `reference_time` are
         filtered locally after the API call.
+
+        An empty (or partially empty) result warns with
+        :class:`~epidatpy.EmptyResultWarning`, naming the signals or geo types
+        that came back with no rows; when the source's metadata says a
+        requested signal or geo type does not exist at all, it raises instead.
+        Pass ``return_empty=True`` to get an empty frame back silently.
 
         `limit` caps the number of rows the server returns; ``None`` (default)
         or ``-1`` means no limit. The underlying query has no stable sort
@@ -1896,6 +1937,7 @@ class EpiDataContext:
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
+            return_empty=return_empty,
         )
 
     def epidata(
@@ -1909,6 +1951,7 @@ class EpiDataContext:
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
         limit: int | None = None,
+        return_empty: bool = False,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 
@@ -1930,6 +1973,7 @@ class EpiDataContext:
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
                 limit=limit,
+                return_empty=return_empty,
             )
         return self.epidata_snapshot(
             source=source,
@@ -1940,6 +1984,7 @@ class EpiDataContext:
             fill_method=fill_method,
             snapshot_date=snapshot_date,
             limit=limit,
+            return_empty=return_empty,
         )
 
     def epidata_aux(

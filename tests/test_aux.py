@@ -70,10 +70,7 @@ def test_epidata_aux_base_pull_snapshot_date() -> None:
 
 def test_epidata_aux_df_keeps_undeclared_value_columns() -> None:
     """Ensure aux value columns survive df() even if undeclared in _aux_fields()."""
-    csv = (
-        "report_time,geo_value,pcr_target,population_served,county_fips\n"
-        "2024-05-20,ca,sars-cov-2,1000,06001\n"
-    )
+    csv = "report_time,geo_value,pcr_target,population_served,county_fips\n2024-05-20,ca,sars-cov-2,1000,06001\n"
 
     def fake_request(url: str, params: Any, *_a: Any, **_k: Any) -> Any:
         resp = MagicMock()
