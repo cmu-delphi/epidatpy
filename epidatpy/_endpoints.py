@@ -14,7 +14,7 @@ from epiweeks import Week
 from pandas import DataFrame, merge_asof
 from requests import Session
 
-from ._call import EpiDataCall, _raise_for_status, _request_with_retry
+from ._call import EpiDataCall, _raise_for_status, _request_with_retry, fetch_cast_meta
 from ._constants import BASE_URL, CAST_BASE_URL
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
@@ -185,19 +185,7 @@ class EpiDataContext:
         result is a dict keyed by source name covering every available
         source; with a `source` it is that source's entry alone.
         """
-        url = add_endpoint_to_url(self._cast_base_url, "metadata/")
-        response = _request_with_retry(
-            url,
-            {"source": source} if source is not None else {},
-            self._session,
-            stream=False,
-            api_version="cast",
-        )
-        _raise_for_status(response)
-        res = response.json()
-        if source is not None and isinstance(res, dict) and source in res:
-            return res[source]
-        return res
+        return fetch_cast_meta(self._cast_base_url, self._session, source)
 
     def pvt_cdc(
         self,
