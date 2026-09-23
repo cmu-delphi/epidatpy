@@ -183,7 +183,8 @@ class EpiDataContext:
         columns, and its ``reference_time_range`` and ``report_time_range``
         (the latter as UTC timestamps). With ``source=None`` (default) the
         result is a dict keyed by source name covering every available
-        source; with a `source` it is that source's entry alone.
+        source; with a `source` it is that source's entry alone. If the
+        response has no entry for `source`, it is returned unchanged.
         """
         return fetch_cast_meta(self._cast_base_url, self._session, source)
 
@@ -2019,8 +2020,26 @@ class EpiDataContext:
         Dispatches to :meth:`epidata_archive` when `report_time` is supplied
         or ``snapshot_date == "*"``, and otherwise to :meth:`epidata_snapshot`
         (so with neither argument it returns the latest snapshot).
-        `report_time` and `snapshot_date` are mutually exclusive. See those
-        two methods for the argument details.
+        `report_time` and `snapshot_date` are mutually exclusive.
+
+        Parameters
+        ----------
+        source, signals, geo_type, geo_values, reference_time, fill_method
+            See :meth:`epidata_snapshot`.
+        snapshot_date : date, datetime, str, or int, optional
+            Fetch a snapshot as of this date or instant; see
+            :meth:`epidata_snapshot`. ``"*"`` fetches the full archive instead.
+        report_time : str or EpiRange, optional
+            Fetch the archive filtered on ``report_time``; see
+            :meth:`epidata_archive`.
+        limit : int, optional
+            Cap on the rows the server returns; ``None`` (default) or ``-1``
+            means no limit. See :meth:`epidata_snapshot`.
+        return_empty : bool
+            Return an empty frame silently instead of warning about it.
+        **key_filters : Union[str, date, Sequence[Union[str, date]]]
+            Named filters on the source's extra key columns; see
+            :meth:`epidata_snapshot`.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")

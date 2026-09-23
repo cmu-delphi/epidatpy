@@ -355,3 +355,18 @@ def test_epidata_aux_merge_snapshot_base_requests_snapshot_date() -> None:
     assert len(calls) == 1
     assert calls[0]["snapshot_date"] == pd.Timestamp("2024-05-20")
     assert "report_time" not in calls[0]
+
+
+def test_epidata_aux_merge_ignores_limit() -> None:
+    """`limit` applies to direct pulls only; merge mode never forwards it."""
+    base = _AUX_VERSIONS[["geo_value", "reference_time", "sample_index", "report_time"]].copy()
+    base.attrs["cast_source"] = "nwss"
+    base.attrs["cast_kind"] = "archive"
+    calls: list[dict[str, Any]] = []
+    with (
+        patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS),
+        patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS, calls)),
+    ):
+        EpiDataContext().epidata_aux(base, limit=2)
+    assert calls
+    assert all("limit" not in kwargs for kwargs in calls)
