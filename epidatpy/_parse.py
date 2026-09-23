@@ -87,7 +87,7 @@ def parse_user_date_or_week(
 def format_report_time_bound(value: str | int | date | datetime | Week) -> str | None:
     """Format a date or UTC timestamp bound for cast-API queries.
 
-    Returns None for invalid timestamp strings.
+    Returns None for values that don't parse as a date or UTC timestamp.
     """
     if isinstance(value, str) and _UTC_TIMESTAMP_RE.match(value):
         return value
@@ -98,7 +98,12 @@ def format_report_time_bound(value: str | int | date | datetime | Week) -> str |
         return aware.strftime("%Y-%m-%dT%H:%M:%SZ")
     if isinstance(value, Week):
         value = value.startdate()
-    parsed = value if isinstance(value, date) else parse_api_date(value)
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+    try:
+        parsed = parse_api_date(value)
+    except ValueError:
+        return None
     return parsed.strftime("%Y-%m-%d") if parsed is not None else None
 
 
