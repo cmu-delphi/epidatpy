@@ -77,6 +77,8 @@ def _serialize_key_filters(key_filters: Mapping[str, Any], max_vals: int = 10) -
             UserWarning,
         )
     return ",".join(terms)
+
+
 def _warn_v4_sunset(fn_name: str) -> None:
     warnings.warn(
         f"`{fn_name}` uses the V4 Epidata API. Starting in October 2026, V4 is "
@@ -86,6 +88,15 @@ def _warn_v4_sunset(fn_name: str) -> None:
         UserWarning,
         stacklevel=2,
     )
+
+
+def _validate_limit(limit: int | None) -> int | None:
+    """Normalize the cast-API `limit`: None or -1 means no limit; otherwise a positive int."""
+    if limit is None or limit == -1:
+        return None
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise InvalidArgumentException("`limit` must be -1 (no limit) or a positive integer")
+    return limit
 
 
 def _note_frozen_endpoint(fn_name: str) -> None:
@@ -162,21 +173,28 @@ class EpiDataContext:
             post_filter=post_filter,
         )
 
-    def epidata_meta(self, source: str) -> Any:
+    def epidata_meta(self, source: str | None = None) -> Any:
         """Fetch source-level metadata from the CAST API.
 
-        Returns the parsed JSON (a list of signal/geo descriptors) for `source`.
+        Each source's entry lists its ``signals``, ``geo_types``, extra key
+        columns, and its ``reference_time_range`` and ``report_time_range``
+        (the latter as UTC timestamps). With ``source=None`` (default) the
+        result is a dict keyed by source name covering every available
+        source; with a `source` it is that source's entry alone.
         """
         url = add_endpoint_to_url(self._cast_base_url, "metadata/")
         response = _request_with_retry(
             url,
-            {"source": source},
+            {"source": source} if source is not None else {},
             self._session,
             stream=False,
             api_version="cast",
         )
         _raise_for_status(response)
-        return response.json()
+        res = response.json()
+        if source is not None and isinstance(res, dict) and source in res:
+            return res[source]
+        return res
 
     def pvt_cdc(
         self,
@@ -1797,6 +1815,7 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch a snapshot of CAST-API signals as they appeared on `snapshot_date`.
 
@@ -1805,6 +1824,11 @@ class EpiDataContext:
         are sent comma-joined in a single request per `geo_type` (the cast-API
         only accepts one geo type per request); results across geo types are
         combined.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         if snapshot_date is None:
             snapshot_date_str: str | None = None
@@ -1822,6 +1846,7 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -1837,6 +1862,7 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Fetch the full report-time history of CAST-API signals.
 
@@ -1847,6 +1873,11 @@ class EpiDataContext:
         dates and the ``"="`` operator are rejected.
         `geo_values` and `reference_time` are
         filtered locally after the API call.
+
+        `limit` caps the number of rows the server returns; ``None`` (default)
+        or ``-1`` means no limit. The underlying query has no stable sort
+        order, so `limit` does not guarantee the same rows (or count) across
+        calls. Use it to preview or debug a query, not as a filter.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1860,6 +1891,7 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
+                "limit": _validate_limit(limit),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -1876,13 +1908,14 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
+        limit: int | None = None,
     ) -> EpiDataCall:
         """Router for CAST-API queries.
 
         Dispatches to :meth:`epidata_archive` when ``report_time`` is
         supplied or ``snapshot_date == "*"``; otherwise to
         :meth:`epidata_snapshot`. ``report_time`` and ``snapshot_date``
-        are mutually exclusive.
+        are mutually exclusive. See those methods for the argument details.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
@@ -1896,6 +1929,7 @@ class EpiDataContext:
                 reference_time=reference_time,
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
+                limit=limit,
             )
         return self.epidata_snapshot(
             source=source,
@@ -1905,6 +1939,7 @@ class EpiDataContext:
             reference_time=reference_time,
             fill_method=fill_method,
             snapshot_date=snapshot_date,
+            limit=limit,
         )
 
     def epidata_aux(
@@ -1915,6 +1950,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = "*",
         snapshot_date: str | date | datetime | int | None = None,
         columns: Sequence[str] | None = None,
+        limit: int | None = None,
         **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall | DataFrame:
         """Fetch V5 auxiliary data associated with a cast-API signal.
@@ -1954,6 +1990,12 @@ class EpiDataContext:
             (when `source` is a string). Mutually exclusive with `report_time`.
         columns : Sequence[str], optional
             Columns to return. By default, all columns are returned.
+        limit : int, optional
+            Cap on the number of rows the server returns (direct pulls only;
+            ignored when `source` is a DataFrame). `None` (default) or `-1`
+            means no limit. The underlying query has no stable sort order, so
+            `limit` does not guarantee the same rows (or count) across calls.
+            Use it to preview or debug a query, not as a filter.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
             Named filters on the auxiliary key columns, such as
             ``pcr_target="sars-cov-2"`` or ``geo_value=["ca", "ny"]``. Each key
@@ -2006,6 +2048,7 @@ class EpiDataContext:
                 "report_time_query": report_time_str,
                 "filtered_keys": _serialize_key_filters(key_filters),
                 "columns": format_list(columns) if columns else None,
+                "limit": _validate_limit(limit),
             },
             _aux_fields(),
             api_version="cast",
@@ -2120,6 +2163,8 @@ def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
         EpidataFieldInfo("reference_time", EpidataFieldType.date),
         EpidataFieldInfo("value", EpidataFieldType.float),
         # Source-specific extras (skipped per-response if not present):
+        EpidataFieldInfo("ci_lower", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
+        EpidataFieldInfo("ci_upper", EpidataFieldType.float),  # nickel_beta, va_respiratory, sleepcycle
         EpidataFieldInfo("age_group", EpidataFieldType.text),  # pophive
         EpidataFieldInfo("nwss_source", EpidataFieldType.text),  # nwss
         EpidataFieldInfo("sample_index", EpidataFieldType.text),  # nwss
