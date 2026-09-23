@@ -58,6 +58,9 @@ exclude_patterns = [
 
 add_module_names = False
 autoclass_content = "class"
+
+# Let notebooks link to each other's headings, e.g. versioned_data.ipynb#calculating-reporting-lag.
+myst_heading_anchors = 3
 autodoc_typehints = "description"
 
 # -- Options for HTML output -------------------------------------------------
