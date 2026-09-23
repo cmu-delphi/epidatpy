@@ -21,11 +21,17 @@ format:
 	$(PY) ruff check --fix epidatpy tests
 
 test:
-	$(PY) pytest -m "not live" .
+	$(PY) pytest -m "not live" tests
 
 # Live network tests gated on DELPHI_EPIDATA_KEY (skipped per-test when unset).
+# Set cast_url to point cast-API tests at a non-default server, e.g.:
+#   make test_live cast_url=https://development.delphi.cmu.edu/epidata/v5/
+cast_url ?=
 test_live:
-	$(PY) pytest -m live .
+	EPIDATPY_CAST_BASE_URL=$(cast_url) $(PY) pytest -m live tests
+
+test_live_cast:
+	EPIDATPY_CAST_BASE_URL=$(cast_url) $(PY) pytest -m live tests/test_cast_endpoints.py
 
 doc:
 	$(PY) sphinx-build -b html docs docs/_build
