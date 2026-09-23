@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pandas import DataFrame
 from requests import Session
 
-from ._call import EpiDataCall, _request_with_retry
+from ._call import EpiDataCall, _raise_for_status, _request_with_retry
 from ._constants import BASE_URL
 from ._covidcast import CovidcastDataSources, define_covidcast_fields
 from ._endpoints import EpiDataContext
@@ -28,7 +28,7 @@ def CovidcastEpidata(
 ) -> CovidcastDataSources:
     url = add_endpoint_to_url(base_url, "covidcast/meta")
     meta_data_res = _request_with_retry(url, {}, session, False)
-    meta_data_res.raise_for_status()
+    _raise_for_status(meta_data_res)
     meta_data = meta_data_res.json()
 
     def create_call(

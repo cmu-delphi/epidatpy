@@ -13,7 +13,7 @@ from epiweeks import Week
 from pandas import DataFrame, merge_asof
 from requests import Session
 
-from ._call import EpiDataCall, _request_with_retry
+from ._call import EpiDataCall, _raise_for_status, _request_with_retry
 from ._constants import BASE_URL, CAST_BASE_URL
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
 from ._model import (
@@ -175,7 +175,7 @@ class EpiDataContext:
             stream=False,
             api_version="cast",
         )
-        response.raise_for_status()
+        _raise_for_status(response)
         return response.json()
 
     def pvt_cdc(
@@ -2016,7 +2016,7 @@ class EpiDataContext:
         """Fetch the declared aux key columns for `source` from `metadata/aux_schema/`."""
         url = add_endpoint_to_url(self._cast_base_url, "metadata/aux_schema/")
         response = _request_with_retry(url, {"source": source}, self._session, stream=False, api_version="cast")
-        response.raise_for_status()
+        _raise_for_status(response)
         schema: Mapping[str, Mapping[str, Sequence[str]]] = response.json()
         return schema.get(source, {}).get("key_columns", [])
 

@@ -3,8 +3,10 @@ from __future__ import annotations
 import warnings
 from collections.abc import Mapping, Sequence
 from datetime import date
+from html import unescape
 from io import StringIO
 from os import environ
+from re import DOTALL, IGNORECASE, findall, sub
 from typing import (
     Any,
     Final,
@@ -15,7 +17,7 @@ from urllib.parse import urlencode
 from appdirs import user_cache_dir
 from diskcache import Cache
 from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
-from requests import Response, Session
+from requests import HTTPError, Response, Session
 from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
@@ -81,6 +83,45 @@ def _request_with_retry(
 
     with Session() as s:
         return call_impl(s)
+
+
+def _error_body_message(response: Response) -> str | None:
+    """Extract the server's own error message from an error response body.
+
+    Whatever format was requested, error bodies come back either as JSON --
+    ``{"message": ...}``, or FastAPI's automatic validation errors under
+    ``"detail"`` -- or as an HTML error page from the web server.
+    """
+    content_type = response.headers.get("Content-Type", "").lower()
+    try:
+        if content_type.startswith("application/json"):
+            body = response.json()
+            message = body.get("message") or body.get("detail")
+            if isinstance(message, list):
+                # FastAPI validation errors: a list of {"loc", "msg", ...} objects.
+                message = "; ".join(d.get("msg", "invalid value") if isinstance(d, dict) else str(d) for d in message)
+        elif content_type.startswith("text/html"):
+            # grab the error information out of the returned HTML document
+            message = " ".join(
+                unescape(sub(r"<[^>]+>", "", p)).strip()
+                for p in findall(r"<p>(.*?)</p>", response.text, DOTALL | IGNORECASE)
+            )
+        else:
+            return None
+    except (AttributeError, TypeError, ValueError):  # body isn't the shape we expected
+        return None
+    return str(message) if message else None
+
+
+def _raise_for_status(response: Response) -> None:
+    """``Response.raise_for_status()``, with the server's own message appended."""
+    try:
+        response.raise_for_status()
+    except HTTPError as e:
+        message = _error_body_message(response)
+        if message:
+            raise HTTPError(f"{e}: {message}", response=response) from None
+        raise
 
 
 class EpiDataCall:
@@ -261,13 +302,16 @@ class EpiDataCall:
         disable_type_parsing: bool | None = False,
     ) -> EpiDataResponse:
         """Request and parse epidata in CLASSIC message format."""
+        if self.use_cache:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache_key = self._get_cache_key("classic")
+                if cache_key in cache:
+                    return cast(EpiDataResponse, cache[cache_key])
+        response = self._call(fields)
+        # Raised, not buried in the result dict: an HTTP error means no data came
+        # back, and df() would otherwise hand back a silently empty frame.
+        _raise_for_status(response)
         try:
-            if self.use_cache:
-                with Cache(CACHE_DIRECTORY) as cache:
-                    cache_key = self._get_cache_key("classic")
-                    if cache_key in cache:
-                        return cast(EpiDataResponse, cache[cache_key])
-            response = self._call(fields)
             r = cast(EpiDataResponse, response.json())
             if disable_type_parsing:
                 return r
@@ -331,7 +375,7 @@ class EpiDataCall:
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
             response = self._call(fields, extra_params={"format": "csv"})
-            response.raise_for_status()
+            _raise_for_status(response)
             body = response.text
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
