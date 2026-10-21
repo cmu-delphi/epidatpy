@@ -33,7 +33,10 @@ def _meta_or(csv_fn: Callable[[Mapping[str, str]], str]) -> Callable[[str, Mappi
 
 def test_empty_result_warns(fake_server: Callable[..., FakeServer]) -> None:
     fake_server(_meta_or(lambda params: ""))
-    with pytest.warns(EmptyResultWarning, match="No data returned for source 'nssp'"):
+    with pytest.warns(
+        EmptyResultWarning,
+        match=r"No data returned for source 'nssp'.*fetch_args=fetch_args\(return_empty=True\)",
+    ):
         df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
     assert len(df) == 0
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes
+
+- `epidata_snapshot()`, `epidata_archive()`, `epidata()`, and `epidata_aux()`
+  now receive shared request options through `fetch_args=fetch_args(...)`.
+  Pass `limit` and `return_empty` to `fetch_args()` instead of directly to the
+  endpoint methods.
+
+### New features
+
+- Add the immutable `FetchArgs` type and `fetch_args()` helper for shared V5
+  request options. The initial options are `limit` and `return_empty`.
+
 ## 0.7.0
 
 ### Breaking changes

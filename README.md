@@ -86,6 +86,20 @@ epidata.epidata_archive(
 filtered locally after the request; `report_time` filters are applied
 server-side and take a comparison string or an `EpiRange`.
 
+Shared V5 request options such as row limits and empty-result handling are
+grouped in `fetch_args`:
+
+```py
+from epidatpy import fetch_args
+
+call = epidata.epidata_snapshot(
+    source="nssp",
+    signals="pct_ed_visits_influenza",
+    geo_type="state",
+    fetch_args=fetch_args(limit=100, return_empty=True),
+)
+```
+
 This is just a glimpse of what `epidatpy` can do. See the
 [documentation](https://cmu-delphi.github.io/epidatpy/) for walkthroughs of
 specific tasks (finding signals, understanding versioned data, migrating from

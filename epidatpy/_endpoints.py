@@ -1869,13 +1869,10 @@ class EpiDataContext:
             ``"YYYY-MM-DD"``, ``YYYYMMDD``) or an instant (``datetime`` or a
             UTC timestamp string such as ``"2025-10-16T13:45:00Z"``).
             ``None`` (default) returns the latest available version.
-        limit : int, optional
-            Cap on the rows the server returns; ``None`` (default) or ``-1``
-            means no limit. The query has no stable sort order, so `limit`
-            does not guarantee the same rows (or count) across calls. Use it
-            to preview or debug a query, not as a filter.
-        return_empty : bool
-            Return an empty frame silently instead of diagnosing it.
+        fetch_args : FetchArgs, optional
+            Shared request options created with :func:`~epidatpy.fetch_args`.
+            Use ``limit`` to cap the rows returned by the server and
+            ``return_empty=True`` to silence empty-result diagnostics.
 
         Returns
         -------
@@ -1964,10 +1961,9 @@ class EpiDataContext:
             for an inclusive date range. Bare dates and ``=`` are rejected;
             use :meth:`epidata_snapshot` for point-in-time data. ``"*"``
             (default) returns all report times.
-        limit : int, optional
-            Cap on the rows the server returns; see :meth:`epidata_snapshot`.
-        return_empty : bool
-            Return an empty frame silently instead of diagnosing it.
+        fetch_args : FetchArgs, optional
+            Shared request options created with :func:`~epidatpy.fetch_args`;
+            see :meth:`epidata_snapshot` for the supported options.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -2011,6 +2007,12 @@ class EpiDataContext:
         (so with neither argument it returns the latest snapshot).
         `report_time` and `snapshot_date` are mutually exclusive. See those
         two methods for the argument details.
+
+        Parameters
+        ----------
+        fetch_args : FetchArgs, optional
+            Shared request options created with :func:`~epidatpy.fetch_args`;
+            forwarded to the selected snapshot or archive endpoint.
         """
         if report_time is not None and snapshot_date is not None:
             raise InvalidArgumentException("`report_time` and `snapshot_date` are mutually exclusive")
@@ -2085,12 +2087,11 @@ class EpiDataContext:
             (when `source` is a string). Mutually exclusive with `report_time`.
         columns : Sequence[str], optional
             Columns to return. By default, all columns are returned.
-        limit : int, optional
-            Cap on the number of rows the server returns (direct pulls only;
-            ignored when `source` is a DataFrame). `None` (default) or `-1`
-            means no limit. The underlying query has no stable sort order, so
-            `limit` does not guarantee the same rows (or count) across calls.
-            Use it to preview or debug a query, not as a filter.
+        fetch_args : FetchArgs, optional
+            Shared request options created with :func:`~epidatpy.fetch_args`.
+            For direct pulls, ``limit`` caps the rows returned by the server
+            and ``return_empty=True`` silences empty-result diagnostics. These
+            options are ignored when `source` is a DataFrame.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
             Named filters on the auxiliary key columns, such as
             ``pcr_target="sars-cov-2"`` or ``geo_value=["ca", "ny"]``. Each key

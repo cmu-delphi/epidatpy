@@ -369,7 +369,7 @@ class EpiDataCall:
             parts += [f"geo_types {empty_geo_types}"] if empty_geo_types else []
             message = f"No data returned for {' and '.join(parts)} from source {source!r}."
         warnings.warn(
-            " ".join([message, *unknown, "Pass return_empty=True to silence this."]),
+            " ".join([message, *unknown, "Pass fetch_args=fetch_args(return_empty=True) to silence this."]),
             EmptyResultWarning,
             stacklevel=3,
         )
