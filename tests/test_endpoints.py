@@ -6,7 +6,7 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 import pytest
 
-from epidatpy import EmptyResultWarning, EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy import EmptyResultWarning, EpiDataContext, EpiRange, InvalidArgumentException, fetch_args
 from epidatpy._call import EpiDataCall
 
 from .conftest import FakeServer
@@ -75,7 +75,11 @@ def test_return_empty_silences_diagnostics(
     fake_server: Callable[..., FakeServer], recwarn: pytest.WarningsRecorder
 ) -> None:
     fake_server(_meta_or(lambda params: ""))
-    df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "zzz", "state", return_empty=True).df()
+    df = (
+        EpiDataContext(use_cache=False)
+        .epidata_snapshot("nssp", "zzz", "state", fetch_args=fetch_args(return_empty=True))
+        .df()
+    )
     assert len(df) == 0
     assert not [w for w in recwarn if issubclass(w.category, EmptyResultWarning)]
 
@@ -108,27 +112,35 @@ def test_archive_request_params() -> None:
 
 def test_limit_is_sent_when_positive() -> None:
     ctx = EpiDataContext()
-    assert _params(ctx.epidata_snapshot("nssp", "a", "state", limit=10).request_url())["limit"] == ["10"]
-    assert _params(ctx.epidata_archive("nssp", "a", "state", limit=10).request_url())["limit"] == ["10"]
-    assert _params(ctx.epidata("nssp", "a", "state", report_time="<2025-01-01", limit=5).request_url())["limit"] == [
-        "5"
-    ]
+    assert _params(ctx.epidata_snapshot("nssp", "a", "state", fetch_args=fetch_args(limit=10)).request_url())[
+        "limit"
+    ] == ["10"]
+    assert _params(ctx.epidata_archive("nssp", "a", "state", fetch_args=fetch_args(limit=10)).request_url())[
+        "limit"
+    ] == ["10"]
+    assert _params(
+        ctx.epidata("nssp", "a", "state", report_time="<2025-01-01", fetch_args=fetch_args(limit=5)).request_url()
+    )["limit"] == ["5"]
     # epidatr wires `limit` into epidata_aux() too (cmu-delphi/epidatr#379).
-    aux = ctx.epidata_aux("nwss", limit=3)
+    aux = ctx.epidata_aux("nwss", fetch_args=fetch_args(limit=3))
     assert isinstance(aux, EpiDataCall)
     assert _params(aux.request_url())["limit"] == ["3"]
 
 
 def test_limit_none_and_minus_one_are_omitted() -> None:
     ctx = EpiDataContext()
-    assert "limit" not in _params(ctx.epidata_snapshot("nssp", "a", "state", limit=None).request_url())
-    assert "limit" not in _params(ctx.epidata_snapshot("nssp", "a", "state", limit=-1).request_url())
+    assert "limit" not in _params(
+        ctx.epidata_snapshot("nssp", "a", "state", fetch_args=fetch_args(limit=None)).request_url()
+    )
+    assert "limit" not in _params(
+        ctx.epidata_snapshot("nssp", "a", "state", fetch_args=fetch_args(limit=-1)).request_url()
+    )
 
 
 @pytest.mark.parametrize("bad", [0, -2, 2.5, True, "10"])
 def test_limit_invalid(bad: object) -> None:
     with pytest.raises(InvalidArgumentException):
-        EpiDataContext().epidata_snapshot("nssp", "a", "state", limit=bad)  # type: ignore[arg-type]
+        EpiDataContext().epidata_snapshot("nssp", "a", "state", fetch_args=fetch_args(limit=bad))  # type: ignore[arg-type]
 
 
 @pytest.mark.filterwarnings("ignore:`pub_covidcast_meta` uses the V4 Epidata API")

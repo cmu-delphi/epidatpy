@@ -17,6 +17,7 @@ from requests import Session
 from ._call import EpiDataCall, _raise_for_status, _request_with_retry
 from ._constants import BASE_URL, CAST_BASE_URL
 from ._covidcast import GeoType, TimeType, define_covidcast_fields
+from ._fetch_args import FetchArgs
 from ._model import (
     ApiVersion,
     CastPostFilter,
@@ -91,15 +92,6 @@ def _warn_v4_sunset(fn_name: str) -> None:
     )
 
 
-def _validate_limit(limit: int | None) -> int | None:
-    """Normalize the cast-API `limit`: None or -1 means no limit; otherwise a positive int."""
-    if limit is None or limit == -1:
-        return None
-    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
-        raise InvalidArgumentException("`limit` must be -1 (no limit) or a positive integer")
-    return limit
-
-
 def _note_frozen_endpoint(fn_name: str) -> None:
     warnings.warn(
         f"`{fn_name}` covers a data source that is no longer updated. Historical "
@@ -159,7 +151,7 @@ class EpiDataContext:
         only_supports_classic: bool = False,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
-        return_empty: bool = False,
+        fetch_args: FetchArgs | None = None,
     ) -> EpiDataCall:
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
@@ -173,7 +165,7 @@ class EpiDataContext:
             self.cache_max_age_days,
             api_version=api_version,
             post_filter=post_filter,
-            return_empty=return_empty,
+            fetch_args=fetch_args,
         )
 
     def epidata_meta(self, source: str | None = None) -> Any:
@@ -1841,8 +1833,8 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
-        limit: int | None = None,
-        return_empty: bool = False,
+        *,
+        fetch_args: FetchArgs | None = None,
     ) -> EpiDataCall:
         """Fetch a snapshot of V5 signals as they appeared at `snapshot_date`.
 
@@ -1910,6 +1902,7 @@ class EpiDataContext:
             if snapshot_date_str is None:
                 raise InvalidArgumentException(f"Invalid `snapshot_date` value: {snapshot_date!r}")
         signal_str = format_list(signals)
+        options = fetch_args if fetch_args is not None else FetchArgs()
 
         return self._create_call(
             "snapshot/",
@@ -1919,12 +1912,12 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
-                "limit": _validate_limit(limit),
+                "limit": options.limit,
             },
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
-            return_empty=return_empty,
+            fetch_args=options,
         )
 
     def epidata_archive(
@@ -1936,8 +1929,8 @@ class EpiDataContext:
         reference_time: EpiRangeParam = "*",
         fill_method: str | None = None,
         report_time: str | EpiRange | None = "*",
-        limit: int | None = None,
-        return_empty: bool = False,
+        *,
+        fetch_args: FetchArgs | None = None,
     ) -> EpiDataCall:
         """Fetch the full revision history of V5 signals.
 
@@ -1980,6 +1973,8 @@ class EpiDataContext:
 
         signal_str = format_list(signals)
 
+        options = fetch_args if fetch_args is not None else FetchArgs()
+
         return self._create_call(
             "archive/",
             {
@@ -1988,12 +1983,12 @@ class EpiDataContext:
                 "geo_type": geo_type,
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
-                "limit": _validate_limit(limit),
+                "limit": options.limit,
             },
             _cast_signal_fields(),
             api_version="cast",
             post_filter=(geo_values, reference_time),
-            return_empty=return_empty,
+            fetch_args=options,
         )
 
     def epidata(
@@ -2006,8 +2001,8 @@ class EpiDataContext:
         fill_method: str | None = None,
         snapshot_date: str | date | datetime | int | None = None,
         report_time: str | EpiRange | None = None,
-        limit: int | None = None,
-        return_empty: bool = False,
+        *,
+        fetch_args: FetchArgs | None = None,
     ) -> EpiDataCall:
         """Fetch V5 signals, routing on the versioning argument supplied.
 
@@ -2029,8 +2024,7 @@ class EpiDataContext:
                 reference_time=reference_time,
                 fill_method=fill_method,
                 report_time=report_time if report_time is not None else "*",
-                limit=limit,
-                return_empty=return_empty,
+                fetch_args=fetch_args,
             )
         return self.epidata_snapshot(
             source=source,
@@ -2040,8 +2034,7 @@ class EpiDataContext:
             reference_time=reference_time,
             fill_method=fill_method,
             snapshot_date=snapshot_date,
-            limit=limit,
-            return_empty=return_empty,
+            fetch_args=fetch_args,
         )
 
     def epidata_aux(
@@ -2052,7 +2045,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = "*",
         snapshot_date: str | date | datetime | int | None = None,
         columns: Sequence[str] | None = None,
-        limit: int | None = None,
+        fetch_args: FetchArgs | None = None,
         **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall | DataFrame:
         """Fetch V5 auxiliary data associated with a cast-API signal.
@@ -2142,6 +2135,8 @@ class EpiDataContext:
                 raise InvalidArgumentException(f"Invalid `snapshot_date` value: {snapshot_date!r}")
             report_time_str = None
 
+        options = fetch_args if fetch_args is not None else FetchArgs()
+
         return self._create_call(
             "aux_data/",
             {
@@ -2150,11 +2145,12 @@ class EpiDataContext:
                 "report_time_query": report_time_str,
                 "filtered_keys": _serialize_key_filters(key_filters),
                 "columns": format_list(columns) if columns else None,
-                "limit": _validate_limit(limit),
+                "limit": options.limit,
             },
             _aux_fields(),
             api_version="cast",
             post_filter=("*", reference_time),
+            fetch_args=options,
         )
 
     def _aux_key_columns(self, source: str) -> Sequence[str]:

@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException, fetch_args
 from epidatpy._constants import CAST_BASE_URL
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
@@ -148,13 +148,17 @@ class TestCastEndpoints:
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
         ctx = EpiDataContext()
-        df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
+        df = ctx.epidata_snapshot(
+            source=source, signals=signal, geo_type=geo_type, fetch_args=fetch_args(limit=CAST_QUERY_LIMIT)
+        ).df()
         _assert_cast_frame(ctx, source, df)
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
         ctx = EpiDataContext()
-        df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
+        df = ctx.epidata_archive(
+            source=source, signals=signal, geo_type=geo_type, fetch_args=fetch_args(limit=CAST_QUERY_LIMIT)
+        ).df()
         _assert_cast_frame(ctx, source, df)
 
     def test_epidata_snapshot_multiple_geo_types(self) -> None:
@@ -254,7 +258,7 @@ class TestCastEndpoints:
             signals="pct_ed_visits_influenza",
             geo_type="state",
             report_time="<2025-06-01",
-            limit=CAST_QUERY_LIMIT,
+            fetch_args=fetch_args(limit=CAST_QUERY_LIMIT),
         ).df()
         assert len(lt) > 0
         assert (lt["report_time"] < _bound("2025-06-01", lt["report_time"])).all()
@@ -266,7 +270,7 @@ class TestCastEndpoints:
             signals="pct_ed_visits_influenza",
             geo_type="state",
             report_time=EpiRange(one_day, one_day),
-            limit=CAST_QUERY_LIMIT,
+            fetch_args=fetch_args(limit=CAST_QUERY_LIMIT),
         ).df()
         assert len(eq) > 0
         assert (eq["report_time"].dt.date == one_day).all()
@@ -277,7 +281,7 @@ class TestCastEndpoints:
             signals="pct_ed_visits_influenza",
             geo_type="state",
             report_time=EpiRange("2025-01-01", "2025-06-01"),
-            limit=CAST_QUERY_LIMIT,
+            fetch_args=fetch_args(limit=CAST_QUERY_LIMIT),
         ).df()
         assert len(rng) > 0
         assert (rng["report_time"] >= _bound("2025-01-01", rng["report_time"])).all()

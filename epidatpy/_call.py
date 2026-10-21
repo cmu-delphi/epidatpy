@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from html import unescape
 from io import StringIO
@@ -23,6 +24,7 @@ from tenacity import retry, stop_after_attempt
 
 from ._auth import _get_api_key
 from ._constants import HTTP_HEADERS
+from ._fetch_args import FetchArgs
 from ._model import (
     ApiVersion,
     CastPostFilter,
@@ -134,7 +136,7 @@ class EpiDataCall:
     _params: Final[Mapping[str, EpiRangeParam | None]]
     _api_version: Final[ApiVersion]
     _post_filter: Final[CastPostFilter | None]
-    _return_empty: Final[bool]
+    _fetch_args: Final[FetchArgs]
     _session: Final[Session | None]
     meta: Final[Sequence[EpidataFieldInfo]]
     meta_by_name: Final[Mapping[str, EpidataFieldInfo]]
@@ -153,14 +155,14 @@ class EpiDataCall:
         cache_max_age_days: int | None = None,
         api_version: ApiVersion = "classic",
         post_filter: CastPostFilter | None = None,
-        return_empty: bool = False,
+        fetch_args: FetchArgs | None = None,
     ) -> None:
         self._base_url = base_url
         self._endpoint = endpoint
         self._params = params
         self._api_version = api_version
         self._post_filter = post_filter
-        self._return_empty = return_empty
+        self._fetch_args = fetch_args if fetch_args is not None else FetchArgs()
         self._session = session
         self.only_supports_classic = only_supports_classic
         self.meta = meta or []
@@ -255,7 +257,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
-            return_empty=self._return_empty,
+            fetch_args=self._fetch_args,
         )
 
     def with_session(self, session: Session) -> EpiDataCall:
@@ -270,10 +272,11 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
-            return_empty=self._return_empty,
+            fetch_args=self._fetch_args,
         )
 
     def _with_param(self, key: str, value: EpiRangeParam | None, *, return_empty: bool | None = None) -> EpiDataCall:
+        options = self._fetch_args if return_empty is None else replace(self._fetch_args, return_empty=return_empty)
         return EpiDataCall(
             self._base_url,
             self._session,
@@ -285,7 +288,7 @@ class EpiDataCall:
             cache_max_age_days=self.cache_max_age_days,
             api_version=self._api_version,
             post_filter=self._post_filter,
-            return_empty=self._return_empty if return_empty is None else return_empty,
+            fetch_args=options,
         )
 
     def _call(
@@ -446,7 +449,7 @@ class EpiDataCall:
                 ]
                 combined = concat(frames, ignore_index=True)
                 combined.attrs = frames[0].attrs
-                if not self._return_empty:
+                if not self._fetch_args.return_empty:
                     # Per-request frames are already locally filtered, so the
                     # combined frame stands in for both the fetched and the
                     # filtered result here.
@@ -550,7 +553,7 @@ class EpiDataCall:
             geo_values, reference_time = self._post_filter
             df = cast_filter(df, geo_values=geo_values, reference_time=reference_time)
 
-        if fetched is not None and not self._return_empty:
+        if fetched is not None and not self._fetch_args.return_empty:
             self._check_cast_empty(fetched, df)
 
         if self._api_version == "cast" and self._endpoint in ("snapshot/", "archive/"):
