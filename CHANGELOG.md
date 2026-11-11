@@ -27,6 +27,10 @@
 
 ### Fixes
 
+- `epidata_aux()` merged onto a snapshot or archive now warns with
+  `UnmatchedAuxWarning` when some rows have no matching aux row, whose aux
+  columns are then missing values.
+- The missing-API-key warning states the anonymous V5 rate limits.
 - Requests are retried (3 tries in all) after a connection failure, a 500, 502,
   503 or 504, or a 429 that comes with a `Retry-After`, and now time out after
   15 minutes of silence instead of never. A `Retry-After` longer than
