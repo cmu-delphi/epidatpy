@@ -42,6 +42,11 @@
   the columns are selected locally, and calls with different `fields` share one
   cache entry.
 
+### Documentation
+
+- The `fill_method` values are `"source"`, `"ave"`, and `"zero"`; the docs said
+  `"fill_ave"` and `"fill_zero"`, which the server rejects.
+
 ## 0.7.0
 
 ### Breaking changes
