@@ -733,6 +733,12 @@ class EpiDataCall:
             for info in time_fields:
                 if info.type == EpidataFieldType.epiweek:
                     continue
+                if (
+                    info.type == EpidataFieldType.date_or_epiweek
+                    and df[info.name].dropna().str.fullmatch(r"\d{6}").any()
+                ):
+                    # A column with any epiweeks (YYYYWW) stays a string, like an epiweek column, rather than half-parsing.
+                    continue
                 if info.type == EpidataFieldType.epoch_seconds:
                     df[info.name] = to_datetime(df[info.name], unit="s", utc=True)
                     continue
@@ -754,7 +760,7 @@ class EpiDataCall:
                 if not parsed:
                     # Last resort: let pandas infer (slower but flexible).
                     try:
-                        df[info.name] = to_datetime(df[info.name])
+                        df[info.name] = to_datetime(df[info.name], format="mixed")
                     except (ValueError, TypeError):
                         pass
 

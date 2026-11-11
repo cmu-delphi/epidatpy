@@ -6,6 +6,7 @@ import json
 import warnings
 from collections.abc import Callable
 
+import pandas as pd
 import pytest
 
 from epidatpy import (
@@ -91,3 +92,20 @@ def test_complete_response_is_silent(fake_server: Callable[..., FakeServer]) -> 
         warnings.simplefilter("error", (DroppedMetaFieldsWarning, EpiDataWarning))
         df = _call(fake_server, {"result": 1, "message": "success", "epidata": [full]}).df()
     assert len(df) == 1
+
+
+@pytest.mark.filterwarnings("ignore:.*V4 Epidata API")
+@pytest.mark.parametrize(
+    ("issues", "is_date"),
+    [(["201719", "202615"], False), (["20240311", "20240503"], True), (["20240311", "202615"], False)],
+)
+def test_date_or_epiweek_column_parses_by_what_it_holds(
+    fake_server: Callable[..., FakeServer], issues: list[str], is_date: bool
+) -> None:
+    rows = [{"issue": i, "epiweek": 201701, "location": "CA"} for i in issues]
+    fake_server(lambda url, params: json.dumps({"result": 1, "message": "success", "epidata": rows}))
+    with warnings.catch_warnings(record=True) as record:
+        warnings.simplefilter("always")
+        df = EpiDataContext(use_cache=False).pub_flusurv("CA", "201701").df()
+    assert not [w for w in record if "Could not infer format" in str(w.message)]
+    assert pd.api.types.is_datetime64_any_dtype(df["issue"]) is is_date
