@@ -59,3 +59,28 @@ def test_fixed_past_snapshot_is_cached_but_latest_is_not(monkeypatch: pytest.Mon
     for _ in range(2):
         ctx.epidata_snapshot("nssp", "a", "state", return_empty=True).df()
     assert len(fetches) == 3
+
+
+def test_refresh_cache_refetches_and_rewrites_the_same_entry(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(_call, "CACHE_DIRECTORY", str(tmp_path))
+    bodies = iter([b"geo_value,value\nca,1\n", b"geo_value,value\nca,2\n"])
+    fetches = 0
+
+    def fake_call(self: _call.EpiDataCall, *args: Any, **kwargs: Any) -> _call.Response:
+        nonlocal fetches
+        fetches += 1
+        res = _call.Response()
+        res.status_code = 200
+        res._content = next(bodies)
+        return res
+
+    monkeypatch.setattr(_call.EpiDataCall, "_call", fake_call)
+    call = EpiDataContext(use_cache=True).epidata_snapshot("nssp", "a", "state", snapshot_date=_OLD, return_empty=True)
+
+    assert call.df()["value"].tolist() == [1]
+    assert call.df()["value"].tolist() == [1]
+    assert fetches == 1
+    assert call.df(refresh_cache=True)["value"].tolist() == [2]
+    assert fetches == 2
+    assert call.df()["value"].tolist() == [2]
+    assert fetches == 2

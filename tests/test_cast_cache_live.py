@@ -59,8 +59,9 @@ def live_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Live
     yield state
 
 
-def _snapshot(cache: LiveCache, **kwargs: Any) -> pd.DataFrame:
-    return cache.ctx().epidata_snapshot(**NHSN, snapshot_date="2025-06-01", limit=-1, **kwargs).df()
+def _snapshot(cache: LiveCache, refresh_cache: bool = False, **kwargs: Any) -> pd.DataFrame:
+    call = cache.ctx().epidata_snapshot(**NHSN, snapshot_date="2025-06-01", limit=-1, **kwargs)
+    return call.df(refresh_cache=refresh_cache)
 
 
 def _archive(cache: LiveCache, **kwargs: Any) -> pd.DataFrame:
@@ -77,6 +78,12 @@ def test_past_snapshot_date_is_cached_and_read_back_unchanged(live_cache: LiveCa
     assert live_cache.requests == 1
     pd.testing.assert_frame_equal(second, first)
     assert second.attrs == first.attrs
+
+    # refresh_cache goes back to the server and rewrites the same entry.
+    refreshed = _snapshot(live_cache, refresh_cache=True)
+    assert live_cache.requests == 2
+    assert live_cache.entries() == 1
+    pd.testing.assert_frame_equal(refreshed, first)
 
 
 def test_past_report_time_archive_is_cached_and_read_back_unchanged(live_cache: LiveCache) -> None:
