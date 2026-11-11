@@ -1,0 +1,10 @@
+/* Notebook outputs scroll inside their own box instead of widening or lengthening the page. */
+div.cell_output {
+    max-height: 30em;
+    overflow: auto;
+}
+
+div.cell_output table.dataframe {
+    font-size: 0.85em;
+    white-space: nowrap;
+}
