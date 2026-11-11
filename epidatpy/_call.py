@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from html import unescape
 from io import StringIO
 from os import environ
-from re import DOTALL, IGNORECASE, findall, sub
+from re import DOTALL, IGNORECASE, compile, findall, sub
 from typing import (
     Any,
     Final,
@@ -22,7 +22,7 @@ from requests.auth import HTTPBasicAuth
 from tenacity import retry, stop_after_attempt
 
 from ._auth import _get_api_key
-from ._constants import HTTP_HEADERS
+from ._constants import HTTP_HEADERS, __version__
 from ._model import (
     ApiVersion,
     CastPostFilter,
@@ -56,6 +56,41 @@ if environ.get("USE_EPIDATPY_CACHE", None):
         f"The cache directory is {CACHE_DIRECTORY}. "
         f"The TTL is set to {environ.get('EPIDATPY_CACHE_MAX_AGE_DAYS', '7')} days."
     )
+
+_ISO_DATE_RE = compile(r"(?<![\d.])\d{4}-\d{2}-\d{2}(?!\d)")
+
+
+def _version_dates(text: str) -> list[date]:
+    """The valid `YYYY-MM-DD` dates in a version bound such as ``<2025-01-01T13:45:00Z``."""
+    dates = []
+    for token in _ISO_DATE_RE.findall(text):
+        try:
+            dates.append(datetime.strptime(token, "%Y-%m-%d").date())
+        except ValueError:
+            continue
+    return dates
+
+
+def _is_fixed_past_version(params: Mapping[str, Any]) -> bool:
+    """Whether a cast request asks for a version that can no longer change, so its result may be cached.
+
+    That means a `snapshot_date`, or a `report_time_query` that is `<date` or a `from:to` range,
+    at least two days ago in UTC. "Latest", open-ended, and row-limited requests are never cached.
+    """
+    if params.get("limit") not in (None, -1, "-1"):
+        return False
+    snapshot_date = params.get("snapshot_date")
+    report_time = params.get("report_time_query")
+    if snapshot_date:
+        dates = _version_dates(str(snapshot_date))
+    elif report_time:
+        text = str(report_time)
+        dates = _version_dates(text)
+        if text.startswith(">") or len(dates) < (1 if text.startswith("<") else 2):
+            return False
+    else:
+        return False
+    return bool(dates) and max(dates) < datetime.now(timezone.utc).date() - timedelta(days=1)
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -385,11 +420,28 @@ class EpiDataCall:
             stacklevel=3,
         )
 
-    def _get_cache_key(self, method: str) -> str:
-        cache_key = f"{self._endpoint} | {self._api_version} | {method}"
+    def _get_cache_key(self, method: str, fields: Sequence[str] | None = None, variant: str = "") -> str:
+        cache_key = f"{__version__} | {self._base_url} | {self._endpoint} | {self._api_version} | {method} | {fields!s} | {variant}"
         if self._params:
             cache_key += f" | {dict(sorted(self._params.items()))!s}"
         return cache_key
+
+    def _cast_csv_body(self, fields: Sequence[str] | None) -> str:
+        """Fetch a cast response as CSV text, from the cache when the request is a fixed past version."""
+        cacheable = self.use_cache and _is_fixed_past_version(self._params)
+        cache_key = self._get_cache_key("csv", fields)
+        if cacheable:
+            with Cache(CACHE_DIRECTORY) as cache:
+                cached = cache.get(cache_key)
+            if cached is not None:
+                return cast(str, cached)
+        response = self._call(fields, extra_params={"format": "csv"})
+        _raise_for_status(response)
+        body = response.text
+        if cacheable and body.strip():
+            with Cache(CACHE_DIRECTORY) as cache:
+                cache.set(cache_key, body, expire=self.cache_max_age_days * 24 * 60 * 60)
+        return body
 
     def classic(
         self,
@@ -400,7 +452,7 @@ class EpiDataCall:
         """Request and parse epidata in CLASSIC message format."""
         if self.use_cache:
             with Cache(CACHE_DIRECTORY) as cache:
-                cache_key = self._get_cache_key("classic")
+                cache_key = self._get_cache_key("classic", fields, str(disable_date_parsing))
                 if cache_key in cache:
                     return cast(EpiDataResponse, cache[cache_key])
         response = self._call(fields)
@@ -416,7 +468,7 @@ class EpiDataCall:
                 r["epidata"] = [self._parse_row(row, disable_date_parsing=disable_date_parsing) for row in epidata]
             if self.use_cache:
                 with Cache(CACHE_DIRECTORY) as cache:
-                    cache_key = self._get_cache_key("classic")
+                    cache_key = self._get_cache_key("classic", fields, str(disable_date_parsing))
                     cache.set(cache_key, r, expire=self.cache_max_age_days * 24 * 60 * 60)
             return r
         except Exception as e:  # noqa: BLE001 - intentional catch-all
@@ -467,20 +519,19 @@ class EpiDataCall:
                     self._check_cast_empty(combined, combined)
                 return combined
 
-        if self.use_cache:
+        # Classic results are cached as parsed frames; cast results cache the raw CSV below.
+        df_cache_key = self._get_cache_key("df", fields, str(disable_date_parsing))
+        if self.use_cache and self._api_version != "cast":
             with Cache(CACHE_DIRECTORY) as cache:
-                cache_key = self._get_cache_key("df")
-                if cache_key in cache:
-                    return cast(DataFrame, cache[cache_key])
+                if df_cache_key in cache:
+                    return cast(DataFrame, cache[df_cache_key])
 
         pred = fields_to_predicate(fields)
         columns: list[str] = [info.name for info in self.meta if pred(info.name)]
         fetched: DataFrame | None = None
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
-            response = self._call(fields, extra_params={"format": "csv"})
-            _raise_for_status(response)
-            body = response.text
+            body = self._cast_csv_body(fields)
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
                 # Keep meta columns in order, plus any undeclared response columns (e.g. aux values).
@@ -567,10 +618,9 @@ class EpiDataCall:
                     except (ValueError, TypeError):
                         pass
 
-        if self.use_cache:
+        if self.use_cache and self._api_version != "cast":
             with Cache(CACHE_DIRECTORY) as cache:
-                cache_key = self._get_cache_key("df")
-                cache.set(cache_key, df, expire=self.cache_max_age_days * 24 * 60 * 60)
+                cache.set(df_cache_key, df, expire=self.cache_max_age_days * 24 * 60 * 60)
 
         if self._post_filter is not None:
             geo_values, reference_time = self._post_filter

@@ -20,6 +20,14 @@
 - The POST fallback for a 414 (URI too long) response now sends the
   parameters in the form body; before, it repeated them in the URL and failed
   the same way.
+- The cache now keeps only cast results for a fixed past version: a
+  `snapshot_date`, or a `report_time` of the form `"<date"` or an `EpiRange`,
+  ending at least two days ago (UTC). "Latest" and open-ended queries and
+  calls with a row `limit` are not cached, so they no longer go stale for days.
+  It stores the raw response and parses it on every read (so a cache hit is
+  filtered and checked like a fresh result), and the cache key now includes the
+  epidatpy version and the server URL. Existing cast cache entries are
+  ignored.
 
 ## 0.7.0
 
