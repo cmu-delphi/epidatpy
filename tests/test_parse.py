@@ -66,7 +66,7 @@ def test_format_report_time_bound() -> None:
     assert format_report_time_bound("2025-10-16T13:45:00Z") == "2025-10-16T13:45:00Z"
     # Naive datetimes are assumed UTC; aware ones are converted.
     assert (
-        format_report_time_bound(datetime.datetime(2025, 10, 16, 13, 45))  # noqa: DTZ001
+        format_report_time_bound(datetime.datetime(2025, 10, 16, 13, 45))
         == "2025-10-16T13:45:00Z"
     )
     tz = datetime.timezone(datetime.timedelta(hours=-5))
