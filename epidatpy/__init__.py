@@ -2,6 +2,7 @@
 
 # Make the linter happy about the unused variables
 __all__ = [
+    "CacheInfo",
     "CovidcastEpidata",
     "DroppedMetaFieldsWarning",
     "EmptyResultWarning",
@@ -16,10 +17,13 @@ __all__ = [
     "UnmatchedAuxWarning",
     "__version__",
     "available_endpoints",
+    "cache_info",
+    "clear_cache",
 ]
 __author__ = "Delphi Research Group"
 
 
+from ._call import CacheInfo, cache_info, clear_cache
 from ._constants import __version__
 from ._model import (
     DroppedMetaFieldsWarning,
