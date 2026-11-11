@@ -79,7 +79,8 @@ def _request_with_retry(
     def call_impl(s: Session) -> Response:
         res = s.get(url, params=params, headers=headers, stream=stream, auth=auth)
         if res.status_code == 414:
-            return s.post(url, params=params, headers=headers, stream=stream, auth=auth)
+            # The URL was too long, so send the parameters in the form body instead.
+            return s.post(url, data=params, headers=headers, stream=stream, auth=auth)
         return res
 
     if session:

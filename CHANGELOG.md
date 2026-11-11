@@ -15,6 +15,12 @@
 - Cast snapshot/archive responses with columns the client doesn't declare
   warn, like epidatr; those columns are kept as strings.
 
+### Fixes
+
+- The POST fallback for a 414 (URI too long) response now sends the
+  parameters in the form body; before, it repeated them in the URL and failed
+  the same way.
+
 ## 0.7.0
 
 ### Breaking changes
