@@ -15,6 +15,7 @@ from epidatpy import (
     EpiDataContext,
     EpiDataWarning,
     MalformedResponseError,
+    UnknownCategoryWarning,
 )
 from epidatpy._call import EpiDataCall
 
@@ -109,3 +110,13 @@ def test_date_or_epiweek_column_parses_by_what_it_holds(
         df = EpiDataContext(use_cache=False).pub_flusurv("CA", "201701").df()
     assert not [w for w in record if "Could not infer format" in str(w.message)]
     assert pd.api.types.is_datetime64_any_dtype(df["issue"]) is is_date
+
+
+@pytest.mark.filterwarnings("ignore:.*V4 Epidata API", "ignore::epidatpy.DroppedMetaFieldsWarning")
+def test_unknown_categorical_value_warns_and_is_kept(fake_server: Callable[..., FakeServer]) -> None:
+    rows = [{"time_type": "day", "geo_type": "state"}, {"time_type": "hour", "geo_type": "state"}]
+    fake_server(lambda url, params: json.dumps({"result": 1, "message": "success", "epidata": rows}))
+    call = EpiDataContext(use_cache=False).pub_covidcast("src", "sig", "state", "day", "ca", [20200101])
+    with pytest.warns(UnknownCategoryWarning, match=r"`time_type`.*\['hour'\]"):
+        df = call.df()
+    assert df["time_type"].tolist() == ["day", "hour"]

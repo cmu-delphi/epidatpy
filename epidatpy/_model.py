@@ -149,6 +149,10 @@ class UnmatchedAuxWarning(UserWarning):
     """Some rows had no matching auxiliary row, so their aux columns are missing values."""
 
 
+class UnknownCategoryWarning(UserWarning):
+    """A categorical column held values outside its declared categories; they are kept as extra categories."""
+
+
 class EmptyResultWarning(UserWarning):
     """A cast-API query returned no rows, or the local filters dropped them all."""
 

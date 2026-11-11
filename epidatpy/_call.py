@@ -41,6 +41,7 @@ from ._model import (
     MalformedResponseError,
     OnlySupportsClassicFormatException,
     StringParam,
+    UnknownCategoryWarning,
     add_endpoint_to_url,
     cast_filter,
     format_list,
@@ -706,8 +707,19 @@ class EpiDataCall:
             if info.type == EpidataFieldType.bool:
                 data_types[info.name] = bool
             elif info.type == EpidataFieldType.categorical:
+                categories = list(info.categories)
+                if categories:
+                    unknown = sorted(set(df[info.name].dropna()) - set(categories))
+                    if unknown:
+                        warnings.warn(
+                            f"Column `{info.name}` has values outside its declared categories {unknown}; "
+                            "they are kept as extra categories.",
+                            UnknownCategoryWarning,
+                            stacklevel=3,
+                        )
+                        categories += unknown
                 data_types[info.name] = CategoricalDtype(
-                    categories=Series(info.categories) if info.categories else None,
+                    categories=Series(categories) if categories else None,
                     ordered=True,
                 )
             elif info.type == EpidataFieldType.int:
