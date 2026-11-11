@@ -35,7 +35,6 @@ dependencies = [
     "epiweeks>=2.1",
     "pandas>=2",
     "requests>=2.25",
-    "tenacity>=9.0.0",
 ]
 
 [project.optional-dependencies]

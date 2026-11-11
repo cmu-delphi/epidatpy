@@ -27,6 +27,12 @@
 
 ### Fixes
 
+- Requests are retried (3 tries in all) after a connection failure, a 500, 502,
+  503 or 504, or a 429 that comes with a `Retry-After`, and now time out after
+  15 minutes of silence instead of never. A `Retry-After` longer than
+  `EPIDATPY_MAX_RETRY_WAIT` seconds (default 60) is never waited on: the call
+  fails at once with the server's message, which now also says when the server
+  suggests retrying. This replaces the `tenacity` dependency.
 - The POST fallback for a 414 (URI too long) response now sends the
   parameters in the form body; before, it repeated them in the URL and failed
   the same way.
