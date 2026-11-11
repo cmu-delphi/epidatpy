@@ -261,7 +261,9 @@ class TestCastEndpoints:
         # inferred key filters keep the aux pull small.
         base = (
             _ctx()
-            .epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed", geo_values="135", limit=CAST_QUERY_LIMIT)
+            .epidata_snapshot(
+                source="nwss", signals="covid_avg_conc", geo_type="sewershed", geo_values="135", limit=CAST_QUERY_LIMIT
+            )
             .df()
         )
         if len(base) == 0:

@@ -104,7 +104,11 @@ def test_different_queries_get_separate_entries_and_fields_share_one(live_cache:
 
     # `fields` selects columns locally, so a subset reuses the cached response and
     # must not change what a full read returns.
-    subset = live_cache.ctx().epidata_snapshot(**NHSN, snapshot_date="2025-06-01", limit=-1).df(fields=["geo_value", "value"])
+    subset = (
+        live_cache.ctx()
+        .epidata_snapshot(**NHSN, snapshot_date="2025-06-01", limit=-1)
+        .df(fields=["geo_value", "value"])
+    )
     assert list(subset.columns) == ["geo_value", "value"]
     assert live_cache.entries() == 2
     assert live_cache.requests == 2

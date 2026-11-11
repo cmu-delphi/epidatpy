@@ -223,7 +223,7 @@ _GRANULARITY_RE = re.compile(r"(?:\d{4}-\d{2}-\d{2}|\d{8}|\d{6})(?!\d)")
 
 
 def _granularity(item: object) -> str | None:
-    """"day" or "week" for one date-like value, or None when it can't be told (such as "*")."""
+    """ "day" or "week" for one date-like value, or None when it can't be told (such as "*")."""
     from ._model import EpiRange  # avoid circular import
 
     if isinstance(item, EpiRange):

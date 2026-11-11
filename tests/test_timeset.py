@@ -16,13 +16,23 @@ pytestmark = pytest.mark.filterwarnings("ignore:.*uses the V4 Epidata API")
 @pytest.mark.parametrize(
     "value",
     ["*", 202001, "202001", [202001, 202002], Week(2020, 1), EpiRange(202001, 202005), "202001-202005", None]
-    + [date(2020, 1, 1), 20200101, "2020-01-01", [20200101, 20200102], EpiRange(20200101, 20200201), "20200101,20200102"],
+    + [
+        date(2020, 1, 1),
+        20200101,
+        "2020-01-01",
+        [20200101, 20200102],
+        EpiRange(20200101, 20200201),
+        "20200101,20200102",
+    ],
 )
 def test_uniform_timesets_pass(value: object) -> None:
     check_timeset("x", value)
 
 
-@pytest.mark.parametrize("value", [[202001, 20200101], "202001,20200101", [Week(2020, 1), date(2020, 1, 1)], [EpiRange(202001, 202002), 20200101]])
+@pytest.mark.parametrize(
+    "value",
+    [[202001, 20200101], "202001,20200101", [Week(2020, 1), date(2020, 1, 1)], [EpiRange(202001, 202002), 20200101]],
+)
 def test_mixed_timesets_raise(value: object) -> None:
     with pytest.raises(InvalidArgumentException, match="mixes day"):
         check_timeset("x", value)
