@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- Python 3.11 or newer is required (it was 3.9). CI tests 3.11 through 3.14.
+
 ### New features
 
 - Failed requests raise `EpiDataHTTPError`, a `requests.HTTPError` subclass,

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -94,7 +94,7 @@ def test_epidata_aux_base_pull_snapshot_date_latest() -> None:
     ctx = EpiDataContext()
     call = ctx.epidata_aux("nwss", snapshot_date="latest")
     _, params = call.request_arguments()
-    assert params["snapshot_date"] == datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+    assert params["snapshot_date"] == datetime.now(UTC).date().strftime("%Y-%m-%d")
     assert "report_time_query" not in params
 
 
