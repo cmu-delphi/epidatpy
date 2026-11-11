@@ -230,7 +230,8 @@ class EpiDataCall:
         fields: Sequence[str] | None = None,
     ) -> Mapping[str, str]:
         all_params = dict(self._params)
-        if fields:
+        # The cast API rejects unknown parameters; `df()` selects the columns locally instead.
+        if fields and self._api_version != "cast":
             all_params["fields"] = fields
         return {k: format_list(v) for k, v in all_params.items() if v is not None}
 
@@ -429,7 +430,7 @@ class EpiDataCall:
     def _cast_csv_body(self, fields: Sequence[str] | None) -> str:
         """Fetch a cast response as CSV text, from the cache when the request is a fixed past version."""
         cacheable = self.use_cache and _is_fixed_past_version(self._params)
-        cache_key = self._get_cache_key("csv", fields)
+        cache_key = self._get_cache_key("csv")
         if cacheable:
             with Cache(CACHE_DIRECTORY) as cache:
                 cached = cache.get(cache_key)
