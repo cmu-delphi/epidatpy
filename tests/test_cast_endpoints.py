@@ -209,8 +209,8 @@ class TestCastEndpoints:
                 report_time="2025-10-16",
             )
 
-    def test_epidata_snapshot_local_filters(self) -> None:
-        # Local geo + reference_time filter should narrow rows without hitting the server twice.
+    def test_epidata_snapshot_filters(self) -> None:
+        # The geo + reference_time filters are applied by the server.
         df = (
             EpiDataContext()
             .epidata_snapshot(

@@ -1,13 +1,16 @@
 """Offline tests for how EpiDataContext builds cast-API requests."""
 
 from collections.abc import Callable, Mapping
+from datetime import date
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
+from epiweeks import Week
 
 from epidatpy import EmptyResultWarning, EpiDataContext, EpiRange, InvalidArgumentException
 from epidatpy._call import EpiDataCall
+from epidatpy._parse import format_reference_times
 
 from .conftest import FakeServer
 
@@ -78,11 +81,42 @@ def test_unknown_geo_type_raises(fake_server: Callable[..., FakeServer]) -> None
         EpiDataContext(use_cache=False).epidata_archive("nssp", "a", "moon").df()
 
 
-def test_local_filter_dropping_everything_warns(fake_server: Callable[..., FakeServer]) -> None:
-    fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
-    with pytest.warns(EmptyResultWarning, match="local `geo_values`/`reference_time` filter"):
-        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state", geo_values="zz").df()
-    assert len(df) == 0
+def test_geo_and_reference_filters_are_sent_to_the_server(fake_server: Callable[..., FakeServer]) -> None:
+    server = fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
+    ctx = EpiDataContext(use_cache=False)
+    ctx.epidata_snapshot("nssp", "a", "state", geo_values=["ca", "ny"], reference_time=EpiRange("2025-01-01", "2025-06-01")).df()
+    ctx.epidata_archive("nssp", "a", "state", geo_values="ca, ny", reference_time=">=2025-01-01").df()
+    snapshot, archive = (p for u, p in server.requests if "metadata" not in u)
+    assert snapshot["geo_value"] == "ca,ny"
+    assert snapshot["reference_times"] == "2025-01-01:2025-06-01"
+    assert archive["geo_value"] == "ca,ny"
+    assert archive["reference_times"] == ">=2025-01-01"
+
+
+def test_wildcards_send_no_filter(fake_server: Callable[..., FakeServer]) -> None:
+    server = fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
+    EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
+    params = next(p for u, p in server.requests if "metadata" not in u)
+    assert "geo_value" not in params
+    assert "reference_times" not in params
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("*", None),
+        (None, None),
+        (date(2025, 1, 1), "2025-01-01:2025-01-01"),
+        (20250101, "2025-01-01:2025-01-01"),
+        (Week(2025, 3), "2025-01-12:2025-01-12"),
+        (EpiRange(Week(2025, 1), Week(2025, 3)), "2024-12-29:2025-01-12"),
+        ([date(2025, 1, 1), ">=2025-06-01", date(2025, 1, 1)], "2025-01-01:2025-01-01,>=2025-06-01"),
+        (["2025-01-01:2025-02-01"], "2025-01-01:2025-02-01"),
+        (["*", date(2025, 1, 1)], None),
+    ],
+)
+def test_format_reference_times(value: object, expected: str | None) -> None:
+    assert format_reference_times(value) == expected
 
 
 def test_return_empty_silences_diagnostics(
