@@ -150,12 +150,14 @@ class TestCastEndpoints:
         ctx = EpiDataContext()
         df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
+        assert df.attrs == {"cast_source": source, "cast_kind": "snapshot"}
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
         ctx = EpiDataContext()
         df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
+        assert df.attrs == {"cast_source": source, "cast_kind": "archive"}
 
     def test_epidata_snapshot_key_filters(self) -> None:
         # Extra key filters are applied server-side via `extra_keys`.
