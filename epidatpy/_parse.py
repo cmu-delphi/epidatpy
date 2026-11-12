@@ -1,6 +1,3 @@
-# The API deals in naive civil dates (e.g. "20210101"), not timestamps, so
-# `datetime.strptime()` without a timezone is intentional throughout this file.
-# ruff: noqa: DTZ007
 from __future__ import annotations
 
 import re

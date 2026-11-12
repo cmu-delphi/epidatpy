@@ -3,11 +3,13 @@ server's own message for both the classic (V4) and cast (V5) APIs."""
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from requests import HTTPError, Response
 
 from epidatpy import EpiDataHTTPError
-from epidatpy._call import _raise_for_status
+from epidatpy._call import _raise_for_status, _request_with_retry
 from epidatpy.request import EpiDataContext
 
 
@@ -75,3 +77,24 @@ def test_raise_for_status_error_attributes() -> None:
 
 def test_raise_for_status_passes_success() -> None:
     _raise_for_status(_response("ok", 200, "text/plain"))
+
+
+def test_414_falls_back_to_post_with_params_in_body() -> None:
+    class FakeSession:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, Any]]] = []
+
+        def get(self, url: str, **kwargs: Any) -> Response:
+            self.calls.append(("GET", kwargs))
+            return _response("", 414, "text/plain")
+
+        def post(self, url: str, **kwargs: Any) -> Response:
+            self.calls.append(("POST", kwargs))
+            return _response("{}", 200, "application/json")
+
+    session = FakeSession()
+    res = _request_with_retry("https://x/y", {"a": "1"}, session)  # type: ignore[arg-type]
+    assert res.status_code == 200
+    assert [c[0] for c in session.calls] == ["GET", "POST"]
+    assert session.calls[1][1]["data"] == {"a": "1"}
+    assert "params" not in session.calls[1][1]
