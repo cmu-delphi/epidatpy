@@ -28,6 +28,9 @@
   filtered and checked like a fresh result), and the cache key now includes the
   epidatpy version and the server URL. Existing cast cache entries are
   ignored.
+- `fields` on the cast endpoints no longer makes the request fail with a 422;
+  the columns are selected locally, and calls with different `fields` share one
+  cache entry.
 
 ## 0.7.0
 
