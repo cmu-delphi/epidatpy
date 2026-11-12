@@ -165,3 +165,17 @@ def test_pub_covidcast_meta_last_update_is_utc_datetime(fake_server: Callable[..
     assert df["last_update"][0].isoformat() == "2025-10-16T13:45:00+00:00"
     row = call.classic()["epidata"][0]
     assert row["last_update"].isoformat() == "2025-10-16T13:45:00+00:00"
+
+
+def test_key_filters_are_sent_as_extra_keys() -> None:
+    ctx = EpiDataContext()
+    snap = ctx.epidata_snapshot("nwss", "a", "sewershed", pcr_target="sars-cov-2", sample_index=["1", "2"])
+    assert _params(snap.request_url())["extra_keys"] == ["pcr_target:sars-cov-2,sample_index:1,sample_index:2"]
+    arch = ctx.epidata_archive("nwss", "a", "sewershed", pcr_target="sars-cov-2")
+    assert _params(arch.request_url())["extra_keys"] == ["pcr_target:sars-cov-2"]
+    for call in (
+        ctx.epidata("nwss", "a", "sewershed", pcr_target="sars-cov-2"),
+        ctx.epidata("nwss", "a", "sewershed", report_time="<2025-01-01", pcr_target="sars-cov-2"),
+    ):
+        assert _params(call.request_url())["extra_keys"] == ["pcr_target:sars-cov-2"]
+    assert "extra_keys" not in _params(ctx.epidata_snapshot("nwss", "a", "sewershed").request_url())

@@ -7,6 +7,9 @@
 - Failed requests raise `EpiDataHTTPError`, a `requests.HTTPError` subclass,
   so existing handlers keep working. It exposes the server's message as
   `.message`, plus `.status_code` and `.url`.
+- `epidata_snapshot()`, `epidata_archive()`, and `epidata()` accept named
+  filters on the source's extra key columns as keyword arguments (e.g.
+  `pcr_target="sars-cov-2"`), sent server-side as `extra_keys`.
 
 ## 0.7.0
 

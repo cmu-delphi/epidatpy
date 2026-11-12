@@ -1843,6 +1843,7 @@ class EpiDataContext:
         snapshot_date: str | date | datetime | int | None = None,
         limit: int | None = None,
         return_empty: bool = False,
+        **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall:
         """Fetch a snapshot of V5 signals as they appeared at `snapshot_date`.
 
@@ -1881,9 +1882,18 @@ class EpiDataContext:
             Cap on the rows the server returns; ``None`` (default) or ``-1``
             means no limit. The query has no stable sort order, so `limit`
             does not guarantee the same rows (or count) across calls. Use it
-            to preview or debug a query, not as a filter.
+            to preview or debug a query, not as a filter. `limit` applies on
+            the server, before the local `geo_values`/`reference_time`
+            filters, so combining them can return fewer rows than exist, or
+            none.
         return_empty : bool
             Return an empty frame silently instead of diagnosing it.
+        **key_filters : Union[str, date, Sequence[Union[str, date]]]
+            Named filters on the source's extra key columns, such as
+            ``pcr_target="sars-cov-2"`` or ``sample_index=["a", "b"]``. Each
+            key accepts one or more values (matched as OR) and is sent
+            server-side as the ``extra_keys`` parameter. Passing more than 10
+            values for a key warns, since the request URL may get too long.
 
         Returns
         -------
@@ -1920,6 +1930,7 @@ class EpiDataContext:
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
                 "limit": _validate_limit(limit),
+                "extra_keys": _serialize_key_filters(key_filters),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -1938,6 +1949,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = "*",
         limit: int | None = None,
         return_empty: bool = False,
+        **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall:
         """Fetch the full revision history of V5 signals.
 
@@ -1975,6 +1987,9 @@ class EpiDataContext:
             Cap on the rows the server returns; see :meth:`epidata_snapshot`.
         return_empty : bool
             Return an empty frame silently instead of diagnosing it.
+        **key_filters : Union[str, date, Sequence[Union[str, date]]]
+            Named filters on the source's extra key columns; see
+            :meth:`epidata_snapshot`.
         """
         report_time_str = validate_report_time_query(report_time)
 
@@ -1989,6 +2004,7 @@ class EpiDataContext:
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
                 "limit": _validate_limit(limit),
+                "extra_keys": _serialize_key_filters(key_filters),
             },
             _cast_signal_fields(),
             api_version="cast",
@@ -2008,6 +2024,7 @@ class EpiDataContext:
         report_time: str | EpiRange | None = None,
         limit: int | None = None,
         return_empty: bool = False,
+        **key_filters: str | date | Sequence[str | date],
     ) -> EpiDataCall:
         """Fetch V5 signals, routing on the versioning argument supplied.
 
@@ -2031,6 +2048,7 @@ class EpiDataContext:
                 report_time=report_time if report_time is not None else "*",
                 limit=limit,
                 return_empty=return_empty,
+                **key_filters,
             )
         return self.epidata_snapshot(
             source=source,
@@ -2042,6 +2060,7 @@ class EpiDataContext:
             snapshot_date=snapshot_date,
             limit=limit,
             return_empty=return_empty,
+            **key_filters,
         )
 
     def epidata_aux(
