@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from pytest import MonkeyPatch
 
-import epidatpy._endpoints as endpoints
+import epidatpy._call as call_module
 from epidatpy import EpiDataContext
 
 META_PAYLOAD = {
@@ -36,7 +36,7 @@ def _stub_request(monkeypatch: MonkeyPatch) -> None:
             return _FakeResponse(META_PAYLOAD)
         return _FakeResponse({source: META_PAYLOAD[source]} if source in META_PAYLOAD else {})
 
-    monkeypatch.setattr(endpoints, "_request_with_retry", fake_request)
+    monkeypatch.setattr(call_module, "_request_with_retry", fake_request)
 
 
 def test_no_source_returns_full_mapping() -> None:
