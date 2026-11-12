@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -12,7 +12,7 @@ from epidatpy import _call
 from epidatpy._call import _is_fixed_past_version
 from epidatpy.request import EpiDataContext
 
-_TODAY = datetime.now(timezone.utc).date()
+_TODAY = datetime.now(UTC).date()
 _OLD = (_TODAY - timedelta(days=10)).isoformat()
 _OLDER = (_TODAY - timedelta(days=20)).isoformat()
 _RECENT = (_TODAY - timedelta(days=1)).isoformat()

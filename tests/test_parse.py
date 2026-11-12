@@ -10,7 +10,7 @@ from epidatpy._parse import format_report_time_bound, parse_api_datetimetz, vali
 
 def test_parse_api_datetimetz() -> None:
     parsed = parse_api_datetimetz("2025-10-16T13:45:00Z")
-    assert parsed == datetime.datetime(2025, 10, 16, 13, 45, tzinfo=datetime.timezone.utc)
+    assert parsed == datetime.datetime(2025, 10, 16, 13, 45, tzinfo=datetime.UTC)
     assert parse_api_datetimetz(None) is None
 
 

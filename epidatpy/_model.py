@@ -23,12 +23,12 @@ from ._parse import parse_user_date_or_week
 
 GeoType = Literal["nation", "msa", "hrr", "hhs", "hsa_nci", "dma", "state", "county"]
 TimeType = Literal["day", "week"]
-EpiDateLike = Union[int, str, date, Week]
+EpiDateLike = int | str | date | Week
 EpiRangeDict = TypedDict("EpiRangeDict", {"from": EpiDateLike, "to": EpiDateLike})
 EpiRangeLike = Union[int, str, "EpiRange", EpiRangeDict, date, Week]
-EpiRangeParam = Union[EpiRangeLike, Sequence[EpiRangeLike]]
-StringParam = Union[str, Sequence[str]]
-IntParam = Union[int, Sequence[int]]
+EpiRangeParam = EpiRangeLike | Sequence[EpiRangeLike]
+StringParam = str | Sequence[str]
+IntParam = int | Sequence[int]
 
 
 class EpiDataResponse(TypedDict):
@@ -164,7 +164,7 @@ ApiVersion = Literal["classic", "cast"]
 
 # (geo_values, reference_time) — passed straight to cast_filter.
 CastPostFilter = tuple[
-    Union[str, Sequence[str]],
+    str | Sequence[str],
     Union[str, "EpiRangeParam"],
 ]
 

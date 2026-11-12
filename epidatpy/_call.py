@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from html import unescape
 from io import StringIO
 from os import environ
@@ -90,7 +90,7 @@ def _is_fixed_past_version(params: Mapping[str, Any]) -> bool:
             return False
     else:
         return False
-    return bool(dates) and max(dates) < datetime.now(timezone.utc).date() - timedelta(days=1)
+    return bool(dates) and max(dates) < datetime.now(UTC).date() - timedelta(days=1)
 
 
 @retry(reraise=True, stop=stop_after_attempt(2))
@@ -277,7 +277,7 @@ class EpiDataCall:
         if meta.type == EpidataFieldType.epiweek and not disable_date_parsing:
             return parse_api_week(value)
         if meta.type == EpidataFieldType.epoch_seconds and not disable_date_parsing:
-            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+            return datetime.fromtimestamp(float(value), tz=UTC)
         if meta.type == EpidataFieldType.datetimetz and not disable_date_parsing:
             return parse_api_datetimetz(str(value))
         if meta.type == EpidataFieldType.bool:

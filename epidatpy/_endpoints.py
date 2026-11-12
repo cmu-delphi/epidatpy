@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import (
     Any,
     Final,
@@ -2157,7 +2157,7 @@ class EpiDataContext:
             raise InvalidArgumentException("`snapshot_date` and `report_time` are mutually exclusive.")
 
         if snapshot_date == "latest":
-            snapshot_date = datetime.now(timezone.utc).date()
+            snapshot_date = datetime.now(UTC).date()
 
         if snapshot_date is None:
             snapshot_date_str: str | None = None

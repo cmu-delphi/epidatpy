@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Sequence
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Literal
 
 from epiweeks import Week
@@ -35,7 +35,7 @@ def parse_api_datetimetz(value: str | None) -> datetime | None:
     """Parse a cast-API UTC timestamp such as ``2025-10-16T13:45:00Z`` to an aware datetime."""
     if value is None:
         return None
-    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).astimezone(timezone.utc)
+    return datetime.fromisoformat(str(value)).astimezone(UTC)
 
 
 def parse_api_date_or_week(value: str | float | None) -> date | None:
@@ -98,7 +98,7 @@ def format_report_time_bound(value: str | int | date | datetime | Week) -> str |
     if isinstance(value, str) and "T" in value:
         return None
     if isinstance(value, datetime):
-        aware = value.astimezone(timezone.utc) if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        aware = value.astimezone(UTC) if value.tzinfo else value.replace(tzinfo=UTC)
         return aware.strftime("%Y-%m-%dT%H:%M:%SZ")
     if isinstance(value, Week):
         value = value.startdate()
