@@ -9,6 +9,7 @@ validation errors.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from datetime import date, datetime, timezone
 from typing import Any
@@ -78,7 +79,9 @@ def test_epidata_aux_df_keeps_undeclared_value_columns() -> None:
         resp.text = csv
         return resp
 
-    with patch("epidatpy._call._request_with_retry", fake_request):
+    with patch("epidatpy._call._request_with_retry", fake_request), warnings.catch_warnings():
+        # Aux value columns are open-ended, so they don't trigger the undeclared-columns warning.
+        warnings.simplefilter("error")
         df = EpiDataContext().epidata_aux("nwss", report_time="<2024-06-01").df()
 
     assert "population_served" in df.columns

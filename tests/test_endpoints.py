@@ -12,7 +12,10 @@ from epidatpy._call import EpiDataCall
 from .conftest import FakeServer
 
 CSV_HEADER = "signal,report_time,geo_type,geo_value,fill_method,reference_time,value"
-META_JSON = '{"nssp": {"signals": ["a", "b"], "geo_types": ["state", "hhs"]}}'
+META_JSON = (
+    '{"nssp": {"signals": ["a", "b"], "geo_types": ["state", "hhs"], '
+    '"reference_time_range": {"first": "2022-10-01", "latest": "2026-09-12"}}}'
+)
 
 
 def _params(url: str) -> dict[str, list[str]]:
@@ -33,9 +36,20 @@ def _meta_or(csv_fn: Callable[[Mapping[str, str]], str]) -> Callable[[str, Mappi
 
 def test_empty_result_warns(fake_server: Callable[..., FakeServer]) -> None:
     fake_server(_meta_or(lambda params: ""))
-    with pytest.warns(EmptyResultWarning, match="No data returned for source 'nssp'"):
+    with pytest.warns(EmptyResultWarning, match="No data returned for source 'nssp'") as record:
         df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
     assert len(df) == 0
+    assert "reference_time range: 2022-10-01 to 2026-09-12" in str(record[0].message)
+
+
+def test_undeclared_columns_warn(fake_server: Callable[..., FakeServer]) -> None:
+    def csv(params: Mapping[str, str]) -> str:
+        return f"{CSV_HEADER},new_col\na,2025-10-16T00:00:00Z,state,ca,source,2025-10-01,1.5,x"
+
+    fake_server(_meta_or(csv))
+    with pytest.warns(UserWarning, match=r"Unspecified fields \['new_col'\]"):
+        df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", "a", "state").df()
+    assert df["new_col"].iloc[0] == "x"
 
 
 def test_partially_empty_result_names_missing_signals(fake_server: Callable[..., FakeServer]) -> None:

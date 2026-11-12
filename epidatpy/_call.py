@@ -327,9 +327,11 @@ class EpiDataCall:
         # An unknown source comes back as the raw response, not its entry.
         return entry if isinstance(entry, dict) and "signals" in entry else None
 
-    def _unknown_cast_keys(self, source: str, signals: list[str], geo_types: list[str]) -> list[str]:
+    @staticmethod
+    def _unknown_cast_keys(
+        meta: Mapping[str, Any] | None, source: str, signals: list[str], geo_types: list[str]
+    ) -> list[str]:
         """Sentences naming the requested signals and geo types that `source`'s metadata does not list."""
-        meta = self._cast_source_meta(source) if signals or geo_types else None
         if meta is None:
             return []
         problems = []
@@ -357,12 +359,16 @@ class EpiDataCall:
         if not empty_signals and not empty_geo_types and len(result) > 0:
             return
 
-        unknown = self._unknown_cast_keys(source, empty_signals, empty_geo_types)
+        meta = self._cast_source_meta(source) if empty_signals or empty_geo_types or len(fetched) == 0 else None
+        unknown = self._unknown_cast_keys(meta, source, empty_signals, empty_geo_types)
         if len(result) == 0 and unknown:
             raise InvalidArgumentException(" ".join(unknown))
 
         if len(fetched) == 0:
             message = f"No data returned for source {source!r}, signals {signals}, geo_type {geo_types}."
+            ref_range = meta.get("reference_time_range") if meta else None
+            if isinstance(ref_range, dict) and ref_range.get("first") and ref_range.get("latest"):
+                message += f" Source {source!r}'s reference_time range: {ref_range['first']} to {ref_range['latest']}."
         elif len(result) == 0:
             message = (
                 f"The server returned {len(fetched)} rows but the local `geo_values`/`reference_time` "
@@ -480,6 +486,14 @@ class EpiDataCall:
                 meta_names = {info.name for info in self.meta}
                 cols_in_df = [c for c in columns if c in df.columns]
                 extras = [c for c in df.columns if c not in meta_names and pred(c)]
+                if extras and self._endpoint != "aux_data/":
+                    # Aux value columns are open-ended, so only warn for snapshot/archive.
+                    warnings.warn(
+                        f"Not all return columns are specified as expected epidata fields. "
+                        f"Unspecified fields {extras} are returned as strings and may need manual conversion.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
                 df = df[cols_in_df + extras]
             else:
                 df = DataFrame(columns=columns or None)
