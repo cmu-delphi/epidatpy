@@ -161,7 +161,7 @@ def test_pub_covidcast_meta_last_update_is_utc_datetime(fake_server: Callable[..
     fake_server(lambda url, params: body)
     call = EpiDataContext(use_cache=False).pub_covidcast_meta()
     df = call.df()
-    assert pd.api.types.is_datetime64tz_dtype(df["last_update"])
+    assert isinstance(df["last_update"].dtype, pd.DatetimeTZDtype)
     assert df["last_update"][0].isoformat() == "2025-10-16T13:45:00+00:00"
     row = call.classic()["epidata"][0]
     assert row["last_update"].isoformat() == "2025-10-16T13:45:00+00:00"

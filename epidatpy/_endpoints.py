@@ -2277,7 +2277,7 @@ def _cast_signal_fields() -> Sequence[EpidataFieldInfo]:
     """Fields for CAST snapshot/archive responses; extras are skipped if absent."""
     return [
         EpidataFieldInfo("signal", EpidataFieldType.text),
-        EpidataFieldInfo("report_time", EpidataFieldType.date),
+        EpidataFieldInfo("report_time", EpidataFieldType.datetimetz),
         EpidataFieldInfo("geo_type", EpidataFieldType.text),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
         EpidataFieldInfo("fill_method", EpidataFieldType.text),
@@ -2300,7 +2300,7 @@ def _aux_fields() -> Sequence[EpidataFieldInfo]:
     through untyped (as strings). Extend for new aux sources whose keys differ.
     """
     return [
-        EpidataFieldInfo("report_time", EpidataFieldType.date),
+        EpidataFieldInfo("report_time", EpidataFieldType.datetimetz),
         EpidataFieldInfo("geo_value", EpidataFieldType.text),
         EpidataFieldInfo("reference_time", EpidataFieldType.date),
         EpidataFieldInfo("nwss_source", EpidataFieldType.text),

@@ -44,6 +44,7 @@ from ._parse import (
     fields_to_predicate,
     parse_api_date,
     parse_api_date_or_week,
+    parse_api_datetimetz,
     parse_api_week,
 )
 
@@ -226,6 +227,8 @@ class EpiDataCall:
             return parse_api_week(value)
         if meta.type == EpidataFieldType.epoch_seconds and not disable_date_parsing:
             return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        if meta.type == EpidataFieldType.datetimetz and not disable_date_parsing:
+            return parse_api_datetimetz(str(value))
         if meta.type == EpidataFieldType.bool:
             return bool(value)
         return value
@@ -499,6 +502,7 @@ class EpiDataCall:
                 EpidataFieldType.date,
                 EpidataFieldType.epiweek,
                 EpidataFieldType.date_or_epiweek,
+                EpidataFieldType.datetimetz,
             ):
                 data_types[info.name] = "string"
                 time_fields.append(info)
@@ -517,6 +521,9 @@ class EpiDataCall:
                     continue
                 if info.type == EpidataFieldType.epoch_seconds:
                     df[info.name] = to_datetime(df[info.name], unit="s", utc=True)
+                    continue
+                if info.type == EpidataFieldType.datetimetz:
+                    df[info.name] = to_datetime(df[info.name], format="ISO8601", utc=True)
                     continue
                 # Try known date formats in priority order; keep as string if all
                 # fail. The try/except is needed because the time field might be

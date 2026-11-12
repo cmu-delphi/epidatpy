@@ -112,7 +112,8 @@ def _assert_cast_frame(ctx: EpiDataContext, source: str, df: pd.DataFrame) -> No
     """
     assert len(df) > 0
     assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
-    assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+    assert isinstance(df["report_time"].dtype, pd.DatetimeTZDtype)
+    assert str(df["report_time"].dt.tz) == "UTC"
 
     keys = ctx.epidata_meta(source=source)["key_columns"]
     absent = [c for c in keys if c not in df.columns]
@@ -121,10 +122,9 @@ def _assert_cast_frame(ctx: EpiDataContext, source: str, df: pd.DataFrame) -> No
     assert not na.any(), f"{source}: missing values in key columns: {na[na > 0].to_dict()}"
 
 
-def _bound(value: str, series: pd.Series) -> pd.Timestamp:
-    """`value` as a UTC instant, matched to the series' tz-awareness."""
-    ts = pd.Timestamp(value, tz="UTC")
-    return ts if series.dt.tz is not None else ts.tz_localize(None)
+def _bound(value: str) -> pd.Timestamp:
+    """`value` as a UTC instant, comparable with a `report_time` column."""
+    return pd.Timestamp(value, tz="UTC")
 
 
 @pytest.mark.live
@@ -230,7 +230,7 @@ class TestCastEndpoints:
         # report-time history for every matching row, which is slow and large.
         df = EpiDataContext().epidata_aux("nwss", sample_index="5886455", pcr_target="sars-cov-2").df()
         assert len(df) > 0
-        assert pd.api.types.is_datetime64_any_dtype(df["report_time"])
+        assert isinstance(df["report_time"].dtype, pd.DatetimeTZDtype)
         assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
         assert set(df["sample_index"].unique()) == {"5886455"}
 
@@ -263,7 +263,7 @@ class TestCastEndpoints:
             source="nssp", signals="pct_ed_visits_influenza", geo_type="state", snapshot_date="2025-01-01"
         ).df()
         assert len(snap) > 0
-        assert (snap["report_time"] <= _bound("2025-01-01", snap["report_time"])).all()
+        assert (snap["report_time"] <= _bound("2025-01-01")).all()
 
         lt = ctx.epidata_archive(
             source="nssp",
@@ -273,7 +273,7 @@ class TestCastEndpoints:
             limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(lt) > 0
-        assert (lt["report_time"] < _bound("2025-06-01", lt["report_time"])).all()
+        assert (lt["report_time"] < _bound("2025-06-01")).all()
 
         # A single-day EpiRange pins report_time to that one day.
         one_day = lt["report_time"].max().date()
@@ -296,5 +296,5 @@ class TestCastEndpoints:
             limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(rng) > 0
-        assert (rng["report_time"] >= _bound("2025-01-01", rng["report_time"])).all()
-        assert (rng["report_time"] <= _bound("2025-06-01", rng["report_time"])).all()
+        assert (rng["report_time"] >= _bound("2025-01-01")).all()
+        assert (rng["report_time"] <= _bound("2025-06-01")).all()
