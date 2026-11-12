@@ -6,6 +6,7 @@ from __future__ import annotations
 import pytest
 from requests import HTTPError, Response
 
+from epidatpy import EpiDataHTTPError
 from epidatpy._call import _raise_for_status
 from epidatpy.request import EpiDataContext
 
@@ -58,3 +59,19 @@ def test_df_cast_surfaces_server_message(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr("epidatpy._call._request_with_retry", lambda *a, **k: res)
     with pytest.raises(HTTPError, match="invalid signal"):
         EpiDataContext().epidata_snapshot("nssp", "bad_sig", "state").df()
+
+
+def test_raise_for_status_error_attributes() -> None:
+    res = _response('{"detail": [{"msg": "field required"}, {"loc": ["x"]}]}', 422, "application/json")
+    with pytest.raises(EpiDataHTTPError) as excinfo:
+        _raise_for_status(res)
+    err = excinfo.value
+    assert isinstance(err, HTTPError)
+    assert err.status_code == 422
+    assert err.message == "field required"
+    assert err.url == "https://api.delphi.cmu.edu/epidata/test"
+    assert err.response is res
+
+
+def test_raise_for_status_passes_success() -> None:
+    _raise_for_status(_response("ok", 200, "text/plain"))

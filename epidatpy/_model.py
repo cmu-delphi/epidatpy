@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
 
 from epiweeks import Week
+from requests import HTTPError, Response
 
 from ._parse import parse_user_date_or_week
 
@@ -101,6 +102,22 @@ class EpiRange:
 
 class InvalidArgumentException(Exception):
     """exception for an invalid argument"""
+
+
+class EpiDataHTTPError(HTTPError):
+    """An API request failed with an HTTP error status.
+
+    A `requests.HTTPError`, so existing handlers keep working. `message` is the
+    server's own error text, or `None` if the body had none.
+    """
+
+    def __init__(self, response: Response, message: str | None) -> None:
+        self.status_code: int = response.status_code
+        self.message = message
+        self.url: str = response.url
+        kind = "Client" if response.status_code < 500 else "Server"
+        reason = f"{response.status_code} {kind} Error: {response.reason} for url: {response.url}"
+        super().__init__(f"{reason}: {message}" if message else reason, response=response)
 
 
 class OnlySupportsClassicFormatException(Exception):

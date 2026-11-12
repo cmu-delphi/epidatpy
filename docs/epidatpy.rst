@@ -86,4 +86,5 @@ Configuration and utilities
 .. autoclass:: epidatpy.EpiRange
 
 .. autoexception:: epidatpy.InvalidArgumentException
+.. autoexception:: epidatpy.EpiDataHTTPError
 .. autoexception:: epidatpy.EmptyResultWarning
