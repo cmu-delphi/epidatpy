@@ -28,13 +28,17 @@ from ._constants import HTTP_HEADERS, __version__
 from ._model import (
     ApiVersion,
     CastPostFilter,
+    DroppedMetaFieldsWarning,
     EmptyResultWarning,
+    EpiDataAPIError,
     EpidataFieldInfo,
     EpidataFieldType,
     EpiDataHTTPError,
     EpiDataResponse,
+    EpiDataWarning,
     EpiRangeParam,
     InvalidArgumentException,
+    MalformedResponseError,
     OnlySupportsClassicFormatException,
     StringParam,
     add_endpoint_to_url,
@@ -240,6 +244,37 @@ def _raise_for_status(response: Response) -> None:
         message = _error_body_message(response)
         hint = _retry_hint(response)
         raise EpiDataHTTPError(response, " ".join(part for part in (message, hint) if part) or None)
+
+
+def _parse_classic_envelope(response: Response) -> EpiDataResponse:
+    """Parse a classic response body, raising `MalformedResponseError` if it is not a valid envelope."""
+    # The query string is dropped because it can hold the API key.
+    url = response.url.split("?")[0]
+    try:
+        body = response.json()
+    except ValueError as e:
+        raise MalformedResponseError(f"The API response could not be parsed as JSON (request: {url}): {e}") from e
+    if not isinstance(body, dict):
+        raise MalformedResponseError(f"Malformed response envelope: expected a JSON object (request: {url})")
+    result, message = body.get("result"), body.get("message")
+    if isinstance(result, bool) or not isinstance(result, int) or not isinstance(message, str):
+        raise MalformedResponseError(
+            f"Malformed response envelope: `result` must be an integer and `message` a string (request: {url})"
+        )
+    if result in (1, 2) and body.get("epidata") is None:
+        raise MalformedResponseError(
+            f"Malformed response envelope: `result` is {result} but `epidata` is missing (request: {url})"
+        )
+    return cast(EpiDataResponse, body)
+
+
+def _check_epidata_result(envelope: EpiDataResponse) -> None:
+    """Raise on an API-level error and warn on a non-success message; "no results" (-2) is not an error."""
+    result, message = envelope["result"], envelope["message"]
+    if result not in (1, 2, -2):
+        raise EpiDataAPIError(result, message)
+    if message != "success":
+        warnings.warn(f"epidata warning: {message}", EpiDataWarning, stacklevel=3)
 
 
 def fetch_cast_meta(base_url: str, session: Session | None, source: str | None = None) -> Any:
@@ -543,8 +578,8 @@ class EpiDataCall:
         # Raised, not buried in the result dict: an HTTP error means no data came
         # back, and df() would otherwise hand back a silently empty frame.
         _raise_for_status(response)
+        r = _parse_classic_envelope(response)
         try:
-            r = cast(EpiDataResponse, response.json())
             if disable_type_parsing:
                 return r
             epidata = r.get("epidata")
@@ -636,7 +671,18 @@ class EpiDataCall:
             fetched = df
         else:
             json = self.classic(fields, disable_type_parsing=True)
+            _check_epidata_result(json)
             rows = json.get("epidata", [])
+            if rows and not fields and isinstance(rows[0], dict):
+                present = {key for row in rows for key in row}
+                dropped = [info.name for info in self.meta if info.name not in present]
+                if dropped:
+                    warnings.warn(
+                        f"Expected fields {dropped} were not in the response. "
+                        "The API may have changed; they are filled with missing values.",
+                        DroppedMetaFieldsWarning,
+                        stacklevel=2,
+                    )
             df = DataFrame(rows, columns=columns or None)
 
         data_types: dict[str, Any] = {}

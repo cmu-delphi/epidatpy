@@ -33,6 +33,13 @@
   `EPIDATPY_MAX_RETRY_WAIT` seconds (default 60) is never waited on: the call
   fails at once with the server's message, which now also says when the server
   suggests retrying. This replaces the `tenacity` dependency.
+- Classic (V4) endpoints no longer turn a bad response into an empty frame.
+  `.df()` raises `EpiDataAPIError` for an error envelope (e.g. `result` -1),
+  and both `.df()` and `.classic()` raise `MalformedResponseError` for a body
+  that is not JSON or lacks `result`, `message`, or `epidata`. A non-success
+  `message` (a truncated result, "no results") warns with `EpiDataWarning`, and
+  columns the endpoint promises but the response lacks warn with
+  `DroppedMetaFieldsWarning` and are filled with missing values.
 - The POST fallback for a 414 (URI too long) response now sends the
   parameters in the form body; before, it repeated them in the URL and failed
   the same way.

@@ -124,6 +124,27 @@ class OnlySupportsClassicFormatException(Exception):
     """the endpoint only supports the classic message format, due to an non-standard behavior"""
 
 
+class MalformedResponseError(Exception):
+    """The API answered 200 but the body was not JSON, or lacked the expected `result`/`message`/`epidata`."""
+
+
+class EpiDataAPIError(Exception):
+    """The API reported an error in its response envelope (a `result` other than 1, 2, or -2)."""
+
+    def __init__(self, result: int, message: str) -> None:
+        self.result = result
+        self.message = message
+        super().__init__(f"epidata error: {message}")
+
+
+class EpiDataWarning(UserWarning):
+    """The API reported a non-success `message` alongside data, such as a truncated result."""
+
+
+class DroppedMetaFieldsWarning(UserWarning):
+    """A classic response lacked columns the endpoint promises; they are filled with missing values."""
+
+
 class EmptyResultWarning(UserWarning):
     """A cast-API query returned no rows, or the local filters dropped them all."""
 
