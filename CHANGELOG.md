@@ -8,6 +8,11 @@
 
 ### New features
 
+- `.df()`, `.classic()`, and calling an endpoint accept `refresh_cache=True` to
+  skip the cache read and replace the cached entry with a fresh response.
+- Classic responses with a categorical value outside the field's declared
+  categories now warn (`UnknownCategoryWarning`) and keep the value as an extra
+  category instead of silently turning it into a missing value.
 - `epidata_snapshot()`, `epidata_archive()`, and `epidata()` send `geo_values`
   and `reference_time` to the server as the `geo_value` and `reference_times`
   filters instead of filtering the response locally. `reference_time` also
@@ -27,6 +32,10 @@
 
 ### Fixes
 
+- `.df()` keeps a `date_or_epiweek` column as strings when any value is an
+  epiweek (#38). Before, `pub_covidcast_meta()` returned `min_time` as strings
+  but `max_time` as half-parsed dates, and `pub_flusurv()`'s `issue` was
+  misparsed or warned.
 - Classic endpoints now raise `InvalidArgumentException` when a timeset mixes
   day (`YYYYMMDD`) and week (`YYYYWW`) values, when a week-only parameter such
   as `epiweeks` or `issues` of `pub_fluview()` gets dates (before, it returned
