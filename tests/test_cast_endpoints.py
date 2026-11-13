@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from epidatpy import EpiDataContext, EpiRange, InvalidArgumentException
+from epidatpy import EpiDataContext, EpiDataHTTPError, EpiRange, InvalidArgumentException
 from epidatpy._constants import CAST_BASE_URL
 
 auth = os.environ.get("DELPHI_EPIDATA_KEY", "")
@@ -28,6 +28,11 @@ cast_base_url = os.environ.get("EPIDATPY_CAST_BASE_URL") or CAST_BASE_URL
 # the query has no stable sort order, so which rows come back varies per call.
 CAST_QUERY_LIMIT = 500
 
+
+def _ctx() -> EpiDataContext:
+    return EpiDataContext(cast_base_url=cast_base_url)
+
+
 # (source, signal, geo_type) — kept in sync with R's `cast_queries`.
 # Commented-out rows mirror the R suite's TODOs; uncomment when server-side
 # row limits / data backfills allow.
@@ -35,7 +40,7 @@ CAST_QUERIES = [
     ("nssp", "pct_ed_visits_influenza", "state"),
     ("nssp", "pct_ed_visits_influenza", "hhs"),
     ("nssp", "pct_ed_visits_covid", "nation"),
-    # ("nssp", "pct_ed_visits_influenza", "county"),  # ignored: server times out, even with `limit`
+    ("nssp", "pct_ed_visits_influenza", "county"),
     ("nhsn", "confirmed_admissions_flu_ew", "state"),
     ("nhsn", "confirmed_admissions_flu_ew", "hhs"),
     ("nhsn", "confirmed_admissions_flu_ew", "nation"),
@@ -133,12 +138,12 @@ class TestCastEndpoints:
     """Live network tests for the CAST API."""
 
     def test_epidata_meta_all_sources(self) -> None:
-        meta = EpiDataContext().epidata_meta()
+        meta = _ctx().epidata_meta()
         assert isinstance(meta, dict)
         assert {q[0] for q in CAST_QUERIES}.issubset(meta)
 
     def test_epidata_meta_per_source(self) -> None:
-        ctx = EpiDataContext()
+        ctx = _ctx()
         for src in sorted({q[0] for q in CAST_QUERIES}):
             source_meta = ctx.epidata_meta(source=src)
             assert isinstance(source_meta, dict), f"metadata response missing source {src!r}"
@@ -147,14 +152,26 @@ class TestCastEndpoints:
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_snapshot(self, source: str, signal: str, geo_type: str) -> None:
-        ctx = EpiDataContext()
+        ctx = _ctx()
         df = ctx.epidata_snapshot(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
         assert df.attrs == {"cast_source": source, "cast_kind": "snapshot"}
+        # Sources with an aux schema (currently nwss): merging aux data onto one row keeps
+        # that row and appends aux columns.
+        try:
+            has_aux = bool(ctx._aux_key_columns(source))
+        except EpiDataHTTPError:  # the server rejects sources with no aux table
+            has_aux = False
+        if has_aux:
+            small = df.head(1)
+            merged = ctx.epidata_aux(small)
+            assert isinstance(merged, pd.DataFrame)
+            assert len(merged) == 1
+            assert len(merged.columns) > len(small.columns)
 
     @pytest.mark.parametrize("source,signal,geo_type", CAST_QUERIES)
     def test_epidata_archive(self, source: str, signal: str, geo_type: str) -> None:
-        ctx = EpiDataContext()
+        ctx = _ctx()
         df = ctx.epidata_archive(source=source, signals=signal, geo_type=geo_type, limit=CAST_QUERY_LIMIT).df()
         _assert_cast_frame(ctx, source, df)
         assert df.attrs == {"cast_source": source, "cast_kind": "archive"}
@@ -162,7 +179,7 @@ class TestCastEndpoints:
     def test_epidata_snapshot_key_filters(self) -> None:
         # Extra key filters are applied server-side via `extra_keys`.
         df = (
-            EpiDataContext()
+            _ctx()
             .epidata_snapshot(
                 source="nwss",
                 signals="covid_avg_conc",
@@ -179,8 +196,10 @@ class TestCastEndpoints:
         # nssp has data for both "state" and "hhs"; one request is issued per
         # geo_type and the results are combined into a single DataFrame.
         df = (
-            EpiDataContext()
-            .epidata_snapshot(source="nssp", signals="pct_ed_visits_influenza", geo_type=["state", "hhs"])
+            _ctx()
+            .epidata_snapshot(
+                source="nssp", signals="pct_ed_visits_influenza", geo_type=["state", "hhs"], limit=CAST_QUERY_LIMIT
+            )
             .df()
         )
         assert len(df) > 0
@@ -190,18 +209,19 @@ class TestCastEndpoints:
     def test_epidata_router_dispatch(self) -> None:
         # `snapshot_date="*"` routes to archive (no report_time sent);
         # verify the archive's `report_time` column comes back.
-        ctx = EpiDataContext()
+        ctx = _ctx()
         df = ctx.epidata(
             source="nssp",
             signals="pct_ed_visits_influenza",
             geo_type="state",
             snapshot_date="*",
+            limit=CAST_QUERY_LIMIT,
         ).df()
         assert "report_time" in df.columns
 
     def test_epidata_mutually_exclusive_report_time_and_snapshot_date(self) -> None:
         with pytest.raises(InvalidArgumentException):
-            EpiDataContext().epidata(
+            _ctx().epidata(
                 source="nssp",
                 signals="pct_ed_visits_influenza",
                 geo_type="state",
@@ -212,7 +232,7 @@ class TestCastEndpoints:
     def test_epidata_snapshot_filters(self) -> None:
         # The geo + reference_time filters are applied by the server.
         df = (
-            EpiDataContext()
+            _ctx()
             .epidata_snapshot(
                 source="nssp",
                 signals="pct_ed_visits_influenza",
@@ -230,7 +250,7 @@ class TestCastEndpoints:
     def test_epidata_aux_base_pull(self) -> None:
         # Narrow to a single real site: an unfiltered pull returns the full
         # report-time history for every matching row, which is slow and large.
-        df = EpiDataContext().epidata_aux("nwss", sample_index="5886455", pcr_target="sars-cov-2").df()
+        df = _ctx().epidata_aux("nwss", sample_index="5886455", pcr_target="sars-cov-2").df()
         assert len(df) > 0
         assert isinstance(df["report_time"].dtype, pd.DatetimeTZDtype)
         assert pd.api.types.is_datetime64_any_dtype(df["reference_time"])
@@ -240,13 +260,13 @@ class TestCastEndpoints:
         # One sewershed keeps the base to a few sample sites, so the merge's
         # inferred key filters keep the aux pull small.
         base = (
-            EpiDataContext()
-            .epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed", geo_values="135")
+            _ctx()
+            .epidata_snapshot(source="nwss", signals="covid_avg_conc", geo_type="sewershed", geo_values="135", limit=CAST_QUERY_LIMIT)
             .df()
         )
         if len(base) == 0:
             pytest.skip("no nwss snapshot data available to merge onto")
-        merged = EpiDataContext().epidata_aux(base)
+        merged = _ctx().epidata_aux(base)
         assert isinstance(merged, pd.DataFrame)
         assert len(merged) == len(base)
         assert set(base.columns).issubset(set(merged.columns))
@@ -259,10 +279,14 @@ class TestCastEndpoints:
         """Mirrors epidatr's "cast versioning args reach the server": the
         `snapshot_date` / `report_time` bounds are applied server-side, not
         silently dropped."""
-        ctx = EpiDataContext(cast_base_url=cast_base_url)
+        ctx = _ctx()
 
         snap = ctx.epidata_snapshot(
-            source="nssp", signals="pct_ed_visits_influenza", geo_type="state", snapshot_date="2025-01-01"
+            source="nssp",
+            signals="pct_ed_visits_influenza",
+            geo_type="state",
+            snapshot_date="2025-01-01",
+            limit=CAST_QUERY_LIMIT,
         ).df()
         assert len(snap) > 0
         assert (snap["report_time"] <= _bound("2025-01-01")).all()
