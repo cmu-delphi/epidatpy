@@ -126,7 +126,12 @@ ROWS: list[Any] = [
 
 
 def _assert_meta_dtypes(df: pd.DataFrame, call: Any) -> None:
-    """Every returned column has the dtype its field type promises. Dates may stay strings if unparseable."""
+    """Every returned column has the dtype its field type promises. Dates may stay strings if unparseable.
+
+    A date_or_epiweek column parsed as dates is checked against the unparsed response: if the server sent any
+    epiweek (YYYYWW) in it, parsing would turn 201719 into 2017-01-09, so the column must have stayed a string.
+    """
+    raw: pd.DataFrame | None = None
     for info in call.meta:
         if info.name not in df.columns:
             continue
@@ -140,8 +145,16 @@ def _assert_meta_dtypes(df: pd.DataFrame, call: Any) -> None:
                 ok = str(col.dtype) == "bool"
             case EpidataFieldType.categorical:
                 ok = isinstance(col.dtype, pd.CategoricalDtype)
-            case EpidataFieldType.date | EpidataFieldType.date_or_epiweek:
+            case EpidataFieldType.date:
                 ok = str(col.dtype) == "string" or pd.api.types.is_datetime64_any_dtype(col)
+            case EpidataFieldType.date_or_epiweek:
+                ok = str(col.dtype) == "string"
+                if pd.api.types.is_datetime64_any_dtype(col):
+                    if raw is None:
+                        raw = call.df(disable_date_parsing=True)
+                    epiweeks = raw[info.name].dropna().str.fullmatch(r"\d{6}")
+                    assert not epiweeks.any(), f"column `{info.name}` holds epiweeks but was parsed as dates"
+                    ok = True
             case EpidataFieldType.epoch_seconds | EpidataFieldType.datetimetz:
                 ok = pd.api.types.is_datetime64_any_dtype(col)
             case _:
