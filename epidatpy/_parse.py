@@ -175,3 +175,45 @@ def fields_to_predicate(
         else:
             to_include.add(f)
     return lambda f: f not in to_exclude and (not to_include or f in to_include)
+
+
+def format_geo_values(geo_values: str | Sequence[str] | None) -> str | None:
+    """Format `geo_values` as the cast-API `geo_value` filter, or None to keep every location."""
+    from ._model import split_list  # avoid circular import
+
+    if geo_values is None:
+        return None
+    values = [v.strip() for v in split_list(geo_values) if v.strip()]
+    if not values or "*" in values:
+        return None
+    return ",".join(values)
+
+
+def format_reference_times(reference_time: object) -> str | None:
+    """Format `reference_time` as the cast-API `reference_times` filter, or None for no filter.
+
+    Plain dates, epiweeks and `EpiRange` become ``from:to`` ranges (a single
+    date is a one-day range). Strings starting with a comparison operator or
+    containing ``:`` are passed through for the server to validate. Several
+    values are OR'd by the server.
+    """
+    from ._model import EpiRange  # avoid circular import
+
+    def day(value: date | Week) -> date:
+        return value.startdate() if isinstance(value, Week) else value
+
+    def one(item: object) -> str:
+        if isinstance(item, EpiRange):
+            return f"{day(item.start):%Y-%m-%d}:{day(item.end):%Y-%m-%d}"
+        if isinstance(item, str) and (item.startswith(("<", ">", "=")) or ":" in item):
+            return item.strip()
+        # `type: ignore` because the item is any user-supplied date-like value.
+        d = day(parse_user_date_or_week(item))  # type: ignore[arg-type]
+        return f"{d:%Y-%m-%d}:{d:%Y-%m-%d}"
+
+    if reference_time is None or reference_time == "*":
+        return None
+    items = [reference_time] if isinstance(reference_time, (str, int, date, Week, EpiRange)) else list(reference_time)  # type: ignore[call-overload]
+    if not items or "*" in items:
+        return None
+    return ",".join(dict.fromkeys(one(i) for i in items))

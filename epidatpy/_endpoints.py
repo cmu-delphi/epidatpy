@@ -30,7 +30,13 @@ from ._model import (
     add_endpoint_to_url,
     format_list,
 )
-from ._parse import format_report_time_bound, parse_user_date_or_week, validate_report_time_query
+from ._parse import (
+    format_geo_values,
+    format_reference_times,
+    format_report_time_bound,
+    parse_user_date_or_week,
+    validate_report_time_query,
+)
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -1852,11 +1858,12 @@ class EpiDataContext:
             call issues one request per value and concatenates the results.
         geo_values : StringParam
             Locations to keep, as a sequence or a comma-joined string; ``"*"``
-            (default) keeps all. Filtered locally after the request.
+            (default) keeps all. Filtered on the server.
         reference_time : EpiRangeParam
-            Reference dates to keep: a date, a sequence of dates, or an
-            :class:`~epidatpy.EpiRange`; ``"*"`` (default) keeps all. Filtered
-            locally after the request.
+            Reference dates to keep: a date, a sequence of dates, an
+            :class:`~epidatpy.EpiRange`, or a comparison string such as
+            ``">=2025-01-01"``; ``"*"`` (default) keeps all. Filtered on the
+            server.
         fill_method : str, optional
             Restrict to one imputation variant of the signal: ``"source"``
             (raw source data), ``"fill_ave"`` (nulls filled with the average
@@ -1871,10 +1878,7 @@ class EpiDataContext:
             Cap on the rows the server returns; ``None`` (default) or ``-1``
             means no limit. The query has no stable sort order, so `limit`
             does not guarantee the same rows (or count) across calls. Use it
-            to preview or debug a query, not as a filter. `limit` applies on
-            the server, before the local `geo_values`/`reference_time`
-            filters, so combining them can return fewer rows than exist, or
-            none.
+            to preview or debug a query, not as a filter.
         return_empty : bool
             Return an empty frame silently instead of diagnosing it.
         **key_filters : Union[str, date, Sequence[Union[str, date]]]
@@ -1916,6 +1920,8 @@ class EpiDataContext:
                 "source": source,
                 "signal": signal_str,
                 "geo_type": geo_type,
+                "geo_value": format_geo_values(geo_values),
+                "reference_times": format_reference_times(reference_time),
                 "fill_method": fill_method,
                 "snapshot_date": snapshot_date_str,
                 "limit": _validate_limit(limit),
@@ -1923,7 +1929,6 @@ class EpiDataContext:
             },
             _cast_signal_fields(),
             api_version="cast",
-            post_filter=(geo_values, reference_time),
             return_empty=return_empty,
         )
 
@@ -1957,10 +1962,10 @@ class EpiDataContext:
         geo_type : StringParam
             One or more geography types; one request is made per value.
         geo_values : StringParam
-            Locations to keep; ``"*"`` (default) keeps all. Filtered locally.
+            Locations to keep; ``"*"`` (default) keeps all. Filtered on the server.
         reference_time : EpiRangeParam
-            Reference dates to keep; ``"*"`` (default) keeps all. Filtered
-            locally.
+            Reference dates to keep; ``"*"`` (default) keeps all. Filtered on
+            the server.
         fill_method : str, optional
             Restrict to one imputation variant (``"source"``, ``"fill_ave"``,
             or ``"fill_zero"``); ``None`` (default) returns all.
@@ -1990,6 +1995,8 @@ class EpiDataContext:
                 "source": source,
                 "signal": signal_str,
                 "geo_type": geo_type,
+                "geo_value": format_geo_values(geo_values),
+                "reference_times": format_reference_times(reference_time),
                 "fill_method": fill_method,
                 "report_time_query": report_time_str,
                 "limit": _validate_limit(limit),
@@ -1997,7 +2004,6 @@ class EpiDataContext:
             },
             _cast_signal_fields(),
             api_version="cast",
-            post_filter=(geo_values, reference_time),
             return_empty=return_empty,
         )
 

@@ -8,6 +8,12 @@
 
 ### New features
 
+- `epidata_snapshot()`, `epidata_archive()`, and `epidata()` send `geo_values`
+  and `reference_time` to the server as the `geo_value` and `reference_times`
+  filters instead of filtering the response locally. `reference_time` also
+  accepts comparison strings such as `">=2025-01-01"`. `limit` now caps the
+  rows that match these filters; before, it capped the rows first and the local
+  filters could leave fewer, or none.
 - Failed requests raise `EpiDataHTTPError`, a `requests.HTTPError` subclass,
   so existing handlers keep working. It exposes the server's message as
   `.message`, plus `.status_code` and `.url`.
