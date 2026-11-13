@@ -217,3 +217,50 @@ def format_reference_times(reference_time: object) -> str | None:
     if not items or "*" in items:
         return None
     return ",".join(dict.fromkeys(one(i) for i in items))
+
+
+_GRANULARITY_RE = re.compile(r"(?:\d{4}-\d{2}-\d{2}|\d{8}|\d{6})(?!\d)")
+
+
+def _granularity(item: object) -> str | None:
+    """"day" or "week" for one date-like value, or None when it can't be told (such as "*")."""
+    from ._model import EpiRange  # avoid circular import
+
+    if isinstance(item, EpiRange):
+        item = item.start
+    if isinstance(item, Week):
+        return "week"
+    if isinstance(item, date):
+        return "day"
+    match = _GRANULARITY_RE.match(str(item).strip())
+    if match is None:
+        return None
+    return "week" if len(match.group()) == 6 else "day"
+
+
+def check_timeset(name: str, value: object, expected: Literal["day", "week"] | None = None) -> None:
+    """Raise `InvalidArgumentException` if a timeset mixes day and week values, or isn't all `expected`.
+
+    Weeks are `YYYYWW` (or a `Week`), days are `YYYYMMDD`, `YYYY-MM-DD`, or a `date`.
+    """
+    from ._model import EpiRange, InvalidArgumentException  # avoid circular import
+
+    if value is None:
+        return
+    if isinstance(value, str):
+        items: Sequence[object] = value.split(",")
+    elif isinstance(value, (int, date, Week, EpiRange)):
+        items = [value]
+    else:
+        items = [part for v in value for part in (v.split(",") if isinstance(v, str) else [v])]  # type: ignore[attr-defined]
+    found = {g for g in map(_granularity, items) if g is not None}
+    if len(found) > 1:
+        raise InvalidArgumentException(
+            f"`{name}` mixes day (YYYYMMDD) and week (YYYYWW) values; use one kind per parameter."
+        )
+    if expected is not None and found and found != {expected}:
+        other = next(iter(found))
+        fmt = "YYYYWW" if expected == "week" else "YYYYMMDD"
+        raise InvalidArgumentException(
+            f"`{name}` expects {expected} values ({fmt}) but got {other} values; convert them first."
+        )

@@ -27,6 +27,11 @@
 
 ### Fixes
 
+- Classic endpoints now raise `InvalidArgumentException` when a timeset mixes
+  day (`YYYYMMDD`) and week (`YYYYWW`) values, when a week-only parameter such
+  as `epiweeks` or `issues` of `pub_fluview()` gets dates (before, it returned
+  an empty result), and when `pub_wiki()` or `pvt_twitter()` get `time_values`
+  that don't match `time_type`.
 - `epidata_aux()` merged onto a snapshot or archive now warns with
   `UnmatchedAuxWarning` when some rows have no matching aux row, whose aux
   columns are then missing values.

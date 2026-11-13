@@ -32,12 +32,36 @@ from ._model import (
     format_list,
 )
 from ._parse import (
+    check_timeset,
     format_geo_values,
     format_reference_times,
     format_report_time_bound,
     parse_user_date_or_week,
     validate_report_time_query,
 )
+
+# Classic endpoints whose parameters take weeks (`YYYYWW`) only; a date there gives an empty result.
+_WEEK_ONLY_PARAMS: dict[str, tuple[str, ...]] = {
+    "cdc/": ("epiweeks",),
+    "delphi/": ("epiweek",),
+    "dengue_nowcast/": ("epiweeks",),
+    "dengue_sensors/": ("epiweeks",),
+    "ecdc_ili/": ("epiweeks", "issues"),
+    "flusurv/": ("epiweeks", "issues"),
+    "fluview/": ("epiweeks", "issues"),
+    "fluview_clinical/": ("epiweeks", "issues"),
+    "gft/": ("epiweeks",),
+    "ght/": ("epiweeks",),
+    "kcdc_ili/": ("epiweeks", "issues"),
+    "nidss_dengue/": ("epiweeks",),
+    "nidss_flu/": ("epiweeks", "issues"),
+    "norostat/": ("epiweeks",),
+    "nowcast/": ("epiweeks",),
+    "paho_dengue/": ("epiweeks", "issues"),
+    "quidel/": ("epiweeks",),
+    "sensors/": ("epiweeks",),
+}
+_TIMESET_PARAMS = ("epiweeks", "epiweek", "issues", "dates", "collection_weeks")
 
 
 def get_wildcard_equivalent_dates(time_value: EpiRangeParam, time_type: Literal["day", "week"]) -> EpiRangeParam:
@@ -168,6 +192,10 @@ class EpiDataContext:
         post_filter: CastPostFilter | None = None,
         return_empty: bool = False,
     ) -> EpiDataCall:
+        if api_version == "classic":
+            week_only = _WEEK_ONLY_PARAMS.get(endpoint, ())
+            for name in _TIMESET_PARAMS:
+                check_timeset(name, params.get(name), "week" if name in week_only else None)
         base_url = self._cast_base_url if api_version == "cast" else self._base_url
         return EpiDataCall(
             base_url,
@@ -1732,6 +1760,7 @@ class EpiDataContext:
             or YYYYWW depending on the ``time_type``.
         """
         _note_frozen_endpoint("pvt_twitter")
+        check_timeset("time_values", time_values, time_type)
 
         if time_type == "day":
             dates = time_values
@@ -1795,6 +1824,7 @@ class EpiDataContext:
             Two-letter language code.
         """
         _note_frozen_endpoint("pub_wiki")
+        check_timeset("time_values", time_values, time_type)
 
         if time_type == "day":
             dates = time_values
