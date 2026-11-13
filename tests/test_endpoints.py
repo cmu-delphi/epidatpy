@@ -84,7 +84,9 @@ def test_unknown_geo_type_raises(fake_server: Callable[..., FakeServer]) -> None
 def test_geo_and_reference_filters_are_sent_to_the_server(fake_server: Callable[..., FakeServer]) -> None:
     server = fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], params["signal"])))
     ctx = EpiDataContext(use_cache=False)
-    ctx.epidata_snapshot("nssp", "a", "state", geo_values=["ca", "ny"], reference_time=EpiRange("2025-01-01", "2025-06-01")).df()
+    ctx.epidata_snapshot(
+        "nssp", "a", "state", geo_values=["ca", "ny"], reference_time=EpiRange("2025-01-01", "2025-06-01")
+    ).df()
     ctx.epidata_archive("nssp", "a", "state", geo_values="ca, ny", reference_time=">=2025-01-01").df()
     snapshot, archive = (p for u, p in server.requests if "metadata" not in u)
     assert snapshot["geo_value"] == "ca,ny"

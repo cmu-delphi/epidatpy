@@ -104,12 +104,16 @@ def test_connection_errors_are_retried_then_raised(sleeps: list[float]) -> None:
         _send(*[RequestsConnectionError("boom")] * 3)
 
 
-@pytest.mark.parametrize(("value", "expected"), [("10", 10.0), ("-5", 0.0), ("soon", None), ("nan", None), ("inf", None), (None, None)])
+@pytest.mark.parametrize(
+    ("value", "expected"), [("10", 10.0), ("-5", 0.0), ("soon", None), ("nan", None), ("inf", None), (None, None)]
+)
 def test_retry_after_parsing(value: str | None, expected: float | None) -> None:
     assert _retry_after_seconds(_response(503, value)) == expected
 
 
 def test_http_error_says_when_the_server_suggests_retrying() -> None:
     body = '{"detail": "Try again in an hour."}'
-    with pytest.raises(EpiDataHTTPError, match=r"Try again in an hour\. The server suggests retrying in about 60 minutes\."):
+    with pytest.raises(
+        EpiDataHTTPError, match=r"Try again in an hour\. The server suggests retrying in about 60 minutes\."
+    ):
         _raise_for_status(_response(503, "3600", body))

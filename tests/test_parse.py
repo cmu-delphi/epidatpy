@@ -65,10 +65,7 @@ def test_format_report_time_bound() -> None:
     # A UTC timestamp string passes through unchanged.
     assert format_report_time_bound("2025-10-16T13:45:00Z") == "2025-10-16T13:45:00Z"
     # Naive datetimes are assumed UTC; aware ones are converted.
-    assert (
-        format_report_time_bound(datetime.datetime(2025, 10, 16, 13, 45))
-        == "2025-10-16T13:45:00Z"
-    )
+    assert format_report_time_bound(datetime.datetime(2025, 10, 16, 13, 45)) == "2025-10-16T13:45:00Z"
     tz = datetime.timezone(datetime.timedelta(hours=-5))
     assert format_report_time_bound(datetime.datetime(2025, 10, 16, 8, 45, tzinfo=tz)) == "2025-10-16T13:45:00Z"
 
