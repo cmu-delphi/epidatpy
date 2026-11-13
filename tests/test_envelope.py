@@ -67,6 +67,13 @@ def test_truncated_result_warns_and_keeps_the_rows(fake_server: Callable[..., Fa
     assert len(df) == 1
 
 
+def test_epidata_warning_points_at_the_callers_line(fake_server: Callable[..., FakeServer]) -> None:
+    call = _call(fake_server, {"result": 2, "message": "truncated", "epidata": [ROW]})
+    with pytest.warns(EpiDataWarning) as record:
+        call.df()
+    assert record[0].filename == __file__
+
+
 def test_missing_promised_columns_warn(fake_server: Callable[..., FakeServer]) -> None:
     body = {"result": 1, "message": "success", "epidata": [ROW]}
     with pytest.warns(DroppedMetaFieldsWarning, match="num_ili"):

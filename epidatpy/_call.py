@@ -262,7 +262,9 @@ def _parse_classic_envelope(response: Response) -> EpiDataResponse:
             f"Malformed response envelope: `result` must be an integer and `message` a string (request: {url})"
         )
     if result in (1, 2) and body.get("epidata") is None:
-        raise MalformedResponseError(f"Malformed response envelope: `result` is {result} but `epidata` is missing (request: {url})")
+        raise MalformedResponseError(
+            f"Malformed response envelope: `result` is {result} but `epidata` is missing (request: {url})"
+        )
     return cast(EpiDataResponse, body)
 
 
@@ -272,7 +274,7 @@ def _check_epidata_result(envelope: EpiDataResponse) -> None:
     if result not in (1, 2, -2):
         raise EpiDataAPIError(result, message)
     if message != "success":
-        warnings.warn(f"epidata warning: {message}", EpiDataWarning, stacklevel=4)
+        warnings.warn(f"epidata warning: {message}", EpiDataWarning, stacklevel=3)
 
 
 def fetch_cast_meta(base_url: str, session: Session | None, source: str | None = None) -> Any:
