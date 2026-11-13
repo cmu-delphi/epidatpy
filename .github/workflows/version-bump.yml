@@ -1,5 +1,6 @@
-# Bumps the pyproject.toml patch version on dev after each merge, unless the
-# merge already changed it. For a minor or major bump, set the version by hand
+# Bumps the pyproject.toml patch version on dev after each merge that changes
+# the epidatpy package or pyproject.toml, unless the merge already changed the
+# version. For a minor or major bump, set the version by hand
 # in the PR. See DEVELOPMENT.md "Versioning".
 name: version-bump
 
@@ -48,9 +49,21 @@ jobs:
           echo "Version before push: $old, after push: $new"
           if [ "$old" != "$new" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          # Only bump when what users install changed: the package, or
+          # pyproject.toml apart from its version line.
+          if [ -n "$(git diff --name-only "$before" "$after" -- epidatpy)" ]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! diff -q <(git show "$before:pyproject.toml" | grep -v '^version = ') \
+                       <(git show "$after:pyproject.toml" | grep -v '^version = ') > /dev/null; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "No package or pyproject.toml changes; skipping."
+          echo "skip=true" >> "$GITHUB_OUTPUT"
 
       - name: Install uv
         if: steps.check.outputs.skip == 'false'
