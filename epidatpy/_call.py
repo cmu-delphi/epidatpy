@@ -3,10 +3,12 @@ from __future__ import annotations
 import warnings
 from collections.abc import Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from html import unescape
 from io import StringIO
 from os import environ
 from re import DOTALL, IGNORECASE, compile, findall, sub
+from time import sleep as _sleep
 from typing import (
     Any,
     Final,
@@ -17,9 +19,9 @@ from urllib.parse import urlencode
 from appdirs import user_cache_dir
 from diskcache import Cache
 from pandas import CategoricalDtype, DataFrame, Series, concat, read_csv, to_datetime
-from requests import Response, Session
+from requests import ConnectionError as RequestsConnectionError
+from requests import Response, Session, Timeout
 from requests.auth import HTTPBasicAuth
-from tenacity import retry, stop_after_attempt
 
 from ._auth import _get_api_key
 from ._constants import HTTP_HEADERS, __version__
@@ -93,7 +95,65 @@ def _is_fixed_past_version(params: Mapping[str, Any]) -> bool:
     return bool(dates) and max(dates) < datetime.now(UTC).date() - timedelta(days=1)
 
 
-@retry(reraise=True, stop=stop_after_attempt(2))
+# Total attempts per request, counting the first.
+MAX_TRIES = 3
+# Server errors worth retrying. A 429 is retried only when the server says when to come back.
+_RETRY_STATUSES = frozenset({500, 502, 503, 504})
+# (connect, read) timeouts in seconds; the read timeout matches epidatr's 15 minutes.
+REQUEST_TIMEOUT = (30, 15 * 60)
+
+
+def _max_retry_wait() -> float:
+    """The longest server-requested wait to honour, in seconds (`EPIDATPY_MAX_RETRY_WAIT`, default 60)."""
+    try:
+        value = float(environ.get("EPIDATPY_MAX_RETRY_WAIT", "60"))
+    except ValueError:
+        return 60.0
+    return value if value >= 0 and value != float("inf") else 60.0
+
+
+def _retry_after_seconds(response: Response) -> float | None:
+    """The `Retry-After` header as seconds from now, or None if it is missing or unusable."""
+    value = response.headers.get("Retry-After")
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except ValueError:
+        try:
+            seconds = (parsedate_to_datetime(value) - datetime.now(UTC)).total_seconds()
+        except (TypeError, ValueError):
+            return None
+    return max(seconds, 0.0) if seconds == seconds and seconds != float("inf") else None  # noqa: PLR0124 - NaN check
+
+
+def _is_transient(response: Response, max_wait: float) -> bool:
+    """Whether a response is worth retrying: a transient server error, unless it asks for a long wait."""
+    after = _retry_after_seconds(response)
+    if after is not None and after > max_wait:
+        return False
+    if response.status_code == 429:
+        return after is not None
+    return response.status_code in _RETRY_STATUSES
+
+
+def _retry_hint(response: Response) -> str | None:
+    """A sentence saying when the server suggests retrying, or None if it gave no usable `Retry-After`."""
+    after = _retry_after_seconds(response)
+    if after is None or after <= 0 or after > 24 * 60 * 60:
+        return None
+    seconds = max(1, round(after))
+    minutes = round(after / 60)
+    if seconds < 60:
+        wait = f"{seconds} second{'s' if seconds != 1 else ''}"
+    elif minutes < 90:
+        wait = f"{minutes} minute{'s' if minutes != 1 else ''}"
+    else:
+        hours = round(minutes / 60)
+        wait = f"{hours} hour{'s' if hours != 1 else ''}"
+    return f"The server suggests retrying in about {wait}."
+
+
 def _request_with_retry(
     url: str,
     params: Mapping[str, str],
@@ -101,7 +161,12 @@ def _request_with_retry(
     stream: bool = False,
     api_version: ApiVersion = "classic",
 ) -> Response:
-    """Make request with a retry if an exception is thrown."""
+    """Make a request, retrying connection failures and transient server errors up to `MAX_TRIES` times.
+
+    The wait between tries is the server's `Retry-After`, else 1 then 2 seconds. A
+    `Retry-After` longer than `EPIDATPY_MAX_RETRY_WAIT` (60 seconds) is never waited
+    on: the response is returned at once so the caller can report the server's message.
+    """
     key = _get_api_key()
     if api_version == "cast":
         # CAST API uses a token header instead of HTTP basic auth.
@@ -112,17 +177,33 @@ def _request_with_retry(
         auth = HTTPBasicAuth("epidata", key)
 
     def call_impl(s: Session) -> Response:
-        res = s.get(url, params=params, headers=headers, stream=stream, auth=auth)
+        res = s.get(url, params=params, headers=headers, stream=stream, auth=auth, timeout=REQUEST_TIMEOUT)
         if res.status_code == 414:
             # The URL was too long, so send the parameters in the form body instead.
-            return s.post(url, data=params, headers=headers, stream=stream, auth=auth)
+            return s.post(url, data=params, headers=headers, stream=stream, auth=auth, timeout=REQUEST_TIMEOUT)
         return res
 
+    def attempt_all(s: Session) -> Response:
+        max_wait = _max_retry_wait()
+        for attempt in range(1, MAX_TRIES + 1):
+            try:
+                res = call_impl(s)
+            except (RequestsConnectionError, Timeout):
+                if attempt == MAX_TRIES:
+                    raise
+                _sleep(2 ** (attempt - 1))
+                continue
+            if attempt == MAX_TRIES or not _is_transient(res, max_wait):
+                return res
+            after = _retry_after_seconds(res)
+            _sleep(after if after is not None else 2 ** (attempt - 1))
+        raise AssertionError("unreachable")  # pragma: no cover
+
     if session:
-        return call_impl(session)
+        return attempt_all(session)
 
     with Session() as s:
-        return call_impl(s)
+        return attempt_all(s)
 
 
 def _error_body_message(response: Response) -> str | None:
@@ -156,7 +237,9 @@ def _error_body_message(response: Response) -> str | None:
 def _raise_for_status(response: Response) -> None:
     """Raise `EpiDataHTTPError`, carrying the server's own message, on an HTTP error status."""
     if response.status_code >= 400:
-        raise EpiDataHTTPError(response, _error_body_message(response))
+        message = _error_body_message(response)
+        hint = _retry_hint(response)
+        raise EpiDataHTTPError(response, " ".join(part for part in (message, hint) if part) or None)
 
 
 def fetch_cast_meta(base_url: str, session: Session | None, source: str | None = None) -> Any:
