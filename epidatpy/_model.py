@@ -145,6 +145,10 @@ class DroppedMetaFieldsWarning(UserWarning):
     """A classic response lacked columns the endpoint promises; they are filled with missing values."""
 
 
+class UnmatchedAuxWarning(UserWarning):
+    """Some rows had no matching auxiliary row, so their aux columns are missing values."""
+
+
 class EmptyResultWarning(UserWarning):
     """A cast-API query returned no rows, or the local filters dropped them all."""
 

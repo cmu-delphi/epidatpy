@@ -12,6 +12,7 @@ __all__ = [
     "EpiRange",
     "InvalidArgumentException",
     "MalformedResponseError",
+    "UnmatchedAuxWarning",
     "__version__",
     "available_endpoints",
 ]
@@ -28,5 +29,6 @@ from ._model import (
     EpiRange,
     InvalidArgumentException,
     MalformedResponseError,
+    UnmatchedAuxWarning,
 )
 from .request import CovidcastEpidata, EpiDataContext, available_endpoints

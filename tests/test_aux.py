@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from epidatpy import EpiDataContext, InvalidArgumentException
+from epidatpy import EpiDataContext, InvalidArgumentException, UnmatchedAuxWarning
 from epidatpy._endpoints import EpiDataContext as _EpiDataContext
 from epidatpy._endpoints import _serialize_key_filters
 
@@ -216,6 +216,7 @@ def test_epidata_aux_merge_archive_is_version_aware_per_row() -> None:
     with (
         patch.object(_EpiDataContext, "_aux_key_columns", return_value=_AUX_KEYS),
         patch.object(_EpiDataContext, "epidata_aux", _fake_aux_fetch(_AUX_VERSIONS)),
+        pytest.warns(UnmatchedAuxWarning, match="2 of 5 rows had no matching aux row"),
     ):
         result = ctx.epidata_aux(base)
 

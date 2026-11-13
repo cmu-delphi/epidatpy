@@ -27,6 +27,7 @@ from ._model import (
     IntParam,
     InvalidArgumentException,
     StringParam,
+    UnmatchedAuxWarning,
     add_endpoint_to_url,
     format_list,
 )
@@ -2266,14 +2267,14 @@ class EpiDataContext:
         match_time = base[ver].max() if base.attrs.get("cast_kind") == "snapshot" else base[ver]
         result["_aux_match_time"] = match_time
         ordered = result.sort_values("_aux_match_time").reset_index()
-        aux_sorted = aux[[*keys, ver, *value_cols]].sort_values(ver)
+        aux_sorted = aux[[*keys, ver, *value_cols]].rename(columns={ver: "_aux_version"}).sort_values("_aux_version")
 
         merged = (
             merge_asof(
                 ordered,
                 aux_sorted,
                 left_on="_aux_match_time",
-                right_on=ver,
+                right_on="_aux_version",
                 by=keys,
                 direction="backward",
             )
@@ -2281,6 +2282,15 @@ class EpiDataContext:
             .sort_index()
         )
 
+        unmatched = int(merged["_aux_version"].isna().sum())
+        if unmatched:
+            warnings.warn(
+                f"{unmatched} of {len(merged)} row{'s' if len(merged) != 1 else ''} had no matching aux row, "
+                "so the aux columns are missing there. Each row needs an aux row with equal keys "
+                "and a `report_time` at or before its own.",
+                UnmatchedAuxWarning,
+                stacklevel=3,
+            )
         for col in value_cols:
             result[col] = merged[col]
         return result.drop(columns="_aux_match_time")
