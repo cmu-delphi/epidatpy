@@ -545,11 +545,11 @@ class EpiDataCall:
             cache_key += f" | {dict(sorted(self._params.items()))!s}"
         return cache_key
 
-    def _cast_csv_body(self, fields: Sequence[str] | None) -> str:
+    def _cast_csv_body(self, fields: Sequence[str] | None, refresh_cache: bool = False) -> str:
         """Fetch a cast response as CSV text, from the cache when the request is a fixed past version."""
         cacheable = self.use_cache and _is_fixed_past_version(self._params)
         cache_key = self._get_cache_key("csv")
-        if cacheable:
+        if cacheable and not refresh_cache:
             with Cache(CACHE_DIRECTORY) as cache:
                 cached = cache.get(cache_key)
             if cached is not None:
@@ -567,9 +567,13 @@ class EpiDataCall:
         fields: Sequence[str] | None = None,
         disable_date_parsing: bool | None = False,
         disable_type_parsing: bool | None = False,
+        refresh_cache: bool = False,
     ) -> EpiDataResponse:
-        """Request and parse epidata in CLASSIC message format."""
-        if self.use_cache:
+        """Request and parse epidata in CLASSIC message format.
+
+        With ``refresh_cache=True`` the cache is not read, but the fresh result still replaces the cached entry.
+        """
+        if self.use_cache and not refresh_cache:
             with Cache(CACHE_DIRECTORY) as cache:
                 cache_key = self._get_cache_key("classic", fields, str(disable_date_parsing))
                 if cache_key in cache:
@@ -597,6 +601,7 @@ class EpiDataCall:
         self,
         fields: Sequence[str] | None = None,
         disable_date_parsing: bool | None = False,
+        refresh_cache: bool = False,
     ) -> EpiDataResponse | DataFrame:
         """Request and parse epidata in df message format."""
         if self.only_supports_classic:
@@ -604,15 +609,20 @@ class EpiDataCall:
                 fields,
                 disable_date_parsing=disable_date_parsing,
                 disable_type_parsing=False,
+                refresh_cache=refresh_cache,
             )
-        return self.df(fields, disable_date_parsing=disable_date_parsing)
+        return self.df(fields, disable_date_parsing=disable_date_parsing, refresh_cache=refresh_cache)
 
     def df(
         self,
         fields: Sequence[str] | None = None,
         disable_date_parsing: bool | None = False,
+        refresh_cache: bool = False,
     ) -> DataFrame:
-        """Request and parse epidata as a pandas data frame"""
+        """Request and parse epidata as a pandas data frame.
+
+        With ``refresh_cache=True`` the cache is not read, but the fresh result still replaces the cached entry.
+        """
         if self.only_supports_classic:
             raise OnlySupportsClassicFormatException()
 
@@ -625,7 +635,7 @@ class EpiDataCall:
             if len(geo_types) > 1:
                 frames = [
                     self._with_param("geo_type", g, return_empty=True).df(
-                        fields, disable_date_parsing=disable_date_parsing
+                        fields, disable_date_parsing=disable_date_parsing, refresh_cache=refresh_cache
                     )
                     for g in geo_types
                 ]
@@ -640,7 +650,7 @@ class EpiDataCall:
 
         # Classic results are cached as parsed frames; cast results cache the raw CSV below.
         df_cache_key = self._get_cache_key("df", fields, str(disable_date_parsing))
-        if self.use_cache and self._api_version != "cast":
+        if self.use_cache and not refresh_cache and self._api_version != "cast":
             with Cache(CACHE_DIRECTORY) as cache:
                 if df_cache_key in cache:
                     return cast(DataFrame, cache[df_cache_key])
@@ -650,7 +660,7 @@ class EpiDataCall:
         fetched: DataFrame | None = None
         if self._api_version == "cast":
             # CAST endpoints only speak CSV.
-            body = self._cast_csv_body(fields)
+            body = self._cast_csv_body(fields, refresh_cache)
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
                 # Keep meta columns in order, plus any undeclared response columns (e.g. aux values).
@@ -670,7 +680,7 @@ class EpiDataCall:
                 df = DataFrame(columns=columns or None)
             fetched = df
         else:
-            json = self.classic(fields, disable_type_parsing=True)
+            json = self.classic(fields, disable_type_parsing=True, refresh_cache=refresh_cache)
             _check_epidata_result(json)
             rows = json.get("epidata", [])
             if rows and not fields and isinstance(rows[0], dict):
