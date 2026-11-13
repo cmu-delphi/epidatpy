@@ -1866,8 +1866,8 @@ class EpiDataContext:
             server.
         fill_method : str, optional
             Restrict to one imputation variant of the signal: ``"source"``
-            (raw source data), ``"fill_ave"`` (nulls filled with the average
-            of neighboring values), or ``"fill_zero"`` (nulls filled with
+            (raw source data), ``"ave"`` (nulls filled with the average
+            of neighboring values), or ``"zero"`` (nulls filled with
             zero). ``None`` (default) returns all variants.
         snapshot_date : date, datetime, str, or int, optional
             The instant the snapshot describes: a date (``date``,
@@ -1967,8 +1967,8 @@ class EpiDataContext:
             Reference dates to keep; ``"*"`` (default) keeps all. Filtered on
             the server.
         fill_method : str, optional
-            Restrict to one imputation variant (``"source"``, ``"fill_ave"``,
-            or ``"fill_zero"``); ``None`` (default) returns all.
+            Restrict to one imputation variant (``"source"``, ``"ave"``,
+            or ``"zero"``); ``None`` (default) returns all.
         report_time : str or EpiRange, optional
             Filter on the ``report_time`` column, applied server-side. Either a
             comparison string (``<``, ``<=``, ``>``, or ``>=`` followed by a
