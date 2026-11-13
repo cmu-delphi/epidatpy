@@ -105,10 +105,9 @@ class TestEpidataCalls:
         assert str(data["data_source"].dtype) == "string"
         assert str(data["signal"].dtype) == "string"
         assert str(data["time_type"].dtype) == "category"
+        # Day signals give dates and week signals give epiweeks, so the mixed columns stay strings.
         assert str(data["min_time"].dtype) == "string"
-        # TODO: brittle — server happens to return parseable dates here. Make
-        # date-field parsing strict in df() so this is implied by field type.
-        assert pd.api.types.is_datetime64_any_dtype(data["max_time"])
+        assert str(data["max_time"].dtype) == "string"
         assert str(data["num_locations"].dtype) == "Int64"
         assert str(data["min_value"].dtype) == "Float64"
         assert str(data["max_value"].dtype) == "Float64"
@@ -203,9 +202,8 @@ class TestEpidataCalls:
         assert len(data) > 0
         assert str(data["release_date"].dtype) == "string"
         assert str(data["location"].dtype) == "string"
-        # TODO: same brittleness as test_pub_covidcast_meta — server returns
-        # parseable dates here.
-        assert pd.api.types.is_datetime64_any_dtype(data["issue"])
+        # `issue` is date_or_epiweek and the server sends epiweeks here, so it stays a string.
+        assert str(data["issue"].dtype) == "string"
         assert str(data["epiweek"].dtype) == "string"
         assert str(data["lag"].dtype) == "Int64"
         assert str(data["rate_age_0"].dtype) == "Float64"
