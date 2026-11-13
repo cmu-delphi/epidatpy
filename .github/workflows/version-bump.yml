@@ -1,0 +1,67 @@
+# Bumps the pyproject.toml patch version on dev after each merge, unless the
+# merge already changed it. For a minor or major bump, set the version by hand
+# in the PR. See DEVELOPMENT.md "Versioning".
+name: version-bump
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+# Queue runs so each bump starts from the previous run's commit.
+concurrency:
+  group: version-bump
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'cmu-delphi'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+          # Deploy key, as in create_release.yml, so the push can get past
+          # branch protection on dev.
+          ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
+
+      - name: Check whether the push changed the version
+        id: check
+        run: |
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+          # If dev has moved on, the run for the newer push decides instead.
+          if [ "$(git rev-parse HEAD)" != "$after" ]; then
+            echo "dev has moved past $after; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          old=$(git show "$before:pyproject.toml" | sed -n 's/^version = "\(.*\)"/\1/p')
+          new=$(git show "$after:pyproject.toml" | sed -n 's/^version = "\(.*\)"/\1/p')
+          echo "Version before push: $old, after push: $new"
+          if [ "$old" != "$new" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install uv
+        if: steps.check.outputs.skip == 'false'
+        uses: astral-sh/setup-uv@v8.1.0
+
+      - name: Bump and push to dev
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          # Also rewrites the epidatpy entry in uv.lock.
+          new=$(uv version --bump patch --short)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump version to $new"
+          git push origin HEAD:dev
