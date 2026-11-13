@@ -36,6 +36,7 @@ from ._model import (
     EpiDataHTTPError,
     EpiDataResponse,
     EpiDataWarning,
+    EpiRange,  # noqa: F401 - sphinx resolves the "EpiRange" forward reference in EpiRangeParam here
     EpiRangeParam,
     InvalidArgumentException,
     MalformedResponseError,
