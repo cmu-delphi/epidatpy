@@ -36,6 +36,10 @@
   epiweek (#38). Before, `pub_covidcast_meta()` returned `min_time` as strings
   but `max_time` as half-parsed dates, and `pub_flusurv()`'s `issue` was
   misparsed or warned.
+- `epidata_snapshot()` and `epidata_archive()` no longer warn that every
+  signal and geo type came back empty when `.df(fields=...)` leaves out
+  `signal` or `geo_type`. The check now reads the full response before
+  `fields` trims it, and no longer makes an extra metadata request for it.
 - Classic endpoints now raise `InvalidArgumentException` when a timeset mixes
   day (`YYYYMMDD`) and week (`YYYYWW`) values, when a week-only parameter such
   as `epiweeks` or `issues` of `pub_fluview()` gets dates (before, it returned
