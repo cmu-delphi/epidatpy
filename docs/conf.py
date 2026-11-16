@@ -35,7 +35,14 @@ version = release
 # ones.
 # myst_nb (Markdown + notebook support) implies myst_parser, so narrative pages
 # can be authored in either Markdown (.md) or reStructuredText (.rst).
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx_autodoc_typehints", "myst_nb"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
+    "myst_nb",
+    "sphinx_copybutton",
+    "sphinx_design",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -65,28 +72,34 @@ autodoc_typehints = "description"
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-#
-html_theme = "alabaster"
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
+# Delphi colors and fonts (from the delphidocs pkgdown template) live in _static/delphi.css.
+html_theme = "pydata_sphinx_theme"
+html_title = "epidatpy"
 html_static_path = ["_static"]
-html_css_files = ["notebooks.css"]
+html_css_files = ["delphi.css", "notebooks.css"]
 
 html_theme_options = {
-    "extra_nav_links": {
-        "Delphi Research Group": "https://delphi.cmu.edu/",
-        "Delphi Epidata API": "https://cmu-delphi.github.io/delphi-epidata",
-    }
+    # delphi-navbar replaces the theme's flat navbar so Articles can be a dropdown.
+    "navbar_center": ["delphi-navbar"],
+    "icon_links": [
+        {"name": "GitHub", "url": "https://github.com/cmu-delphi/epidatpy", "icon": "fa-brands fa-github"},
+        {"name": "PyPI", "url": "https://pypi.org/project/epidatpy/", "icon": "fa-brands fa-python"},
+    ],
+    "external_links": [
+        {"name": "Epidata API", "url": "https://cmu-delphi.github.io/delphi-epidata/"},
+        {"name": "epidatr (R)", "url": "https://cmu-delphi.github.io/epidatr/"},
+    ],
+    "secondary_sidebar_items": ["page-toc"],
+    "show_toc_level": 2,
+    "footer_start": ["delphi-links"],
+    "footer_end": ["copyright"],
 }
-
-# Read The Docs
-# on_rtd is whether we are on readthedocs.org, this line of code grabbed from
-# docs.readthedocs.org
-on_rtd = os.environ.get("READTHEDOCS", None) == "True"
+# delphidocs opens in light mode; readers can still switch.
+html_context = {"default_mode": "light"}
+# The left sidebar lists a section's subpages; no page has any, so drop it everywhere.
+html_sidebars = {"**": []}
+# "On this page" shows epidata_meta() rather than EpiDataContext.epidata_meta().
+toc_object_entries_show_parents = "hide"
 
 # https://pypi.org/project/sphinx-autodoc-typehints/
 always_document_param_types = True

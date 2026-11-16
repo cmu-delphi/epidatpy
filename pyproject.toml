@@ -44,9 +44,11 @@ dev = [
     "mypy",
     "myst-nb",
     "pytest",
+    "pydata-sphinx-theme",
     "ruff",
-    "sphinx_rtd_theme",
     "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+    "sphinx-design",
     "sphinx",
     "types-requests",
 ]

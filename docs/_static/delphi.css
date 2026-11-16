@@ -1,0 +1,42 @@
+/* Delphi colors and fonts, taken from the delphidocs pkgdown template. */
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:wght@400;600;700&display=swap");
+
+html {
+  --pst-font-family-base: "Open Sans", system-ui, sans-serif;
+  --pst-font-family-heading: "Source Serif 4", Georgia, serif;
+}
+html[data-theme="light"] {
+  --pst-color-primary: #941120;
+  --pst-color-secondary: #8c338f;
+  --pst-color-link: #941120;
+  --pst-color-link-hover: #c41230;
+  --pst-color-inline-code: #941120;
+  --delphi-heading: #002676;
+}
+html[data-theme="dark"] {
+  --pst-color-primary: #ff8a80;
+  --pst-color-secondary: #ea80fc;
+  --pst-color-link: #ff8a80;
+  --pst-color-link-hover: #ff5252;
+  --pst-color-inline-code: #ff8a80;
+  --delphi-heading: #8ab4f8;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--delphi-heading); }
+.bd-header { border-bottom: 2px solid var(--delphi-heading); }
+
+/* Long method names (pub_covid_hosp_facility_lookup) overflow the "On this page" sidebar. */
+.toc-entry code span.pre { white-space: normal; overflow-wrap: anywhere; }
+
+/* Package name in the top-left, styled like the page headings. */
+.navbar-brand p.logo__title {
+  font-family: var(--pst-font-family-heading);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  color: var(--delphi-heading);
+}
+.navbar-brand:hover p.logo__title { color: var(--pst-color-primary); }
+
+/* The theme highlights the current tab only on links; also highlight the Articles dropdown. */
+.bd-header ul.navbar-nav > li.nav-item.current > .dropdown-toggle { color: var(--pst-color-primary); }
