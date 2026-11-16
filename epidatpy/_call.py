@@ -635,19 +635,23 @@ class EpiDataCall:
             # `epidata_archive`.
             geo_types = split_list(cast(StringParam, self._params.get("geo_type") or ""))
             if len(geo_types) > 1:
+                # Fetch all columns: the empty-result check reads `signal` and `geo_type`. Trimmed to `fields` below.
                 frames = [
                     self._with_param("geo_type", g, return_empty=True).df(
-                        fields, disable_date_parsing=disable_date_parsing, refresh_cache=refresh_cache
+                        disable_date_parsing=disable_date_parsing, refresh_cache=refresh_cache
                     )
                     for g in geo_types
                 ]
                 combined = concat(frames, ignore_index=True)
-                combined.attrs = frames[0].attrs
+                attrs = frames[0].attrs
                 if not self._return_empty:
                     # Per-request frames are already locally filtered, so the
                     # combined frame stands in for both the fetched and the
                     # filtered result here.
                     self._check_cast_empty(combined, combined)
+                pred = fields_to_predicate(fields)
+                combined = combined[[c for c in combined.columns if pred(c)]]
+                combined.attrs = attrs
                 return combined
 
         # Classic results are cached as parsed frames; cast results cache the raw CSV below.
@@ -665,6 +669,7 @@ class EpiDataCall:
             body = self._cast_csv_body(fields, refresh_cache)
             if body.strip():
                 df = read_csv(StringIO(body), dtype=str)
+                fetched = df  # before `fields` trims it: the empty-result check reads `signal` and `geo_type`
                 # Keep meta columns in order, plus any undeclared response columns (e.g. aux values).
                 meta_names = {info.name for info in self.meta}
                 cols_in_df = [c for c in columns if c in df.columns]
@@ -680,7 +685,7 @@ class EpiDataCall:
                 df = df[cols_in_df + extras]
             else:
                 df = DataFrame(columns=columns or None)
-            fetched = df
+                fetched = df
         else:
             json = self.classic(fields, disable_type_parsing=True, refresh_cache=refresh_cache)
             _check_epidata_result(json)

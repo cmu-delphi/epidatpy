@@ -137,6 +137,38 @@ def test_non_empty_result_is_silent(fake_server: Callable[..., FakeServer], recw
     assert not any("metadata" in url for url, _ in server.requests)
 
 
+@pytest.mark.parametrize("b_missing", [False, True], ids=["all returned", "b missing"])
+@pytest.mark.parametrize("geo_types", [["state"], ["state", "hhs"]], ids=["one geo_type", "two geo_types"])
+@pytest.mark.parametrize(
+    ("fields", "columns"),
+    [
+        (["geo_value", "value"], ["geo_value", "value"]),
+        (["-signal", "-geo_type"], ["report_time", "geo_value", "fill_method", "reference_time", "value"]),
+    ],
+    ids=["include", "exclude"],
+)
+def test_empty_check_ignores_fields(
+    fake_server: Callable[..., FakeServer],
+    recwarn: pytest.WarningsRecorder,
+    b_missing: bool,
+    geo_types: list[str],
+    fields: list[str],
+    columns: list[str],
+) -> None:
+    returned = "a" if b_missing else "a,b"
+    server = fake_server(_meta_or(lambda params: _csv_rows(params["geo_type"], returned)))
+    df = EpiDataContext(use_cache=False).epidata_snapshot("nssp", ["a", "b"], geo_types).df(fields=fields)
+    assert list(df.columns) == columns
+    assert len(df) == len(returned.split(",")) * len(geo_types)
+    warned = [str(w.message) for w in recwarn if issubclass(w.category, EmptyResultWarning)]
+    if b_missing:
+        assert len(warned) == 1
+        assert "signals ['b']" in warned[0]
+    else:
+        assert not warned
+        assert not any("metadata" in url for url, _ in server.requests)
+
+
 def test_snapshot_request_params() -> None:
     url = EpiDataContext().epidata_snapshot("nssp", ["a", "b"], "state", snapshot_date=20251016).request_url()
     p = _params(url)
