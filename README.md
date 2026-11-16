@@ -1,6 +1,6 @@
 # `epidatpy`
 
-[![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Read the Docs][docs-image]][docs-url]
+[![License: MIT][mit-image]][mit-url] [![Github Actions][github-actions-image]][github-actions-url] [![PyPi][pypi-image]][pypi-url] [![Docs][docs-image]][docs-url]
 
 The Python client for the [Delphi Epidata API](https://cmu-delphi.github.io/delphi-epidata/).
 
@@ -195,9 +195,9 @@ the release cut.
 
 [mit-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit-url]: https://opensource.org/licenses/MIT
-[github-actions-image]: https://github.com/cmu-delphi/epidatpy/workflows/ci/badge.svg
-[github-actions-url]: https://github.com/cmu-delphi/epidatpy/actions
+[github-actions-image]: https://github.com/cmu-delphi/epidatpy/actions/workflows/lint-unit-test.yml/badge.svg?branch=dev
+[github-actions-url]: https://github.com/cmu-delphi/epidatpy/actions/workflows/lint-unit-test.yml
 [pypi-image]: https://img.shields.io/pypi/v/epidatpy
 [pypi-url]: https://pypi.python.org/pypi/epidatpy/
-[docs-image]: https://readthedocs.org/projects/epidatpy/badge/?version=latest
-[docs-url]: https://epidatpy.readthedocs.io/en/latest/?badge=latest
+[docs-image]: https://github.com/cmu-delphi/epidatpy/actions/workflows/documentation.yml/badge.svg
+[docs-url]: https://cmu-delphi.github.io/epidatpy/
