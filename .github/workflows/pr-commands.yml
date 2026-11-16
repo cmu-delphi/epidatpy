@@ -1,0 +1,58 @@
+# PR comment commands, mirroring epidatr's pr-commands.yaml.
+# - /preview-docs: build the Sphinx docs from the PR branch and deploy them to a
+#   Netlify draft URL, which is posted as a comment on the PR.
+on:
+  issue_comment:
+    types: [created]
+
+name: pr-commands
+
+permissions: read-all
+
+jobs:
+  preview:
+    if: ${{ github.event.issue.pull_request && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'CONTRIBUTOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') && startsWith(github.event.comment.body, '/preview-docs') }}
+    runs-on: ubuntu-latest
+    permissions:
+      # Needed to write a comment on the PR
+      pull-requests: write
+      # Needed to read the PR branch
+      contents: read
+    env:
+      DELPHI_EPIDATA_KEY: ${{ secrets.DELPHI_GITHUB_ACTIONS_EPIDATA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Checkout the PR branch
+          ref: refs/pull/${{ github.event.issue.number }}/head
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Sphinx build
+        run: make doc
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+          # `make doc` builds into docs/_build
+          publish-dir: './docs/_build'
+          # Development deploys only
+          production-deploy: false
+          # Comment the preview link on the PR, overwriting the previous one
+          enable-pull-request-comment: true
+          overwrites-pull-request-comment: true
+          enable-github-deployment: false
+          enable-commit-status: false
+          enable-commit-comment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 1
