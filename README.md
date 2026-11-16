@@ -195,8 +195,8 @@ the release cut.
 
 [mit-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit-url]: https://opensource.org/licenses/MIT
-[github-actions-image]: https://github.com/cmu-delphi/epidatpy/workflows/ci/badge.svg
-[github-actions-url]: https://github.com/cmu-delphi/epidatpy/actions
+[github-actions-image]: https://github.com/cmu-delphi/epidatpy/actions/workflows/lint-unit-test.yml/badge.svg?branch=dev
+[github-actions-url]: https://github.com/cmu-delphi/epidatpy/actions/workflows/lint-unit-test.yml
 [pypi-image]: https://img.shields.io/pypi/v/epidatpy
 [pypi-url]: https://pypi.python.org/pypi/epidatpy/
 [docs-image]: https://readthedocs.org/projects/epidatpy/badge/?version=latest
