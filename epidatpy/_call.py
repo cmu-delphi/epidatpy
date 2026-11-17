@@ -212,6 +212,19 @@ def _request_with_retry(
         return attempt_all(s)
 
 
+def _warn_unparsed_dates(column: Series) -> None:
+    """Warn that a date column stays as strings, naming a few of the values that didn't parse."""
+    parsed = [to_datetime(column, format=fmt, errors="coerce").notna() for fmt in ("%Y-%m-%d", "%Y%m%d")]
+    bad = column[column.notna() & ~(parsed[0] | parsed[1])].unique()
+    examples = ", ".join(repr(str(v)) for v in bad[:3]) if len(bad) else "mixed formats"
+    warnings.warn(
+        f"Column `{column.name}` could not be parsed as dates and is left as strings "
+        f"({len(bad)} unparseable value{'s' if len(bad) != 1 else ''}, e.g. {examples}).",
+        UserWarning,
+        stacklevel=4,
+    )
+
+
 def _error_body_message(response: Response) -> str | None:
     """Extract the server's own error message from an error response body.
 
@@ -780,7 +793,7 @@ class EpiDataCall:
                     try:
                         df[info.name] = to_datetime(df[info.name], format="mixed")
                     except (ValueError, TypeError):
-                        pass
+                        _warn_unparsed_dates(df[info.name])
 
         if self.use_cache and self._api_version != "cast":
             with Cache(CACHE_DIRECTORY) as cache:
