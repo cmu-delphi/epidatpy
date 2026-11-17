@@ -75,7 +75,7 @@ clean: clean-doc clean-build clean-python
 # Prints what happened since the last release tag (merged PRs with their
 # descriptions, then every commit) for an agent or a person to turn into the
 # `## X.Y.Z` section of CHANGELOG.md. Pass `since` to start from another tag and
-# `branch` for a release line, e.g. `just changelog v0.8.0 rel-0.8`.
+# `branch` to compare against another branch.
 # Needs the `gh` CLI. See DEVELOPMENT.md "Release process".
 [group('release')]
 changelog since="" branch="dev":
