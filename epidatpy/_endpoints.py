@@ -814,6 +814,8 @@ class EpiDataContext:
 
         if time_type not in get_args(TimeType):
             raise InvalidArgumentException(f"`time_type` must be one of {get_args(TimeType)}, got {time_type!r}.")
+        check_timeset("time_values", time_values, time_type)
+        check_timeset("issues", issues, time_type)
 
         if data_source in ("nchs-mortality", "nssp") and time_type != "week":
             raise InvalidArgumentException(f"The {data_source} data source only supports the week time type.")

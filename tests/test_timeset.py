@@ -67,3 +67,14 @@ def test_wiki_and_twitter_time_values_must_match_time_type() -> None:
     with pytest.raises(InvalidArgumentException, match="`time_values` expects week"):
         ctx.pvt_twitter("k", "CA", time_type="week", time_values=date(2020, 1, 1))
     ctx.pub_wiki("x", time_type="week", time_values=[202001])
+
+
+def test_covidcast_time_values_and_issues_must_match_time_type() -> None:
+    ctx = EpiDataContext(use_cache=False)
+    with pytest.raises(InvalidArgumentException, match="`time_values` expects week"):
+        ctx.pub_covidcast("fb-survey", "smoothed_cli", "state", time_type="week", geo_values="ca", time_values=20200101)
+    with pytest.raises(InvalidArgumentException, match="`issues` expects day"):
+        ctx.pub_covidcast(
+            "fb-survey", "smoothed_cli", "state", time_type="day", geo_values="ca", time_values=20200101, issues=202001
+        )
+    ctx.pub_covidcast("fb-survey", "smoothed_cli", "state", time_type="week", geo_values="ca", time_values=202001)
