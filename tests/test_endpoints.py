@@ -1,7 +1,7 @@
 """Offline tests for how EpiDataContext builds cast-API requests."""
 
 from collections.abc import Callable, Mapping
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
@@ -274,3 +274,10 @@ def test_nonexistent_epiweek_is_rejected(bad: str) -> None:
 
 def test_epiweek_range_report_time_ends_on_saturday() -> None:
     assert validate_report_time_query(EpiRange(Week(2025, 1), Week(2025, 4))) == "2024-12-29:2025-01-25"
+
+
+def test_reference_time_term_limit() -> None:
+    days = [date(2025, 1, 1) + timedelta(days=i) for i in range(128)]
+    assert (format_reference_times(days) or "").count(",") == 127
+    with pytest.raises(InvalidArgumentException, match="limit is 128"):
+        format_reference_times([*days, date(2026, 1, 1)])
