@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from html import unescape
 from io import StringIO
 from os import environ
+from pathlib import Path
 from re import DOTALL, IGNORECASE, compile, findall, sub
 from time import sleep as _sleep
 from typing import (
@@ -64,6 +66,52 @@ if environ.get("USE_EPIDATPY_CACHE", None):
         f"The cache directory is {CACHE_DIRECTORY}. "
         f"The TTL is set to {environ.get('EPIDATPY_CACHE_MAX_AGE_DAYS', '7')} days."
     )
+
+@dataclass(frozen=True)
+class CacheInfo:
+    """Where the on-disk cache lives and how big it is, as returned by `cache_info()`."""
+
+    enabled: bool
+    directory: str
+    max_age_days: int
+    n_entries: int
+    size_mb: float
+
+    def __str__(self) -> str:
+        return (
+            f"epidatpy cache is {'on' if self.enabled else 'off'}.\n"
+            f"Directory: {self.directory}\n"
+            f"{self.n_entries} {'entry' if self.n_entries == 1 else 'entries'}, {self.size_mb:.1f} MB.\n"
+            f"Entries expire after {self.max_age_days} days. Call `clear_cache()` to delete them all."
+        )
+
+
+def cache_info() -> CacheInfo:
+    """Describe the on-disk cache without creating it.
+
+    `enabled` reflects the `USE_EPIDATPY_CACHE` environment variable, which sets the default for new
+    `EpiDataContext` objects; a context created with `use_cache=` may differ.
+    """
+    env_days = environ.get("EPIDATPY_CACHE_MAX_AGE_DAYS", "7")
+    n_entries, size_bytes = 0, 0
+    if Path(CACHE_DIRECTORY).exists():
+        with Cache(CACHE_DIRECTORY) as cache:
+            n_entries, size_bytes = len(cache), cache.volume()
+    return CacheInfo(
+        enabled=environ.get("USE_EPIDATPY_CACHE", "").lower() in ["true", "t", "1"],
+        directory=CACHE_DIRECTORY,
+        max_age_days=int(env_days) if env_days.isdigit() else 7,
+        n_entries=n_entries,
+        size_mb=size_bytes / 1024**2,
+    )
+
+
+def clear_cache() -> None:
+    """Delete every entry in the on-disk cache."""
+    if Path(CACHE_DIRECTORY).exists():
+        with Cache(CACHE_DIRECTORY) as cache:
+            cache.clear()
+
 
 _ISO_DATE_RE = compile(r"(?<![\d.])\d{4}-\d{2}-\d{2}(?!\d)")
 
