@@ -37,19 +37,13 @@ The section's heading is the bare version, such as `## 0.9.0`, because
 
 ## Release process
 
-`dev` is the only long-lived branch; each release line lives on a `rel-X.Y` branch.
-Once the release PR is merged, run the
+`dev` is the only long-lived branch. Once the release PR is merged, run the
 [create_release](https://github.com/cmu-delphi/epidatpy/actions/workflows/create_release.yml)
-workflow with "Use workflow from" set to the branch to release, and tick
-`version_bumped`:
+workflow from `dev`. It tags `vX.Y.Z` at `dev` HEAD and refuses if that tag already
+exists, which usually means the version wasn't bumped.
 
-- **From `dev`:** cuts a new `rel-X.Y` branch at `dev` HEAD and tags `vX.Y.Z`. It
-  refuses if `rel-X.Y` already exists, which usually means the version on `dev`
-  wasn't bumped.
-- **From `rel-X.Y` (hotfix):** tags `vX.Y.Z` on that branch. Land the fix on the
-  branch first (commit directly or cherry-pick from `dev`), then do the release
-  PR (version bump and changelog section) against the branch. Pass its name to
-  `just changelog` as the second argument.
+We don't maintain release lines. If an old version ever needs a hotfix, branch from
+its tag (`git switch -c rel-X.Y vX.Y.Z`), apply the fix, and tag and publish by hand.
 
 The workflow creates a [GitHub release](https://github.com/cmu-delphi/epidatpy/releases)
 whose notes are the version's `CHANGELOG.md` section, so the file and the release
