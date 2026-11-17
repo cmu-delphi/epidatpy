@@ -293,7 +293,14 @@ def _raise_for_status(response: Response) -> None:
     if response.status_code >= 400:
         message = _error_body_message(response)
         hint = _retry_hint(response)
-        raise EpiDataHTTPError(response, " ".join(part for part in (message, hint) if part) or None)
+        key_hint = None
+        if response.status_code == 429 and not environ.get("DELPHI_EPIDATA_KEY"):
+            key_hint = (
+                "You are making anonymous requests; a free API key raises the rate limits. "
+                "Register at https://api.delphi.cmu.edu/epidata/admin/registration_form "
+                "and set it as DELPHI_EPIDATA_KEY."
+            )
+        raise EpiDataHTTPError(response, " ".join(part for part in (message, hint, key_hint) if part) or None)
 
 
 def _parse_classic_envelope(response: Response) -> EpiDataResponse:
@@ -639,7 +646,8 @@ class EpiDataCall:
             epidata = r.get("epidata")
             if epidata and isinstance(epidata, list) and len(epidata) > 0 and isinstance(epidata[0], dict):
                 r["epidata"] = [self._parse_row(row, disable_date_parsing=disable_date_parsing) for row in epidata]
-            if self.use_cache:
+            # Error envelopes (e.g. `result` -1) are not cached, so a later call can succeed.
+            if self.use_cache and r.get("result") in (1, 2, -2):
                 with Cache(CACHE_DIRECTORY) as cache:
                     cache_key = self._get_cache_key("classic", fields, str(disable_date_parsing))
                     cache.set(cache_key, r, expire=self.cache_max_age_days * 24 * 60 * 60)

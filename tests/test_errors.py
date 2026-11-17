@@ -98,3 +98,13 @@ def test_414_falls_back_to_post_with_params_in_body() -> None:
     assert [c[0] for c in session.calls] == ["GET", "POST"]
     assert session.calls[1][1]["data"] == {"a": "1"}
     assert "params" not in session.calls[1][1]
+
+
+def test_429_without_api_key_points_to_registration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("DELPHI_EPIDATA_KEY", raising=False)
+    with pytest.raises(EpiDataHTTPError, match="registration_form"):
+        _raise_for_status(_response('{"message": "rate limited"}', 429, "application/json"))
+    monkeypatch.setenv("DELPHI_EPIDATA_KEY", "k")
+    with pytest.raises(EpiDataHTTPError) as exc:
+        _raise_for_status(_response('{"message": "rate limited"}', 429, "application/json"))
+    assert "registration_form" not in str(exc.value)
