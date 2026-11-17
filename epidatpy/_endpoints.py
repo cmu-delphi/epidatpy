@@ -1360,7 +1360,7 @@ class EpiDataContext:
         Disease Control and Prevention (KCDC).
 
         The list of location argument can be found in
-        <https://github.com/cmu-delphi/delphi-epidata/blob/main/labels/kcdc_regions.txt>.
+        <https://cmu-delphi.github.io/delphi-epidata/api/geographic_codes.html#republic-of-korea>.
 
         Parameters
         ----------
@@ -1402,7 +1402,7 @@ class EpiDataContext:
     def pvt_meta_norostat(self, auth: str) -> EpiDataCall:
         """Fetch NoroSTAT metadata.
 
-        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/norostat_meta.html>
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/meta_norostat.html>
 
         Requires a private API key.
 
@@ -1558,7 +1558,7 @@ class EpiDataContext:
     def pub_nowcast(self, locations: StringParam, epiweeks: EpiRangeParam = "*") -> EpiDataCall:
         """Fetch Delphi's wILI nowcast.
 
-        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/ili_nearby_nowcast.html>
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/nowcast.html>
 
         Parameters
         ----------
@@ -1693,7 +1693,7 @@ class EpiDataContext:
     ) -> EpiDataCall:
         """Fetch Delphi's digital surveillance sensors.
 
-        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/digital_surveillance_sensors.html>
+        API docs: <https://cmu-delphi.github.io/delphi-epidata/api/sensors.html>
 
         Requires a private API key.
 
