@@ -80,6 +80,13 @@ Discover endpoints and control how queries are built, cached, and fetched.
 
 .. autofunction:: epidatpy.available_endpoints
 
+.. autofunction:: epidatpy.cache_info
+
+.. autoclass:: epidatpy.CacheInfo
+   :members:
+
+.. autofunction:: epidatpy.clear_cache
+
 Configuration and utilities
 ---------------------------
 
