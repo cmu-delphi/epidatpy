@@ -1,0 +1,34 @@
+{# Top navbar like pkgdown's: Articles opens a dropdown. Markup copied from the
+   theme's own "More" dropdown. Keep the article list in sync with the toctree in index.rst. #}
+{%- set articles = [
+  ("signal_discovery", "Signal discovery"),
+  ("versioned_data", "Versioned data"),
+  ("migration_guide", "Migration guide"),
+] -%}
+{%- macro nav_link(page, title) -%}
+<li class="nav-item {% if pagename == page %}current active{% endif %}">
+  <a class="nav-link nav-internal" href="{{ pathto(page) }}">{{ title }}</a>
+</li>
+{%- endmacro -%}
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    {{ nav_link("getting_started", "Get started") }}
+    <li class="nav-item dropdown {% if pagename in articles | map('first') %}current active{% endif %}">
+      <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="delphi-nav-articles">
+        Articles
+      </button>
+      <ul id="delphi-nav-articles" class="dropdown-menu">
+        {%- for page, title in articles %}
+        <li><a class="nav-link dropdown-item nav-internal" href="{{ pathto(page) }}">{{ title }}</a></li>
+        {%- endfor %}
+      </ul>
+    </li>
+    {{ nav_link("epidatpy", "Reference") }}
+    {{ nav_link("changelog", "Changelog") }}
+    {%- for link in theme_external_links %}
+    <li class="nav-item">
+      <a class="nav-link nav-external" href="{{ link.url }}">{{ link.name }}</a>
+    </li>
+    {%- endfor %}
+  </ul>
+</nav>
