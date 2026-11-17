@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime
 from typing import TYPE_CHECKING, Literal
 
-from epiweeks import Week
+from epiweeks import Week, Year
 
 if TYPE_CHECKING:
     from ._model import EpiRange
@@ -51,6 +51,18 @@ def parse_api_date_or_week(value: str | float | None) -> date | None:
     return d
 
 
+def _user_week(value: str) -> Week:
+    """Parse a user-supplied `YYYYWW`, naming the year's last epiweek if the week doesn't exist."""
+    from ._model import InvalidArgumentException  # avoid circular import
+
+    try:
+        return Week.fromstring(value)
+    except ValueError as e:
+        year = int(value[:4]) if value[:4].isdigit() else None
+        hint = f" Year {year} has epiweeks 1 to {Year(year).totalweeks()}." if year else ""
+        raise InvalidArgumentException(f"`{value}` is not an epiweek that exists.{hint}") from e
+
+
 def parse_user_date_or_week(
     value: str | int | date | Week, out_type: Literal["day", "week"] | None = None
 ) -> date | Week:
@@ -67,7 +79,7 @@ def parse_user_date_or_week(
     value = str(value)
     if out_type == "week":
         if len(value) == 6:
-            return Week.fromstring(value)
+            return _user_week(value)
         if len(value) == 8:
             return Week.fromdate(datetime.strptime(value, "%Y%m%d").date())
         if len(value) == 10:
@@ -79,7 +91,7 @@ def parse_user_date_or_week(
             return datetime.strptime(value, "%Y-%m-%d").date()
     if out_type is None:
         if len(value) == 6:
-            return Week.fromstring(value)
+            return _user_week(value)
         if len(value) == 8:
             return datetime.strptime(value, "%Y%m%d").date()
         if len(value) == 10:
@@ -127,7 +139,7 @@ def validate_report_time_query(report_time: str | int | date | datetime | Week |
 
     if isinstance(report_time, EpiRange):
         start = report_time.start.startdate() if isinstance(report_time.start, Week) else report_time.start
-        end = report_time.end.startdate() if isinstance(report_time.end, Week) else report_time.end
+        end = report_time.end.enddate() if isinstance(report_time.end, Week) else report_time.end
         return f"{start.strftime('%Y-%m-%d')}:{end.strftime('%Y-%m-%d')}"
 
     operator: str | None = None
@@ -199,17 +211,21 @@ def format_reference_times(reference_time: object) -> str | None:
     """
     from ._model import EpiRange  # avoid circular import
 
-    def day(value: date | Week) -> date:
+    # A week covers Sunday to Saturday; weekly data is dated by the week's Saturday.
+    def first_day(value: date | Week) -> date:
         return value.startdate() if isinstance(value, Week) else value
+
+    def last_day(value: date | Week) -> date:
+        return value.enddate() if isinstance(value, Week) else value
 
     def one(item: object) -> str:
         if isinstance(item, EpiRange):
-            return f"{day(item.start):%Y-%m-%d}:{day(item.end):%Y-%m-%d}"
+            return f"{first_day(item.start):%Y-%m-%d}:{last_day(item.end):%Y-%m-%d}"
         if isinstance(item, str) and (item.startswith(("<", ">", "=")) or ":" in item):
             return item.strip()
         # `type: ignore` because the item is any user-supplied date-like value.
-        d = day(parse_user_date_or_week(item))  # type: ignore[arg-type]
-        return f"{d:%Y-%m-%d}:{d:%Y-%m-%d}"
+        parsed = parse_user_date_or_week(item)  # type: ignore[arg-type]
+        return f"{first_day(parsed):%Y-%m-%d}:{last_day(parsed):%Y-%m-%d}"
 
     if reference_time is None or reference_time == "*":
         return None

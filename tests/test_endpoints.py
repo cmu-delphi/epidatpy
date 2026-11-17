@@ -10,7 +10,7 @@ from epiweeks import Week
 
 from epidatpy import EmptyResultWarning, EpiDataContext, EpiRange, InvalidArgumentException
 from epidatpy._call import EpiDataCall
-from epidatpy._parse import format_reference_times
+from epidatpy._parse import format_reference_times, validate_report_time_query
 
 from .conftest import FakeServer
 
@@ -110,11 +110,12 @@ def test_wildcards_send_no_filter(fake_server: Callable[..., FakeServer]) -> Non
         (None, None),
         (date(2025, 1, 1), "2025-01-01:2025-01-01"),
         (20250101, "2025-01-01:2025-01-01"),
-        (Week(2025, 3), "2025-01-12:2025-01-12"),
-        (EpiRange(Week(2025, 1), Week(2025, 3)), "2024-12-29:2025-01-12"),
+        (Week(2025, 3), "2025-01-12:2025-01-18"),
+        (EpiRange(Week(2025, 1), Week(2025, 3)), "2024-12-29:2025-01-18"),
         ([date(2025, 1, 1), ">=2025-06-01", date(2025, 1, 1)], "2025-01-01:2025-01-01,>=2025-06-01"),
         (["2025-01-01:2025-02-01"], "2025-01-01:2025-02-01"),
         (["*", date(2025, 1, 1)], None),
+        ("202503", "2025-01-12:2025-01-18"),
     ],
 )
 def test_format_reference_times(value: object, expected: str | None) -> None:
@@ -261,3 +262,15 @@ def test_key_filters_are_sent_as_extra_keys() -> None:
     ):
         assert _params(call.request_url())["extra_keys"] == ["pcr_target:sars-cov-2"]
     assert "extra_keys" not in _params(ctx.epidata_snapshot("nwss", "a", "sewershed").request_url())
+
+
+@pytest.mark.parametrize("bad", ["202453", "202400", "202454"])
+def test_nonexistent_epiweek_is_rejected(bad: str) -> None:
+    with pytest.raises(InvalidArgumentException, match="epiweeks 1 to 52"):
+        format_reference_times(bad)
+    with pytest.raises(InvalidArgumentException):
+        EpiRange(bad, "202501")
+
+
+def test_epiweek_range_report_time_ends_on_saturday() -> None:
+    assert validate_report_time_query(EpiRange(Week(2025, 1), Week(2025, 4))) == "2024-12-29:2025-01-25"
