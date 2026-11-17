@@ -201,6 +201,10 @@ def format_geo_values(geo_values: str | Sequence[str] | None) -> str | None:
     return ",".join(values)
 
 
+# Long lists of terms make slow requests; one range plus a local filter is cheaper.
+MAX_TIME_FILTER_TERMS = 128
+
+
 def format_reference_times(reference_time: object) -> str | None:
     """Format `reference_time` as the cast-API `reference_times` filter, or None for no filter.
 
@@ -232,7 +236,15 @@ def format_reference_times(reference_time: object) -> str | None:
     items = [reference_time] if isinstance(reference_time, (str, int, date, Week, EpiRange)) else list(reference_time)  # type: ignore[call-overload]
     if not items or "*" in items:
         return None
-    return ",".join(dict.fromkeys(one(i) for i in items))
+    terms = list(dict.fromkeys(one(i) for i in items))
+    if len(terms) > MAX_TIME_FILTER_TERMS:
+        from ._model import InvalidArgumentException  # avoid circular import
+
+        raise InvalidArgumentException(
+            f"`reference_time` has {len(terms)} terms; the limit is {MAX_TIME_FILTER_TERMS}. "
+            "Request one `EpiRange(min, max)` instead and filter the result locally."
+        )
+    return ",".join(terms)
 
 
 _GRANULARITY_RE = re.compile(r"(?:\d{4}-\d{2}-\d{2}|\d{8}|\d{6})(?!\d)")
