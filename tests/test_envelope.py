@@ -120,3 +120,11 @@ def test_unknown_categorical_value_warns_and_is_kept(fake_server: Callable[..., 
     with pytest.warns(UnknownCategoryWarning, match=r"`time_type`.*\['hour'\]"):
         df = call.df()
     assert df["time_type"].tolist() == ["day", "hour"]
+
+
+def test_unparseable_date_column_warns_and_stays_strings(fake_server: Callable[..., FakeServer]) -> None:
+    rows = [ROW, {**ROW, "release_date": "12152020"}]
+    call = _call(fake_server, {"result": 1, "message": "success", "epidata": rows})
+    with pytest.warns(UserWarning, match=r"`release_date` could not be parsed.*1 unparseable value, e\.g\. '12152020'"):
+        df = call.df()
+    assert list(df["release_date"]) == ["2020-01-01", "12152020"]
