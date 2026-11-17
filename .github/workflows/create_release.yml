@@ -1,37 +1,15 @@
 name: Create Release
 
-# Cuts a release from a branch whose version (pyproject.toml) is ALREADY bumped.
-# Bumping is done by a human in a normal, reviewed PR — this workflow never
-# commits to a protected branch. It only manages the rel-X.Y line, tags vX.Y.Z,
-# and creates a GitHub Release whose notes are the "## X.Y.Z" section of
-# CHANGELOG.md (written in a reviewed PR beforehand; the run fails without it).
-# Pushing the tag triggers pypi_publish.yml (build +
-# upload to PyPI) and documentation.yml — publishing is intentionally a separate,
-# independently re-runnable workflow.
-#
-# Behavior is driven by the target branch, not a bump type:
-#
-#   target = dev (or any non-rel trunk): cuts a new release line. Reads dev's
-#   current version X.Y.Z, requires rel-X.Y to NOT exist yet, creates rel-X.Y at
-#   dev HEAD, tags vX.Y.Z. Convention: minor/major bumps land on dev, so X.Y.Z is
-#   normally X.Y.0 — but the patch number is not enforced (cutting at X.Y.2 is
-#   fine, v X.Y.0/.1 just never existed).
-#
-#   target = rel-X.Y (hotfix): the patch was already bumped on the branch. Reads
-#   the version, checks it belongs to this branch, tags vX.Y.Z. The branch must
-#   already exist — cut the line with a release from dev first.
+# Cuts a release from dev, whose version (pyproject.toml) is ALREADY bumped.
+# Bumping is done by a human in a normal, reviewed PR; this workflow never
+# commits to a protected branch. It tags vX.Y.Z at the branch HEAD and creates
+# a GitHub Release whose notes are the "## X.Y.Z" section of CHANGELOG.md
+# (written in a reviewed PR beforehand; the run fails without it).
+# Pushing the tag triggers pypi_publish.yml (build + upload to PyPI) and
+# documentation.yml; publishing is intentionally a separate, independently
+# re-runnable workflow.
 on:
-  # The branch to release from is the one picked in the native "Use workflow
-  # from" dropdown (github.ref_name): dev (or another trunk) cuts a new rel-X.Y
-  # line; a rel-X.Y branch cuts a hotfix. There is deliberately no separate
-  # branch input — it would duplicate that dropdown and could disagree with it.
   workflow_dispatch:
-    inputs:
-      version_bumped:
-        description: "Confirm the version in pyproject.toml was already bumped (in a merged PR) on the selected branch"
-        required: true
-        type: boolean
-        default: false
 
 concurrency:
   group: create-release
@@ -43,38 +21,25 @@ jobs:
     if: github.repository_owner == 'cmu-delphi'
     permissions:
       contents: write
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      commit_sha: ${{ steps.version.outputs.commit_sha }}
-      release_branch: ${{ steps.version.outputs.release_branch }}
     steps:
-      - name: Check version bump was confirmed
-        if: ${{ !inputs.version_bumped }}
-        run: |
-          echo "ERROR: version_bumped is false. Bump the version in pyproject.toml"
-          echo "via a merged PR on '${{ github.ref_name }}' first, then re-run."
-          exit 1
       - name: Checkout selected branch
         uses: actions/checkout@v4
         with:
-          # No ref: — defaults to the branch picked in "Use workflow from".
           fetch-depth: 0
           ssh-key: ${{ secrets.CMU_DELPHI_DEPLOY_MACHINE_SSH }}
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
-      - name: Resolve version and manage release branch
+      - name: Check changelog and tag
         id: version
         run: |
-          TARGET="${{ github.ref_name }}"
           VERSION=$(uv version --short)
-          REL_BRANCH="rel-${VERSION%.*}"
-          echo "Target branch: $TARGET, version: $VERSION, release line: $REL_BRANCH"
+          echo "Releasing $VERSION from ${{ github.ref_name }}"
 
           # The release notes are this version's CHANGELOG.md section (see
-          # DEVELOPMENT.md). Check before pushing any branch or tag, so a missing
-          # section fails without leaving a half-made release behind.
+          # DEVELOPMENT.md). Check before pushing the tag, so a missing section
+          # fails without leaving a half-made release behind.
           awk -v h="## $VERSION" '$0 == h {f = 1; next} /^## / {f = 0} f' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
           if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
             echo "ERROR: CHANGELOG.md has no '## $VERSION' section (or it is empty)." \
@@ -83,34 +48,11 @@ jobs:
           fi
 
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
-            echo "ERROR: tag v$VERSION already exists. Was this version already" \
-              "released? Bump the version before cutting a new release."
+            echo "ERROR: tag v$VERSION already exists. Was the version bumped?"
             exit 1
           fi
 
-          if echo "$TARGET" | grep -Eq '^rel-[0-9]+\.[0-9]+$'; then
-            # Hotfix: releasing from an existing rel-X.Y branch. The patch was
-            # already bumped on it; just verify the version belongs here.
-            if [ "$REL_BRANCH" != "$TARGET" ]; then
-              echo "ERROR: version $VERSION (line $REL_BRANCH) does not belong to" \
-                "branch $TARGET — pyproject.toml is inconsistent with the branch name."
-              exit 1
-            fi
-          else
-            # New line: cut rel-X.Y from the trunk. It must not exist yet —
-            # if it does, the version on $TARGET was almost certainly not bumped.
-            if git ls-remote --exit-code --heads origin "refs/heads/$REL_BRANCH" > /dev/null; then
-              echo "ERROR: release branch $REL_BRANCH already exists. Did you forget" \
-                "to bump the version on $TARGET? To hotfix the existing line, re-run" \
-                "this workflow from $REL_BRANCH (select it in 'Use workflow from')."
-              exit 1
-            fi
-            git push origin "HEAD:refs/heads/$REL_BRANCH"
-          fi
-
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "release_branch=$REL_BRANCH" >> $GITHUB_OUTPUT
-          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
       - name: Tag and create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -121,10 +63,6 @@ jobs:
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin "v$VERSION"
           gh release create "v$VERSION" \
-            --target ${{ steps.version.outputs.commit_sha }} \
+            --target "$(git rev-parse HEAD)" \
             --title "v$VERSION" \
             --notes-file "$RUNNER_TEMP/notes.md"
-
-          # Pushing the vX.Y.Z tag above triggers pypi_publish.yml (build +
-          # publish) and documentation.yml. Publishing is decoupled so a failed
-          # upload can be re-run against the tag without unwinding this release.
