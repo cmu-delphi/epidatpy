@@ -3,7 +3,9 @@ name: Create Release
 # Cuts a release from a branch whose version (pyproject.toml) is ALREADY bumped.
 # Bumping is done by a human in a normal, reviewed PR — this workflow never
 # commits to a protected branch. It only manages the rel-X.Y line, tags vX.Y.Z,
-# and creates a GitHub Release. Pushing the tag triggers pypi_publish.yml (build +
+# and creates a GitHub Release whose notes are the "## X.Y.Z" section of
+# CHANGELOG.md (written in a reviewed PR beforehand; the run fails without it).
+# Pushing the tag triggers pypi_publish.yml (build +
 # upload to PyPI) and documentation.yml — publishing is intentionally a separate,
 # independently re-runnable workflow.
 #
@@ -70,6 +72,16 @@ jobs:
           REL_BRANCH="rel-${VERSION%.*}"
           echo "Target branch: $TARGET, version: $VERSION, release line: $REL_BRANCH"
 
+          # The release notes are this version's CHANGELOG.md section (see
+          # DEVELOPMENT.md). Check before pushing any branch or tag, so a missing
+          # section fails without leaving a half-made release behind.
+          awk -v h="## $VERSION" '$0 == h {f = 1; next} /^## / {f = 0} f' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "ERROR: CHANGELOG.md has no '## $VERSION' section (or it is empty)." \
+              "Add it in a PR first (run 'just changelog'), then re-run."
+            exit 1
+          fi
+
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" > /dev/null; then
             echo "ERROR: tag v$VERSION already exists. Was this version already" \
               "released? Bump the version before cutting a new release."
@@ -111,7 +123,7 @@ jobs:
           gh release create "v$VERSION" \
             --target ${{ steps.version.outputs.commit_sha }} \
             --title "v$VERSION" \
-            --generate-notes
+            --notes-file "$RUNNER_TEMP/notes.md"
 
           # Pushing the vX.Y.Z tag above triggers pypi_publish.yml (build +
           # publish) and documentation.yml. Publishing is decoupled so a failed

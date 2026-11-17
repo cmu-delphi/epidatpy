@@ -31,18 +31,21 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Install just
+        uses: extractions/setup-just@v3
+
       - name: Install dependencies
         run: uv sync --extra dev
 
       - name: Sphinx build
-        run: make doc
+        run: just doc
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions"
-          # `make doc` builds into docs/_build
+          # `just doc` builds into docs/_build
           publish-dir: './docs/_build'
           # Development deploys only
           production-deploy: false

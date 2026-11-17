@@ -158,40 +158,7 @@ purpose.
 
 ## Development
 
-The following commands are available for developers:
-
-```sh
-make install        # setup venv, install dependencies and local package
-make test           # run unit tests
-make format         # format code
-make lint           # check linting
-make doc            # build docs
-make doc-preview    # preview docs in browser
-make release        # build distribution packages
-make upload         # upload the current version to pypi
-make clean          # clean build and docs artifacts
-```
-
-### Release Process
-
-`dev` is the only long-lived branch; each release line lives on a `rel-X.Y` branch.
-Everything is driven by the [create_release](https://github.com/cmu-delphi/epidatpy/actions/workflows/create_release.yml)
-workflow, run with a `bump` of `major`, `minor`, or `patch`:
-
-- **`major` / `minor`:** bumps the version on `dev`, cuts a new `rel-X.Y` branch at
-  that commit, and tags `vX.Y.0`.
-- **`patch` (hotfix):** bumps the patch version on an existing `rel-X.Y` branch and
-  tags `vX.Y.Z`. Land the fix on that branch first (commit directly or cherry-pick
-  from `dev`); set `release_branch` to pick the branch (defaults to the line
-  matching `dev`'s version).
-
-Either way the workflow creates a [GitHub release](https://github.com/cmu-delphi/epidatpy/releases)
-with auto-generated notes. Pushing the `vX.Y.Z` tag then triggers `pypi_publish`
-(build + upload to [PyPI](https://pypi.python.org/pypi/epidatpy/)) and `documentation`
-(docs rebuild). Because publishing is a separate workflow keyed off the tag rather
-than a step inside `create_release`, a failed PyPI upload can be re-run against the
-existing tag via the `pypi_publish` workflow's `Run workflow` button — without redoing
-the release cut.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for developer commands and the release process.
 
 [mit-image]: https://img.shields.io/badge/License-MIT-yellow.svg
 [mit-url]: https://opensource.org/licenses/MIT
