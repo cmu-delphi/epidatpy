@@ -22,6 +22,7 @@ from ._model import (
     InvalidArgumentException,
     TimeType,
 )
+from ._parse import check_timeset
 
 if TYPE_CHECKING:
     from ._call import EpiDataCall
@@ -158,6 +159,8 @@ class DataSignal:
             raise InvalidArgumentException("`geo_type`, `time_values`, and `geo_values` are all required")
         if issues is not None and lag is not None:
             raise InvalidArgumentException("`issues` and `lag` are mutually exclusive")
+        check_timeset("time_values", time_values, self.time_type)
+        check_timeset("issues", issues, self.time_type)
 
         return self._create_call(
             {
