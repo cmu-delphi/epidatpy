@@ -25,11 +25,13 @@ jobs:
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
+      - name: Install just
+        uses: extractions/setup-just@v3
       - name: Install dependencies
         run: uv sync --extra dev
       - name: Sphinx build
         run: |
-          make doc
+          just doc
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:

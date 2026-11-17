@@ -17,7 +17,9 @@ jobs:
           enable-cache: true
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
+      - name: Install just
+        uses: extractions/setup-just@v3
       - name: Install
-        run: make install
+        run: just install
       - name: CI
-        run: make ci
+        run: just ci
